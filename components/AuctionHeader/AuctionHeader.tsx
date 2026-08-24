@@ -1,6 +1,7 @@
 import { CalendarDays, Gavel, Search, ShoppingBag, ShoppingCart, UserRound } from "lucide-react";
 import Link from "next/link";
 import { getUser } from "@/lib/auth/server/session";
+import { getMarketplaceUrl } from "@/lib/config/urls";
 import { PrincesaLogoIcon } from "@/components/AuctionHeader/PrincesaRuralIcon";
 import { MarketplaceHandoffLink } from "@/components/AuctionHeader/MarketplaceHandoffLink";
 
@@ -13,6 +14,7 @@ const navigation = [
 
 export async function AuctionHeader() {
   const user = await getUser();
+  const marketplaceUrl = getMarketplaceUrl();
 
   return (
     <header className="sticky top-0 z-50 text-white shadow-[0_3px_16px_rgba(0,0,0,0.12)]"> 
@@ -58,6 +60,7 @@ export async function AuctionHeader() {
             {user ? (
               <MarketplaceHandoffLink
                 pathname="/perfil"
+                baseUrl={marketplaceUrl}
                 className="order-2 inline-flex min-h-8 max-w-[12rem] items-center gap-2 rounded-full border border-white/75 px-3 text-xs font-medium outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/80 md:order-3"
               >
                 <UserRound className="size-3.5 shrink-0" aria-hidden="true" />
@@ -81,7 +84,7 @@ export async function AuctionHeader() {
             {navigation.map(({ label, href, icon: Icon, active, external }) => {
               const className = `inline-flex min-h-7 shrink-0 items-center gap-2 rounded-md px-2 text-[11px] font-bold uppercase tracking-[0.02em] outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/80 sm:px-3 ${active ? "bg-white/10 text-white" : "text-white/90"}`;
               return external ? (
-                <MarketplaceHandoffLink key={label} pathname={href} className={className}>
+                <MarketplaceHandoffLink key={label} pathname={href} baseUrl={marketplaceUrl} className={className}>
                   <Icon className="size-3.5" aria-hidden="true" />
                   {label}
                 </MarketplaceHandoffLink>

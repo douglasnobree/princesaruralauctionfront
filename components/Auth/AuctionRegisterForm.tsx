@@ -79,7 +79,7 @@ function FieldMessage({ id, message }: { id: string; message?: string }) {
   );
 }
 
-export function AuctionRegisterForm() {
+export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string }) {
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -298,7 +298,7 @@ export function AuctionRegisterForm() {
           <span id="register-terms-description">
             Li e aceito os{" "}
             <a
-              href={`${(process.env.NEXT_PUBLIC_MARKETPLACE_URL || "http://localhost:3000").replace(/\/$/, "")}/termos`}
+              href={`${marketplaceUrl}/termos`}
               target="_blank"
               rel="noreferrer"
               className="font-medium text-[#08734e] underline underline-offset-2 hover:text-[#075b3e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24]"
@@ -307,7 +307,7 @@ export function AuctionRegisterForm() {
             </a>{" "}
             e a{" "}
             <a
-              href={`${(process.env.NEXT_PUBLIC_MARKETPLACE_URL || "http://localhost:3000").replace(/\/$/, "")}/privacidade`}
+              href={`${marketplaceUrl}/privacidade`}
               target="_blank"
               rel="noreferrer"
               className="font-medium text-[#08734e] underline underline-offset-2 hover:text-[#075b3e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24]"

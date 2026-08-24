@@ -2,17 +2,16 @@
 
 import { normalizeApiBaseUrl } from "@/lib/api/base-url";
 import { getAccessToken } from "@/lib/auth/server/session";
+import { getMarketplaceUrl } from "@/lib/config/urls";
 
 const API_URL = normalizeApiBaseUrl(process.env.API_BASE_URL);
-const MARKETPLACE_URL = (
-  process.env.NEXT_PUBLIC_MARKETPLACE_URL || "http://localhost:3000"
-).replace(/\/$/, "");
 
 function getMarketplaceDestination(pathname: string) {
-  const fallback = new URL("/busca", MARKETPLACE_URL);
+  const marketplaceUrl = getMarketplaceUrl();
+  const fallback = new URL("/busca", marketplaceUrl);
 
   try {
-    const destination = new URL(pathname, MARKETPLACE_URL);
+    const destination = new URL(pathname, marketplaceUrl);
     if (destination.origin === fallback.origin && pathname.startsWith("/")) {
       return destination;
     }
@@ -25,6 +24,7 @@ function getMarketplaceDestination(pathname: string) {
 
 export async function createMarketplaceHandoffAction(pathname = "/busca") {
   const destination = getMarketplaceDestination(pathname);
+  const marketplaceUrl = getMarketplaceUrl();
   const accessToken = await getAccessToken();
 
   if (!accessToken) {
@@ -43,7 +43,7 @@ export async function createMarketplaceHandoffAction(pathname = "/busca") {
     const data = (await response.json()) as { ticket?: string };
     if (!data.ticket) throw new Error("SSO ticket was not returned");
 
-    const callbackUrl = new URL(`${MARKETPLACE_URL}/api/auth/sso/callback`);
+    const callbackUrl = new URL(`${marketplaceUrl}/api/auth/sso/callback`);
     callbackUrl.searchParams.set("ticket", data.ticket);
     callbackUrl.searchParams.set("returnTo", destination.toString());
 

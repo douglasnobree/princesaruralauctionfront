@@ -4,23 +4,21 @@ import type { MouseEvent, ReactNode } from "react";
 import { useState } from "react";
 import { createMarketplaceHandoffAction } from "@/hooks/actions/ssoActions";
 
-const marketplaceUrl = (
-  process.env.NEXT_PUBLIC_MARKETPLACE_URL || "http://localhost:3000"
-).replace(/\/$/, "");
-
 interface MarketplaceHandoffLinkProps {
   pathname: string;
+  baseUrl: string;
   children: ReactNode;
   className?: string;
 }
 
 export function MarketplaceHandoffLink({
   pathname,
+  baseUrl,
   children,
   className,
 }: MarketplaceHandoffLinkProps) {
   const [isPending, setIsPending] = useState(false);
-  const directUrl = `${marketplaceUrl}${pathname}`;
+  const directUrl = `${baseUrl.replace(/\/$/, "")}${pathname}`;
 
   async function handleClick(event: MouseEvent<HTMLAnchorElement>) {
     event.preventDefault();

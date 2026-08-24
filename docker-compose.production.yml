@@ -1,5 +1,7 @@
 services:
   frontleiloes:
+    env_file:
+      - .env
     build:
       context: .
       dockerfile: Dockerfile

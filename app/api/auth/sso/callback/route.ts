@@ -4,11 +4,9 @@ import {
   createSessionFromAccessToken,
   persistRefreshToken,
 } from "@/lib/auth/server/session";
+import { getMarketplaceUrl } from "@/lib/config/urls";
 
 const API_URL = normalizeApiBaseUrl(process.env.API_BASE_URL);
-const MARKETPLACE_URL = (
-  process.env.NEXT_PUBLIC_MARKETPLACE_URL || "http://localhost:3000"
-).replace(/\/$/, "");
 
 function getSafeReturnUrl(request: NextRequest) {
   const fallback = new URL("/leiloes", request.url);
@@ -19,7 +17,7 @@ function getSafeReturnUrl(request: NextRequest) {
     const target = new URL(requested);
     const allowedOrigins = new Set([
       new URL(request.url).origin,
-      new URL(MARKETPLACE_URL).origin,
+      new URL(getMarketplaceUrl()).origin,
     ]);
     if (allowedOrigins.has(target.origin)) return target;
   } catch {

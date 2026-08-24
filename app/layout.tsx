@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_AUCTION_APP_URL || "http://localhost:3001",
+    process.env.NEXT_PUBLIC_AUCTION_APP_URL || "https://prleiloes.com",
   ),
   title: {
     default: "Leilões | Princesa Rural",

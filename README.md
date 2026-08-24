@@ -24,7 +24,13 @@ cd /apps/frontleiloes
 docker compose -f docker-compose.production.yml up -d --build
 ```
 
-O Nginx e o frontend precisam estar na mesma rede Docker. Confira com:
+O Nginx e o frontend precisam estar na mesma rede Docker. O `env_file` carrega o `.env` em runtime; execute com `--env-file` para garantir que o Compose use o arquivo deste projeto:
+
+```bash
+docker compose --env-file .env -f docker-compose.production.yml up -d --build frontleiloes
+```
+
+Confira com:
 
 ```bash
 docker network inspect apps_app-network
