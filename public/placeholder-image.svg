@@ -1,0 +1,8 @@
+<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="400" fill="#F3F4F6"/>
+  <path d="M125 125H275V275H125V125Z" stroke="none"/>
+  <path d="M137.5 262.5H262.5V137.5H137.5V262.5Z" stroke="#9CA3AF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <path d="M137.5 225L168.75 193.75C170.821 191.679 174.179 191.679 176.25 193.75L187.5 205M187.5 205L208.75 183.75C210.821 181.679 214.179 181.679 216.25 183.75L262.5 230" stroke="#9CA3AF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="218.75" cy="168.75" r="8" fill="#9CA3AF"/>
+  <text x="200" y="320" text-anchor="middle" fill="#9CA3AF" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="500">Imagem não disponível</text>
+</svg>
