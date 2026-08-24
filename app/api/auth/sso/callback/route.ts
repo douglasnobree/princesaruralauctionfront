@@ -4,19 +4,23 @@ import {
   createSessionFromAccessToken,
   persistRefreshToken,
 } from "@/lib/auth/server/session";
-import { getMarketplaceUrl } from "@/lib/config/urls";
+import {
+  getAuctionAppUrl,
+  getMarketplaceUrl,
+} from "@/lib/config/urls";
 
 const API_URL = normalizeApiBaseUrl(process.env.API_BASE_URL);
 
 function getSafeReturnUrl(request: NextRequest) {
-  const fallback = new URL("/leiloes", request.url);
+  const auctionUrl = getAuctionAppUrl();
+  const fallback = new URL("/leiloes", auctionUrl);
   const requested = request.nextUrl.searchParams.get("returnTo");
   if (!requested) return fallback;
 
   try {
     const target = new URL(requested);
     const allowedOrigins = new Set([
-      new URL(request.url).origin,
+      new URL(auctionUrl).origin,
       new URL(getMarketplaceUrl()).origin,
     ]);
     if (allowedOrigins.has(target.origin)) return target;
@@ -27,10 +31,16 @@ function getSafeReturnUrl(request: NextRequest) {
   return fallback;
 }
 
+function getSsoErrorUrl(error: "invalid" | "expired" | "unavailable") {
+  const loginUrl = new URL("/login", getAuctionAppUrl());
+  loginUrl.searchParams.set("sso", error);
+  return loginUrl;
+}
+
 export async function GET(request: NextRequest) {
   const ticket = request.nextUrl.searchParams.get("ticket");
   if (!ticket) {
-    return NextResponse.redirect(new URL("/login?sso=invalid", request.url));
+    return NextResponse.redirect(getSsoErrorUrl("invalid"));
   }
 
   try {
@@ -42,7 +52,9 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      return NextResponse.redirect(new URL("/login?sso=expired", request.url));
+      return NextResponse.redirect(
+        getSsoErrorUrl(response.status === 401 ? "expired" : "unavailable"),
+      );
     }
 
     const data = (await response.json()) as {
@@ -50,7 +62,7 @@ export async function GET(request: NextRequest) {
       refreshToken?: string;
     };
     if (!data.accessToken) {
-      return NextResponse.redirect(new URL("/login?sso=invalid", request.url));
+      return NextResponse.redirect(getSsoErrorUrl("invalid"));
     }
 
     await createSessionFromAccessToken(data.accessToken);
@@ -58,6 +70,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(getSafeReturnUrl(request));
   } catch {
-    return NextResponse.redirect(new URL("/login?sso=unavailable", request.url));
+    return NextResponse.redirect(getSsoErrorUrl("unavailable"));
   }
 }

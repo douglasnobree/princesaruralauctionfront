@@ -34,3 +34,11 @@ export function getMarketplaceUrl() {
       : "http://localhost:3000",
   );
 }
+
+export function getAuctionAppUrl() {
+  const configuredUrl =
+    readRuntimeEnv("AUCTION_APP_URL") ||
+    readRuntimeEnv("NEXT_PUBLIC_AUCTION_APP_URL");
+
+  return normalizePublicUrl(configuredUrl, "https://prleiloes.com");
+}
