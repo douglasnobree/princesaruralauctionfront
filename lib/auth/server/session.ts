@@ -35,6 +35,10 @@ export async function getUser(): Promise<User | null> {
   return (await getSession())?.user ?? null;
 }
 
+export async function getAccessToken(): Promise<string | null> {
+  return (await getSession())?.accessToken ?? null;
+}
+
 type AccessTokenPayload = {
   id: string;
   email: string;

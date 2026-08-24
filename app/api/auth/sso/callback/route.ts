@@ -17,7 +17,11 @@ function getSafeReturnUrl(request: NextRequest) {
 
   try {
     const target = new URL(requested);
-    if (target.origin === new URL(MARKETPLACE_URL).origin) return target;
+    const allowedOrigins = new Set([
+      new URL(request.url).origin,
+      new URL(MARKETPLACE_URL).origin,
+    ]);
+    if (allowedOrigins.has(target.origin)) return target;
   } catch {
     // Retorna para a página de leilões quando o destino não for válido.
   }

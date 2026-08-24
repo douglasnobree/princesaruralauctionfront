@@ -64,12 +64,8 @@ export function AuctionLoginForm() {
       return;
     }
 
-    if (result.ssoUrl) {
-      window.location.assign(result.ssoUrl);
-    } else {
-      router.replace("/leiloes");
-      router.refresh();
-    }
+    router.replace("/leiloes");
+    router.refresh();
   }
 
   const loginType = detectLoginType(login);

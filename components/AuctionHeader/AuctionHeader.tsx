@@ -2,14 +2,13 @@ import { CalendarDays, Gavel, Search, ShoppingBag, ShoppingCart, UserRound } fro
 import Link from "next/link";
 import { getUser } from "@/lib/auth/server/session";
 import { PrincesaLogoIcon } from "@/components/AuctionHeader/PrincesaRuralIcon";
-
-const marketplaceUrl = (process.env.NEXT_PUBLIC_MARKETPLACE_URL || "http://localhost:3000").replace(/\/$/, "");
+import { MarketplaceHandoffLink } from "@/components/AuctionHeader/MarketplaceHandoffLink";
 
 const navigation = [
   { label: "Agenda", href: "/leiloes#agenda", icon: CalendarDays },
   { label: "Leilões", href: "/leiloes", icon: Gavel, active: true },
-  { label: "Mercado", href: `${marketplaceUrl}/busca`, icon: ShoppingCart, external: true },
-  { label: "Shopping", href: `${marketplaceUrl}/lojas`, icon: ShoppingBag, external: true },
+  { label: "Mercado", href: "/busca", icon: ShoppingCart, external: true },
+  { label: "Shopping", href: "/lojas", icon: ShoppingBag, external: true },
 ];
 
 export async function AuctionHeader() {
@@ -57,13 +56,13 @@ export async function AuctionHeader() {
             <div className="hidden h-8 w-px bg-white/25 md:block" aria-hidden="true" />
 
             {user ? (
-              <a
-                href={`${marketplaceUrl}/perfil`}
+              <MarketplaceHandoffLink
+                pathname="/perfil"
                 className="order-2 inline-flex min-h-8 max-w-[12rem] items-center gap-2 rounded-full border border-white/75 px-3 text-xs font-medium outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/80 md:order-3"
               >
                 <UserRound className="size-3.5 shrink-0" aria-hidden="true" />
                 <span className="truncate">{user.email}</span>
-              </a>
+              </MarketplaceHandoffLink>
             ) : (
               <div className="order-2 inline-flex min-h-8 items-center gap-1.5 rounded-full border border-white/75 px-3 text-xs font-medium md:order-3">
                 <UserRound className="size-3.5" aria-hidden="true" />
@@ -82,10 +81,10 @@ export async function AuctionHeader() {
             {navigation.map(({ label, href, icon: Icon, active, external }) => {
               const className = `inline-flex min-h-7 shrink-0 items-center gap-2 rounded-md px-2 text-[11px] font-bold uppercase tracking-[0.02em] outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/80 sm:px-3 ${active ? "bg-white/10 text-white" : "text-white/90"}`;
               return external ? (
-                <a key={label} href={href} className={className}>
+                <MarketplaceHandoffLink key={label} pathname={href} className={className}>
                   <Icon className="size-3.5" aria-hidden="true" />
                   {label}
-                </a>
+                </MarketplaceHandoffLink>
               ) : (
                 <Link key={label} href={href} className={className}>
                   <Icon className="size-3.5" aria-hidden="true" />

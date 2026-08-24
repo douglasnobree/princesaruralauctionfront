@@ -13,34 +13,10 @@ export type AuctionLoginInput = {
 };
 
 export type AuctionLoginResult =
-  | { success: true; ssoUrl?: string }
+  | { success: true }
   | { success: false; error: string };
 
 const API_URL = normalizeApiBaseUrl(process.env.API_BASE_URL);
-
-async function createMarketplaceSsoUrl(accessToken: string) {
-  const marketplaceUrl = (
-    process.env.NEXT_PUBLIC_MARKETPLACE_URL || "http://localhost:3000"
-  ).replace(/\/$/, "");
-  const auctionAppUrl = (
-    process.env.NEXT_PUBLIC_AUCTION_APP_URL || "http://localhost:3001"
-  ).replace(/\/$/, "");
-
-  const response = await fetch(`${API_URL}/auth/sso/tickets`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${accessToken}` },
-    cache: "no-store",
-  });
-  if (!response.ok) throw new Error("SSO ticket could not be created");
-
-  const data = (await response.json()) as { ticket?: string };
-  if (!data.ticket) throw new Error("SSO ticket was not returned");
-
-  const callbackUrl = new URL(`${marketplaceUrl}/api/auth/sso/callback`);
-  callbackUrl.searchParams.set("ticket", data.ticket);
-  callbackUrl.searchParams.set("returnTo", `${auctionAppUrl}/leiloes`);
-  return callbackUrl.toString();
-}
 
 export async function loginAuctionAction(
   input: AuctionLoginInput,
@@ -86,15 +62,9 @@ export async function loginAuctionAction(
     const refreshTokenFromCookie = setCookieHeader?.match(/refreshToken=([^;]+)/)?.[1];
     const refreshToken = result.refreshToken || refreshTokenFromCookie;
     if (refreshToken) await persistRefreshToken(refreshToken);
-
-    let ssoUrl: string | undefined;
-    try {
-      ssoUrl = await createMarketplaceSsoUrl(result.accessToken);
-    } catch {
-      // O login local continua válido mesmo se o handoff estiver indisponível.
-    }
-
-    return { success: true, ssoUrl };
+    // O login do leilão permanece no leilão. O handoff para o marketplace
+    // é criado somente quando o usuário clica em Mercado ou Shopping.
+    return { success: true };
   } catch {
     return {
       success: false,
