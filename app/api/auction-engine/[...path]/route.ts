@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/server/session";
+import { normalizeApiBaseUrl } from "@/lib/api/base-url";
 
-const API_URL = (process.env.API_BASE_URL || "http://localhost:4000/api").replace(/\/$/, "");
+const API_URL = normalizeApiBaseUrl(process.env.API_BASE_URL);
 
 async function proxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;

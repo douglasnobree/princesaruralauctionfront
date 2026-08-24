@@ -16,7 +16,7 @@ export async function AuctionHeader() {
   const user = await getUser();
 
   return (
-    <header className="sticky top-0 z-50 text-white shadow-[0_3px_16px_rgba(0,0,0,0.12)]">
+    <header className="sticky top-0 z-50 text-white shadow-[0_3px_16px_rgba(0,0,0,0.12)]"> 
 
       <div className="bg-[#056942]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

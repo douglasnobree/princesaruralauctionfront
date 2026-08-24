@@ -7,8 +7,9 @@ import { getSession } from "@/lib/auth/server/session";
 import type { ActionResult } from "@/types/common";
 import type { AuctionParticipantSearchResult, EngineAuctionRegistration, EngineAuctionRegistrationPage, EngineAuctionSnapshot, EngineBidHistoryPage, EngineBidHistoryQuery, EngineBidManagementResult, EngineBidResult, EngineOwnProxyBid, EnginePendingBidsPage, EngineRealtimeTicket, EngineStream } from "@/lib/auctions/engine-types";
 import { explainEngineError, getEngineErrorCode } from "@/lib/auctions/engine-errors";
+import { normalizeApiBaseUrl } from "@/lib/api/base-url";
 
-const API_URL = (process.env.API_BASE_URL || "http://localhost:4000/api").replace(/\/$/, "");
+const API_URL = normalizeApiBaseUrl(process.env.API_BASE_URL);
 
 async function authenticatedHeaders() {
   const session = await getSession();

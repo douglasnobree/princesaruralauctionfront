@@ -67,6 +67,42 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+:where(.register-input) {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid oklch(0.88 0.018 145);
+  border-radius: 0.5rem;
+  background: white;
+  padding: 0.625rem 0.75rem;
+  color: oklch(0.22 0.025 155);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.register-input-with-icon {
+  padding-left: 2.5rem;
+}
+
+.register-input::placeholder {
+  color: oklch(0.62 0.02 155);
+}
+
+.register-input:hover:not(:focus-visible) {
+  border-color: oklch(0.76 0.035 145);
+}
+
+.register-input:focus-visible {
+  border-color: oklch(0.45 0.12 155);
+  outline: 2px solid oklch(0.7 0.16 55);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px oklch(0.93 0.035 145);
+}
+
+.register-input[aria-invalid="true"] {
+  border-color: oklch(0.58 0.22 27);
+}
+
 ::selection {
   background: oklch(0.82 0.12 145);
   color: oklch(0.2 0.02 155);

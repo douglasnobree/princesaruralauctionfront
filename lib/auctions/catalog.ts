@@ -7,13 +7,12 @@ import type {
 	AuctionLotStatus,
 	AuctionStatus,
 } from "@/lib/auctions/types";
+import { getApiOrigin, normalizeApiBaseUrl } from "@/lib/api/base-url";
 
-const API_BASE_URL = (
-	process.env.NEXT_PUBLIC_API_BASE_URL ||
-	process.env.NEXT_PUBLIC_API_URL ||
-	"http://localhost:4000/api"
-).replace(/\/$/, "");
-const API_ORIGIN = API_BASE_URL.replace(/\/api\/?$/, "");
+const API_BASE_URL = normalizeApiBaseUrl(
+	process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL,
+);
+const API_ORIGIN = getApiOrigin(API_BASE_URL);
 const PLACEHOLDER_IMAGE = "/placeholder-image.svg";
 
 type ApiAuctionImage = {
