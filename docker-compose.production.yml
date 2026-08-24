@@ -1,0 +1,26 @@
+services:
+  frontleiloes:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: frontleiloes
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      API_BASE_URL: ${API_BASE_URL:-https://back.princesarural.com.br}
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://back.princesarural.com.br/api}
+      NEXT_PUBLIC_AUCTION_ENGINE_WS_URL: ${NEXT_PUBLIC_AUCTION_ENGINE_WS_URL:-wss://back.princesarural.com.br/auction-engine/ws}
+      NEXT_PUBLIC_MARKETPLACE_URL: ${NEXT_PUBLIC_MARKETPLACE_URL:-https://princesarural.com.br}
+      NEXT_PUBLIC_AUCTION_APP_URL: ${NEXT_PUBLIC_AUCTION_APP_URL:-https://prleiloes.com}
+      SESSION_COOKIE_DOMAIN: ${SESSION_COOKIE_DOMAIN:-}
+    expose:
+      - "3000"
+    networks:
+      - apps
+
+networks:
+  apps:
+    external: true
+    name: apps_app-network

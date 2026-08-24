@@ -1,0 +1,15 @@
+node_modules
+.next
+out
+coverage
+.git
+.gitignore
+.env
+.env.*
+!.env.production.example
+*.log
+Dockerfile*
+docker-compose*.yml
+README.md
+docs-llm
+LLM
