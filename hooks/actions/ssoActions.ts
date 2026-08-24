@@ -43,7 +43,7 @@ export async function createMarketplaceHandoffAction(pathname = "/busca") {
     const data = (await response.json()) as { ticket?: string };
     if (!data.ticket) throw new Error("SSO ticket was not returned");
 
-    const callbackUrl = new URL(`${marketplaceUrl}/api/auth/sso/callback`);
+    const callbackUrl = new URL(`${marketplaceUrl}/sso`);
     callbackUrl.searchParams.set("ticket", data.ticket);
     callbackUrl.searchParams.set("returnTo", destination.toString());
 

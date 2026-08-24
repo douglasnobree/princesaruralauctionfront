@@ -37,10 +37,22 @@ function getSsoErrorUrl(error: "invalid" | "expired" | "unavailable") {
   return loginUrl;
 }
 
+function getSsoErrorResponse(
+  request: NextRequest,
+  error: "invalid" | "expired" | "unavailable",
+  status: number,
+) {
+  if (request.nextUrl.searchParams.get("format") === "json") {
+    return NextResponse.json({ success: false, error }, { status });
+  }
+
+  return NextResponse.redirect(getSsoErrorUrl(error));
+}
+
 export async function GET(request: NextRequest) {
   const ticket = request.nextUrl.searchParams.get("ticket");
   if (!ticket) {
-    return NextResponse.redirect(getSsoErrorUrl("invalid"));
+    return getSsoErrorResponse(request, "invalid", 400);
   }
 
   try {
@@ -52,9 +64,8 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      return NextResponse.redirect(
-        getSsoErrorUrl(response.status === 401 ? "expired" : "unavailable"),
-      );
+      const error = response.status === 401 ? "expired" : "unavailable";
+      return getSsoErrorResponse(request, error, response.status === 401 ? 401 : 502);
     }
 
     const data = (await response.json()) as {
@@ -62,14 +73,18 @@ export async function GET(request: NextRequest) {
       refreshToken?: string;
     };
     if (!data.accessToken) {
-      return NextResponse.redirect(getSsoErrorUrl("invalid"));
+      return getSsoErrorResponse(request, "invalid", 502);
     }
 
     await createSessionFromAccessToken(data.accessToken);
     if (data.refreshToken) await persistRefreshToken(data.refreshToken);
 
+    if (request.nextUrl.searchParams.get("format") === "json") {
+      return NextResponse.json({ success: true });
+    }
+
     return NextResponse.redirect(getSafeReturnUrl(request));
   } catch {
-    return NextResponse.redirect(getSsoErrorUrl("unavailable"));
+    return getSsoErrorResponse(request, "unavailable", 503);
   }
 }
