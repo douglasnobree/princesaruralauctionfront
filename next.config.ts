@@ -18,8 +18,10 @@ const nextConfig: NextConfig = {
 		},
 	},
 	images: {
-		// Em desenvolvimento, desabilita otimização para evitar erro de IP privado
-		unoptimized: isDev,
+		// As imagens dos leilões são dinâmicas e vêm do backend. O navegador
+		// acessa essas URLs diretamente, evitando rejeições do /_next/image
+		// quando o container é atualizado com uma configuração antiga em cache.
+		unoptimized: true,
 		formats: ["image/avif", "image/webp"],
 		minimumCacheTTL: IMAGE_CACHE_TTL_SECONDS,
 		remotePatterns: [
