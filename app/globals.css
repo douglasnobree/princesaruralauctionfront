@@ -135,6 +135,21 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* A Browser Source must not inherit the public auction chrome or a page background. */
+html.broadcast-route,
+html.broadcast-route body,
+html.broadcast-route body > main {
+  background: transparent !important;
+}
+
+body:has(.broadcast-page) > header {
+  display: none;
+}
+
+body:has(.broadcast-page) > main {
+  min-height: 100vh;
+}
+
 :where(.register-input) {
   width: 100%;
   min-height: 2.75rem;

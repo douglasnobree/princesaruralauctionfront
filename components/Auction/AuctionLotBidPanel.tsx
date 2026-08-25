@@ -148,6 +148,7 @@ export function AuctionLotBidPanel({
 	const lot = snapshot.lots.find(
 		(item) => item.externalId === lotExternalId || item.id === lotExternalId,
 	);
+	const isLotClosed = Boolean(lot && ["SOLD", "UNSOLD", "CLOSED", "CANCELLED"].includes(lot.status));
 	const quickBidOptions = useMemo(() => {
 		if (!lot) return [];
 		return getEngineQuickBidOptions(lot);
@@ -314,6 +315,13 @@ export function AuctionLotBidPanel({
 
 	const submit = async (value: string, proxy: boolean, control: "quick" | "custom" | "proxy") => {
 		if (busy) return;
+		const currentLot = snapshotRef.current.lots.find(
+			(item) => item.externalId === lotExternalId || item.id === lotExternalId,
+		);
+		if (!currentLot || currentLot.status !== "OPEN") {
+			setFeedback({ type: "error", message: "Este lote já foi encerrado e não aceita novos lances." });
+			return;
+		}
 		setBusy(true);
 		setPending(control);
 		try {
@@ -354,6 +362,10 @@ export function AuctionLotBidPanel({
 
 	const reserve = async () => {
 		if (busy) return;
+		if (isLotClosed) {
+			setFeedback({ type: "error", message: "Este lote já foi encerrado e não aceita reservas." });
+			return;
+		}
 		if (registration !== "approved") {
 			await requireRegistration();
 			return;
@@ -437,6 +449,10 @@ export function AuctionLotBidPanel({
 				<span>Próximo lance: <strong className="text-foreground">{formatCents(lot.nextBidCents, snapshot.auction.currency)}</strong></span>
 			</div>
 
+			{isLotClosed ? <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+				<p className="font-bold">{lot.status === "SOLD" ? "Lote vendido" : lot.status === "CANCELLED" ? "Lote cancelado" : "Lote encerrado"}</p>
+				<p className="mt-1">Não é possível enviar novos lances neste lote.</p>
+			</div> : <>
 			<div className="flex gap-2">
 				<Button type="button" className="h-11 flex-1 bg-primary text-primary-foreground hover:bg-primary/90" disabled={!bidWindowOpen || busy || registrationBlocksCommands || selectedFixedBidIsBlocked} onClick={handlePrimaryBid}>
 					{pending === "quick" || pending === "custom" ? <Loader2 className="size-4 animate-spin" /> : "Dar lance"}
@@ -467,6 +483,7 @@ export function AuctionLotBidPanel({
 				{unavailableMessage ? <p className="inline-flex items-center gap-2 text-xs text-amber-700"><CircleAlert className="size-4 shrink-0" />{unavailableMessage}</p> : null}
 				<p className="flex items-center justify-between gap-2 border-t pt-3 text-[11px] text-muted-foreground"><span className="inline-flex items-center gap-1.5"><Clock3 className="size-3.5" />Atualização automática</span><button type="button" className="inline-flex items-center gap-1 font-semibold hover:text-foreground" onClick={() => void getEngineSnapshotAction(snapshot.auction.externalId).then((result) => { if (result.success && result.data) applySnapshot(result.data); })}><RefreshCw className="size-3" />Sincronizar</button>{lastSync ? <span className="sr-only">Última sincronização às {lastSync.toLocaleTimeString("pt-BR")}</span> : null}</p>
 			</div> : null}
+			</>}
 
 			{feedback ? <p role={feedback.type === "error" ? "alert" : "status"} className={`rounded-lg px-3 py-2 text-xs leading-5 ${feedback.type === "success" ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800"}`}>{feedback.message}</p> : null}
 		</section>
