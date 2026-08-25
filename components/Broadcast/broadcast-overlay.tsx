@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { BroadcastBid, BroadcastLot } from "@/lib/broadcast/broadcast-types";
 import { useBroadcastOverlay } from "@/components/Broadcast/use-broadcast-overlay";
 import { AuctionStatus } from "@/components/Broadcast/auction-status";
@@ -44,7 +44,7 @@ export function BroadcastOverlay({
     return () => document.documentElement.classList.remove("broadcast-route");
   }, [contained]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const lot = broadcast.state?.currentLot ?? null;
     const previousLot = previousLotRef.current;
     const soldTransition =
@@ -58,6 +58,9 @@ export function BroadcastOverlay({
         currency: broadcast.state?.currency ?? "BRL",
       });
       soldTimerRef.current = setTimeout(() => setSoldMoment(null), 4_500);
+    } else if (previousLot?.id !== lot?.id && lot?.status !== "sold") {
+      if (soldTimerRef.current) clearTimeout(soldTimerRef.current);
+      setSoldMoment(null);
     }
     previousLotRef.current = lot;
   }, [broadcast.state]);
@@ -71,6 +74,7 @@ export function BroadcastOverlay({
   const status = broadcast.state?.status ?? "waiting";
   const isFinished = status === "finished";
   const currentLot = broadcast.state?.currentLot ?? null;
+  const currentBid = broadcast.state?.currentBid ?? null;
 
   return (
     <div className={`${styles.overlay} ${contained ? styles.contained : "broadcast-page"}`}>
@@ -80,12 +84,12 @@ export function BroadcastOverlay({
         aria-hidden={isFinished}
       >
         <div className={styles.cornerGlow} aria-hidden="true" />
-        <AuctionStatus key={status} status={status} />
+        <AuctionStatus status={status} />
         <ReconnectIndicator status={broadcast.connection} />
         <div className={styles.content}>
-          <CurrentLot key={currentLot?.id ?? "empty-lot"} lot={currentLot} />
+          <CurrentLot lot={currentLot} />
           <CurrentBid
-            bid={broadcast.state?.currentBid ?? null}
+            bid={currentBid}
             currency={broadcast.state?.currency ?? "BRL"}
           />
         </div>

@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import type { BroadcastConnectionStatus } from "@/lib/broadcast/broadcast-types";
 import styles from "@/components/Broadcast/broadcast-overlay.module.css";
 
@@ -6,7 +9,19 @@ export function ReconnectIndicator({
 }: {
   status: BroadcastConnectionStatus;
 }) {
-  if (status === "connected" || status === "idle") return null;
+  const isDisconnected = status !== "connected" && status !== "idle";
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(
+      () => setIsVisible(isDisconnected),
+      isDisconnected ? 650 : 350,
+    );
+
+    return () => clearTimeout(timer);
+  }, [isDisconnected]);
+
+  if (!isVisible) return null;
 
   const label =
     status === "connecting"
@@ -24,4 +39,3 @@ export function ReconnectIndicator({
     </div>
   );
 }
-
