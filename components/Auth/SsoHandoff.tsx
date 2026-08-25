@@ -15,6 +15,9 @@ import { PrincesaLogoIcon } from "@/components/AuctionHeader/PrincesaRuralIcon";
 type SsoHandoffProps = {
   ticket?: string;
   returnTo?: string;
+  mode?: "connect" | "preview";
+  target?: "auction" | "marketplace";
+  overlay?: boolean;
 };
 
 type HandoffState = "connecting" | "success" | "error";
@@ -60,7 +63,15 @@ function getSafeDestination(returnTo: string | undefined) {
   }
 }
 
-export function SsoHandoff({ ticket, returnTo }: SsoHandoffProps) {
+const MINIMUM_SCREEN_TIME = 2400;
+
+export function SsoHandoff({
+  ticket,
+  returnTo,
+  mode = "connect",
+  target = "auction",
+  overlay = false,
+}: SsoHandoffProps) {
   const [state, setState] = useState<HandoffState>("connecting");
   const [error, setError] = useState<HandoffError>("unavailable");
   const [attempt, setAttempt] = useState(0);
@@ -68,10 +79,12 @@ export function SsoHandoff({ ticket, returnTo }: SsoHandoffProps) {
   useEffect(() => {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 15000);
+    const startedAt = performance.now();
     let redirectTimer: number | undefined;
 
     async function connect() {
       if (!ticket) {
+        if (mode === "preview") return;
         setError("invalid");
         setState("error");
         window.clearTimeout(timeout);
@@ -108,9 +121,13 @@ export function SsoHandoff({ ticket, returnTo }: SsoHandoffProps) {
         }
 
         setState("success");
+        const remainingScreenTime = Math.max(
+          0,
+          MINIMUM_SCREEN_TIME - (performance.now() - startedAt),
+        );
         redirectTimer = window.setTimeout(() => {
           window.location.replace(getSafeDestination(returnTo));
-        }, 520);
+        }, remainingScreenTime);
       } catch {
         if (!controller.signal.aborted) {
           setError("unavailable");
@@ -128,13 +145,20 @@ export function SsoHandoff({ ticket, returnTo }: SsoHandoffProps) {
       window.clearTimeout(timeout);
       if (redirectTimer) window.clearTimeout(redirectTimer);
     };
-  }, [attempt, returnTo, ticket]);
+  }, [attempt, mode, returnTo, ticket]);
 
   const isError = state === "error";
   const copy = errorCopy[error];
+  const isMarketplaceTarget = target === "marketplace";
+  const shellClass = overlay
+    ? "fixed inset-0 z-[100] min-h-[100svh] overflow-y-auto bg-[#063b2b]"
+    : "relative isolate min-h-[calc(100svh-92px)] overflow-hidden bg-[#063b2b]";
+  const contentMinHeight = overlay
+    ? "min-h-[100svh]"
+    : "min-h-[calc(100svh-92px)]";
 
   return (
-    <section className="relative isolate min-h-[calc(100svh-92px)] overflow-hidden bg-[#063b2b] text-[#14372a]">
+    <section className={`${shellClass} text-[#14372a]`}>
       <div className="pointer-events-none absolute inset-0 opacity-60" aria-hidden="true">
         <div className="absolute -left-20 top-16 size-64 rounded-full border border-[#f6b04e]/25 sm:size-96" />
         <div className="absolute -right-24 bottom-[-9rem] size-96 rounded-full border border-white/10 sm:size-[32rem]" />
@@ -145,7 +169,7 @@ export function SsoHandoff({ ticket, returnTo }: SsoHandoffProps) {
         </svg>
       </div>
 
-      <div className="relative mx-auto flex min-h-[calc(100svh-92px)] w-full max-w-6xl items-center justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+      <div className={`relative mx-auto flex ${contentMinHeight} w-full max-w-6xl items-center justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8`}>
         <div className="grid w-full max-w-5xl overflow-hidden rounded-[30px] border border-white/10 bg-[#f8f6ef] shadow-[0_26px_80px_rgba(0,0,0,.28)] lg:grid-cols-[.84fr_1.16fr]">
           <aside className="relative hidden overflow-hidden bg-[#0a5d3e] p-10 text-white lg:flex lg:min-h-[570px] lg:flex-col lg:justify-between">
             <div className="absolute -right-16 -top-16 size-52 rounded-full border border-[#f6b04e]/30" aria-hidden="true" />
@@ -210,14 +234,16 @@ export function SsoHandoff({ ticket, returnTo }: SsoHandoffProps) {
 
               <div role="status" aria-live="polite" aria-busy={state === "connecting"}>
                 <h1 className="max-w-lg text-4xl font-semibold leading-[1.04] tracking-[-.045em] text-[#153c2d] sm:text-5xl">
-                  {isError ? copy.title : state === "success" ? "Tudo pronto para o próximo lance" : "Abrindo seus leilões"}
+                  {isError ? copy.title : state === "success" ? "Tudo pronto para continuar" : isMarketplaceTarget ? "Abrindo o marketplace" : "Abrindo seus leilões"}
                 </h1>
                 <p className="mt-5 max-w-lg text-base leading-7 text-[#64736a] sm:text-lg">
                   {isError
                     ? copy.description
                     : state === "success"
                       ? "Sua sessão foi conectada. Só estamos abrindo o ambiente certo para você."
-                      : "Só um instante — estamos conectando sua sessão ao ambiente de leilões."}
+                      : isMarketplaceTarget
+                        ? "Só um instante — estamos conectando sua sessão ao ambiente da Princesa Rural."
+                        : "Só um instante — estamos conectando sua sessão ao ambiente de leilões."}
                 </p>
               </div>
 
@@ -243,7 +269,7 @@ export function SsoHandoff({ ticket, returnTo }: SsoHandoffProps) {
                 <div className="mt-10 space-y-4" aria-label="Etapas da conexão">
                   {[
                     "Validando sua sessão",
-                    "Conectando ao ambiente de leilões",
+                    isMarketplaceTarget ? "Conectando ao marketplace" : "Conectando ao ambiente de leilões",
                     "Preparando sua chegada",
                   ].map((step, index) => {
                     const completed = state === "success" || index === 0;
