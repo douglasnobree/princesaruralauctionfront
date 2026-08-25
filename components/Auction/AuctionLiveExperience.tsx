@@ -8,7 +8,6 @@ import {
 import Image from 'next/image';
 import { AuctionGenealogyViewer } from '@/components/Auction/AuctionGenealogyViewer';
 import { AuctionLotCard } from '@/components/Auction/AuctionLotCard';
-import { MockStreamPlayer } from '@/components/Auction/MockStreamPlayer';
 import { AuctionRuntimeBoard } from '@/components/Auction/AuctionRuntimeBoard';
 import {
   hasConfiguredPreBid,
@@ -16,10 +15,7 @@ import {
   isPreBidOpen,
 } from '@/lib/auctions/bid-window';
 import { getReadableBidderName } from '@/lib/auctions/bidder-display';
-import type {
-  EngineAuctionSnapshot,
-  EngineStream,
-} from '@/lib/auctions/engine-types';
+import type { EngineAuctionSnapshot } from '@/lib/auctions/engine-types';
 import type { AuctionLot } from '@/lib/auctions/types';
 
 function statusLabel(
@@ -124,15 +120,6 @@ export function AuctionLiveExperience({
       ? status === 'PRE_LAUNCH'
       : hasConfiguredPreBid(initialSnapshot.auction) &&
         (preBidOpen || displayedStatus === 'SCHEDULED'));
-  const fallbackStream: EngineStream = {
-    id: `mock-${externalAuctionId}`,
-    provider: 'mock',
-    playbackUrl: null,
-    providerStreamId: null,
-    status: isLiveRunning ? 'LIVE' : 'STARTING',
-    version: '0',
-    updatedAt: new Date().toISOString(),
-  };
   const visibleCatalogLots = catalogLots.filter((catalogLot) => {
     const engineLot = initialSnapshot?.lots.find(
       (lot) =>
@@ -203,15 +190,6 @@ export function AuctionLiveExperience({
             </div>
           </div>
         </section>
-
-        {isLiveRunning ? (
-          <section className='mt-7' aria-label='Transmissão do leilão'>
-            <MockStreamPlayer
-              stream={initialSnapshot?.stream ?? fallbackStream}
-              title={title}
-            />
-          </section>
-        ) : null}
 
         {isPreBidCatalog ? (
           <section className='mt-7' aria-labelledby='pre-bid-lots-title'>

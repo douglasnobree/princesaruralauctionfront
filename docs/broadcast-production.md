@@ -51,6 +51,25 @@ location /broadcast {
 Não coloque o WebSocket em `:4455` nem exponha Redis ou RabbitMQ. O endpoint
 `/broadcast` deve continuar protegido pelo token de leitura do overlay.
 
+## Fonte da transmissão pública
+
+No control room do leilão, em **Operação ao vivo**, selecione o serviço e
+informe a URL pública da fonte antes de clicar em **Colocar ao vivo**. A mesma
+fonte é usada no placar público e no preview do admin:
+
+- **YouTube Live**: URL da live ou do vídeo (`youtube.com/live/...` ou
+  `youtube.com/watch?v=...`).
+- **HLS (.m3u8)**: URL HTTPS do playlist HLS. O frontend usa `hls.js` quando o
+  navegador não possui suporte nativo.
+- **Stream direto**: URL HTTPS compatível com o elemento `<video>` (MP4, WebM
+  ou outro formato aceito pelo navegador).
+- **Outro serviço**: use a URL pública de reprodução fornecida pelo serviço.
+
+O mock é reservado para ensaios e não desenha uma transmissão falsa no modo
+público. Para fontes diretas e HLS, o servidor de mídia precisa permitir CORS
+para o domínio do frontend. Em produção, mantenha a fonte em HTTPS para evitar
+bloqueio de conteúdo misto.
+
 ## Verificação
 
 Abra o overlay em um navegador com `?debug=true` antes de configurar o OBS.
