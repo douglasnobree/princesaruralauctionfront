@@ -69,15 +69,21 @@ export function BroadcastOverlay({
   }, []);
 
   const status = broadcast.state?.status ?? "waiting";
+  const isFinished = status === "finished";
+  const currentLot = broadcast.state?.currentLot ?? null;
 
   return (
     <div className={`${styles.overlay} ${contained ? styles.contained : "broadcast-page"}`}>
-      <div className={styles.frame}>
+      <div
+        className={styles.frame}
+        data-finished={isFinished ? "true" : "false"}
+        aria-hidden={isFinished}
+      >
         <div className={styles.cornerGlow} aria-hidden="true" />
-        <AuctionStatus status={status} />
+        <AuctionStatus key={status} status={status} />
         <ReconnectIndicator status={broadcast.connection} />
         <div className={styles.content}>
-          <CurrentLot lot={broadcast.state?.currentLot ?? null} />
+          <CurrentLot key={currentLot?.id ?? "empty-lot"} lot={currentLot} />
           <CurrentBid
             bid={broadcast.state?.currentBid ?? null}
             currency={broadcast.state?.currency ?? "BRL"}

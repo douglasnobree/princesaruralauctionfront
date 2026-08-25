@@ -19,13 +19,20 @@ export function CurrentBid({
   currency: string;
 }) {
   return (
-    <section className={styles.bidCard} aria-label="Lance atual">
+    <section
+      className={styles.bidCard}
+      key={bid?.id ?? "empty-bid-card"}
+      aria-label="Lance atual"
+    >
       <span className={styles.eyebrow}>Lance atual</span>
       <strong className={styles.bidAmount} key={bid?.id ?? "empty-bid"}>
         {bid ? formatAmount(bid.amountCents, currency) : "Aguardando lance"}
       </strong>
-      {bid ? <span className={styles.bidderName}>{bid.bidderName}</span> : null}
+      {bid ? (
+        <span className={styles.bidderName} key={`${bid.id}-bidder`}>
+          {bid.bidderName}
+        </span>
+      ) : null}
     </section>
   );
 }
-

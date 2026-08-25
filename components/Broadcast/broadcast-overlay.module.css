@@ -10,7 +10,7 @@
   overflow: hidden;
   color: var(--broadcast-ink);
   pointer-events: none;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), sans-serif;
   isolation: isolate;
 }
 
@@ -24,6 +24,11 @@
 .frame {
   position: absolute;
   inset: 0;
+  transition: opacity 220ms ease-out;
+}
+
+.frame[data-finished="true"] {
+  opacity: 0;
 }
 
 .cornerGlow {
@@ -106,6 +111,7 @@
 
 .lotCard {
   padding: clamp(0.9rem, 1.8vw, 1.5rem);
+  animation: lotIn 360ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .bidCard {
@@ -116,6 +122,7 @@
   padding: clamp(0.9rem, 1.8vw, 1.5rem);
   border-color: rgba(244, 182, 79, 0.38);
   background: linear-gradient(135deg, rgba(70, 44, 13, 0.94), rgba(137, 82, 17, 0.86));
+  animation: bidCardIn 260ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .lotHeading {
@@ -181,6 +188,7 @@
   font-weight: 800;
   text-overflow: ellipsis;
   white-space: nowrap;
+  animation: bidderIn 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .carouselBar {
@@ -198,13 +206,26 @@
   box-shadow: 0 -0.75rem 2rem rgba(0, 0, 0, 0.12);
 }
 
-.carouselTrack {
-  display: flex;
+.carouselViewport {
+  flex: 1 1 auto;
   min-width: 0;
-  align-items: center;
-  gap: clamp(0.65rem, 1.2vw, 1.4rem);
   overflow: hidden;
   mask-image: linear-gradient(90deg, transparent, black 2%, black 96%, transparent);
+}
+
+.carouselTrack {
+  display: flex;
+  width: max-content;
+  align-items: center;
+  animation: marquee var(--carousel-duration, 22s) linear infinite;
+}
+
+.carouselGroup {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: clamp(0.65rem, 1.2vw, 1.4rem);
+  padding-inline-end: clamp(2rem, 5vw, 5rem);
 }
 
 .carouselParticipant {
@@ -213,6 +234,7 @@
   font-size: clamp(0.78rem, 1.1vw, 1.05rem);
   font-weight: 700;
   white-space: nowrap;
+  animation: nameIn 260ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .carouselParticipant:not(:last-child)::after {
@@ -300,6 +322,31 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes lotIn {
+  from { opacity: 0; transform: translateY(0.5rem); filter: blur(4px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes bidCardIn {
+  from { opacity: 0.82; transform: translateY(0.25rem) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes bidderIn {
+  from { opacity: 0; transform: translateY(0.3rem); filter: blur(2px); }
+  to { opacity: 1; transform: translateY(0); filter: blur(0); }
+}
+
+@keyframes nameIn {
+  from { opacity: 0; transform: translateX(0.4rem); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
 @keyframes soldIn {
   from { opacity: 0; transform: translate(-50%, -45%) scale(0.96); }
   to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
@@ -308,14 +355,6 @@
 @keyframes pulse {
   0%, 100% { box-shadow: 0 0 0 0.2rem rgba(244, 182, 79, 0.14); }
   50% { box-shadow: 0 0 0 0.5rem rgba(244, 182, 79, 0); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bidAmount,
-  .soldOverlay,
-  .statusBadge[data-status="live"] .statusDot {
-    animation: none;
-  }
 }
 
 @media (max-width: 680px) {
@@ -335,7 +374,7 @@
     gap: 0.25rem;
   }
 
-  .carouselTrack {
+  .carouselViewport {
     width: 100%;
   }
 }
