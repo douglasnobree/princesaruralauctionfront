@@ -188,6 +188,37 @@ body:has(.auction-management-shell) > main {
   transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
 }
 
+:where(.management-field) {
+  display: block;
+  width: 100%;
+  min-height: 2.5rem;
+  border: 1px solid var(--input);
+  border-radius: 0.375rem;
+  background: var(--background);
+  padding: 0.5rem 0.75rem;
+  color: var(--foreground);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  outline: none;
+  transition: border-color 150ms ease-out, box-shadow 150ms ease-out, background-color 150ms ease-out;
+}
+
+.management-field:hover:not(:disabled) {
+  border-color: color-mix(in oklab, var(--secondary) 45%, var(--input));
+}
+
+.management-field:focus-visible {
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 18%, transparent);
+}
+
+.management-field:disabled {
+  cursor: not-allowed;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  opacity: 0.75;
+}
+
 .admin-field:hover:not(:disabled) {
   border-color: #aac8b7;
 }
@@ -231,18 +262,4 @@ body:has(.auction-management-shell) > main {
 ::selection {
   background: oklch(0.82 0.12 145);
   color: oklch(0.2 0 0);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
-
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
 }

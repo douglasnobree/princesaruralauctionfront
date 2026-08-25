@@ -174,10 +174,10 @@ export function BroadcastControlPanel({
   };
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="w-full space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-secondary">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-secondary">
             Leilão · Transmissão
           </p>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">
@@ -192,7 +192,7 @@ export function BroadcastControlPanel({
             type="button"
             onClick={refresh}
             disabled={isPending}
-            className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors hover:bg-muted disabled:opacity-50"
+            className="inline-flex min-h-10 items-center rounded-md border px-4 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96] disabled:opacity-50"
           >
             Atualizar
           </button>
@@ -200,7 +200,7 @@ export function BroadcastControlPanel({
             type="button"
             onClick={rebroadcast}
             disabled={isPending || !canManageBroadcast}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="inline-flex min-h-10 items-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground outline-none transition-[background-color,scale] duration-150 hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96] disabled:opacity-50"
           >
             Reenviar estado
           </button>
@@ -208,12 +208,12 @@ export function BroadcastControlPanel({
       </div>
 
       {notice ? (
-        <p className="mt-5 rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground" role="status">
+        <p className="rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground" role="status">
           {notice}
         </p>
       ) : null}
       {!canManageBroadcast ? (
-        <p className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
           Seu perfil pode visualizar a transmissão, mas não pode alterar configurações, reenviar estado ou administrar tokens.
         </p>
       ) : null}
