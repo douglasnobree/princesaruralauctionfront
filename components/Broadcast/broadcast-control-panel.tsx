@@ -26,6 +26,7 @@ type BroadcastControlPanelProps = {
   initialClients: BroadcastClientInfo[];
   initialTokens: BroadcastTokenSummary[];
   initialError?: string;
+  canManageBroadcast?: boolean;
 };
 
 function formatDate(value: string | null) {
@@ -49,6 +50,7 @@ export function BroadcastControlPanel({
   initialClients,
   initialTokens,
   initialError,
+  canManageBroadcast = true,
 }: BroadcastControlPanelProps) {
   const [state, setState] = useState(initialState);
   const [config, setConfig] = useState(initialConfig);
@@ -90,6 +92,7 @@ export function BroadcastControlPanel({
   };
 
   const updateConfig = () => {
+    if (!canManageBroadcast) return;
     startTransition(async () => {
       const result = await updateBroadcastConfigAction(auctionId, {
         overlayDelayMs: Number(delay),
@@ -105,6 +108,7 @@ export function BroadcastControlPanel({
   };
 
   const rebroadcast = () => {
+    if (!canManageBroadcast) return;
     startTransition(async () => {
       const result = await rebroadcastAuctionStateAction(auctionId);
       if (result.success && result.data) {
@@ -117,6 +121,7 @@ export function BroadcastControlPanel({
   };
 
   const createToken = () => {
+    if (!canManageBroadcast) return;
     startTransition(async () => {
       const result = await createBroadcastTokenAction(auctionId, {
         clientLabel: label,
@@ -150,6 +155,7 @@ export function BroadcastControlPanel({
   };
 
   const revokeToken = (tokenId: string) => {
+    if (!canManageBroadcast) return;
     startTransition(async () => {
       const result = await revokeBroadcastTokenAction(auctionId, tokenId);
       if (!result.success) {
@@ -193,7 +199,7 @@ export function BroadcastControlPanel({
           <button
             type="button"
             onClick={rebroadcast}
-            disabled={isPending}
+            disabled={isPending || !canManageBroadcast}
             className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             Reenviar estado
@@ -204,6 +210,11 @@ export function BroadcastControlPanel({
       {notice ? (
         <p className="mt-5 rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground" role="status">
           {notice}
+        </p>
+      ) : null}
+      {!canManageBroadcast ? (
+        <p className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">
+          Seu perfil pode visualizar a transmissão, mas não pode alterar configurações, reenviar estado ou administrar tokens.
         </p>
       ) : null}
 
@@ -263,6 +274,7 @@ export function BroadcastControlPanel({
                   min={0}
                   max={30000}
                   type="number"
+                  disabled={!canManageBroadcast}
                   className="mt-2 h-10 w-full rounded-lg border bg-background px-3 font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </label>
@@ -275,6 +287,7 @@ export function BroadcastControlPanel({
                   min={1}
                   max={50}
                   type="number"
+                  disabled={!canManageBroadcast}
                   className="mt-2 h-10 w-full rounded-lg border bg-background px-3 font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
               </label>
@@ -282,7 +295,7 @@ export function BroadcastControlPanel({
             <button
               type="button"
               onClick={updateConfig}
-              disabled={isPending}
+              disabled={isPending || !canManageBroadcast}
               className="mt-4 w-full rounded-lg border border-secondary px-4 py-2 text-sm font-semibold text-secondary transition-colors hover:bg-secondary/10 disabled:opacity-50"
             >
               Salvar configuração
@@ -297,14 +310,14 @@ export function BroadcastControlPanel({
             <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_7rem]">
               <label className="text-sm font-semibold">
                 Identificador
-                <input value={label} onChange={(event) => setLabel(event.target.value)} className="mt-2 h-10 w-full rounded-lg border bg-background px-3 font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                <input value={label} onChange={(event) => setLabel(event.target.value)} disabled={!canManageBroadcast} className="mt-2 h-10 w-full rounded-lg border bg-background px-3 font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring" />
               </label>
               <label className="text-sm font-semibold">
                 Dias
-                <input value={expiresInDays} onChange={(event) => setExpiresInDays(event.target.value)} type="number" min={1} max={365} className="mt-2 h-10 w-full rounded-lg border bg-background px-3 font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                <input value={expiresInDays} onChange={(event) => setExpiresInDays(event.target.value)} type="number" min={1} max={365} disabled={!canManageBroadcast} className="mt-2 h-10 w-full rounded-lg border bg-background px-3 font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring" />
               </label>
             </div>
-            <button type="button" onClick={createToken} disabled={isPending} className="mt-4 w-full rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground transition-opacity hover:opacity-90 disabled:opacity-50">
+            <button type="button" onClick={createToken} disabled={isPending || !canManageBroadcast} className="mt-4 w-full rounded-lg bg-secondary px-4 py-2 text-sm font-semibold text-secondary-foreground transition-opacity hover:opacity-90 disabled:opacity-50">
               Criar token de leitura
             </button>
             {overlayUrl ? (
@@ -342,7 +355,7 @@ export function BroadcastControlPanel({
                 <p className="font-semibold">{token.clientLabel || "sem identificação"}</p>
                 <p className="text-xs text-muted-foreground">Expira em {formatDate(token.expiresAt)} · usado: {formatDate(token.lastUsedAt)}</p>
               </div>
-              <button type="button" onClick={() => revokeToken(token.id)} disabled={Boolean(token.revokedAt) || isPending} className="rounded-md border px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-40">
+              <button type="button" onClick={() => revokeToken(token.id)} disabled={Boolean(token.revokedAt) || isPending || !canManageBroadcast} className="rounded-md border px-3 py-1.5 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-40">
                 {token.revokedAt ? "Revogado" : "Revogar"}
               </button>
             </div>

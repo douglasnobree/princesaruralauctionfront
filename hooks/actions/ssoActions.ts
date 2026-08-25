@@ -1,7 +1,7 @@
 "use server";
 
 import { normalizeApiBaseUrl } from "@/lib/api/base-url";
-import { getAccessToken } from "@/lib/auth/server/session";
+import { getFreshSession } from "@/lib/auth/server/session";
 import { getMarketplaceUrl } from "@/lib/config/urls";
 
 const API_URL = normalizeApiBaseUrl(process.env.API_BASE_URL);
@@ -25,7 +25,7 @@ function getMarketplaceDestination(pathname: string) {
 export async function createMarketplaceHandoffAction(pathname = "/busca") {
   const destination = getMarketplaceDestination(pathname);
   const marketplaceUrl = getMarketplaceUrl();
-  const accessToken = await getAccessToken();
+  const accessToken = (await getFreshSession())?.accessToken;
 
   if (!accessToken) {
     return { success: true, url: destination.toString() };

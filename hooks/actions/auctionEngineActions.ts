@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth/server/session";
+import { getFreshSession } from "@/lib/auth/server/session";
 import type { ActionResult } from "@/types/common";
 import type { AuctionParticipantSearchResult, EngineAuctionRegistration, EngineAuctionRegistrationPage, EngineAuctionSnapshot, EngineBidHistoryPage, EngineBidHistoryQuery, EngineBidManagementResult, EngineBidResult, EngineOwnProxyBid, EnginePendingBidsPage, EngineRealtimeTicket, EngineStream } from "@/lib/auctions/engine-types";
 import { explainEngineError, getEngineErrorCode } from "@/lib/auctions/engine-errors";
@@ -12,13 +12,13 @@ import { normalizeApiBaseUrl } from "@/lib/api/base-url";
 const API_URL = normalizeApiBaseUrl(process.env.API_BASE_URL);
 
 async function authenticatedHeaders() {
-  const session = await getSession();
-  if (!session?.accessToken) redirect("/login");
+  const session = await getFreshSession();
+  if (!session?.accessToken) redirect("/login?returnTo=/admin/leiloes");
   return { Authorization: `Bearer ${session.accessToken}` };
 }
 
 async function optionalAuthenticatedHeaders(): Promise<Record<string, string>> {
-  const session = await getSession();
+  const session = await getFreshSession();
   return session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {};
 }
 

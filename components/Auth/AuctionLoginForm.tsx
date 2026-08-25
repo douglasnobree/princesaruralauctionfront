@@ -34,7 +34,7 @@ function formatDocument(value: string, loginType: LoginType) {
     .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
 }
 
-export function AuctionLoginForm() {
+export function AuctionLoginForm({ returnTo = "/leiloes" }: { returnTo?: string }) {
   const router = useRouter();
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
@@ -64,7 +64,8 @@ export function AuctionLoginForm() {
       return;
     }
 
-    router.replace("/leiloes");
+    const safeReturnTo = returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/leiloes";
+    router.replace(safeReturnTo);
     router.refresh();
   }
 

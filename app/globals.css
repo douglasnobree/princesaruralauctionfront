@@ -150,6 +150,14 @@ body:has(.broadcast-page) > main {
   min-height: 100vh;
 }
 
+body:has(.auction-management-shell) > header {
+  display: none;
+}
+
+body:has(.auction-management-shell) > main {
+  min-height: 100vh;
+}
+
 :where(.register-input) {
   width: 100%;
   min-height: 2.75rem;
@@ -161,6 +169,40 @@ body:has(.broadcast-page) > main {
   font-size: 0.875rem;
   line-height: 1.25rem;
   transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+:where(.admin-field) {
+  display: block;
+  width: 100%;
+  min-height: 2.5rem;
+  margin-top: 0.375rem;
+  border: 1px solid #dfe8e2;
+  border-radius: 0.625rem;
+  background: #fff;
+  padding: 0.625rem 0.75rem;
+  color: #18251f;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.25rem;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+}
+
+.admin-field:hover:not(:disabled) {
+  border-color: #aac8b7;
+}
+
+.admin-field:focus-visible {
+  border-color: #08734e;
+  outline: 2px solid #f08a24;
+  outline-offset: 2px;
+}
+
+.admin-field:disabled {
+  cursor: not-allowed;
+  background: #f3f6f4;
+  color: #64736b;
+  opacity: 0.8;
 }
 
 .register-input-with-icon {

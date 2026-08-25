@@ -22,6 +22,10 @@ export class BroadcastStateQueue {
 
   setDelay(delayMs: number) {
     this.delayMs = Math.max(0, delayMs);
+    if (this.timer && this.pending.size > 0) {
+      this.clearTimer();
+      this.schedule();
+    }
   }
 
   seed(state: BroadcastState) {
@@ -38,6 +42,10 @@ export class BroadcastStateQueue {
   }
 
   replace(state: BroadcastState) {
+    const highestPendingVersion = this.pending.size
+      ? Math.max(...this.pending.keys())
+      : this.appliedVersion;
+    if (state.version < highestPendingVersion) return;
     this.seed(state);
   }
 

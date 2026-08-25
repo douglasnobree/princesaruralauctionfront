@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/server/session";
+import { getFreshSession } from "@/lib/auth/server/session";
 import { normalizeApiBaseUrl } from "@/lib/api/base-url";
 
 const API_URL = normalizeApiBaseUrl(process.env.API_BASE_URL);
 
 async function proxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
-  const session = await getSession();
+  const session = await getFreshSession();
   const headers = new Headers();
   const contentType = request.headers.get("content-type");
   if (contentType) headers.set("content-type", contentType);

@@ -1,6 +1,6 @@
 "use server";
 
-import { getAccessToken } from "@/lib/auth/server/session";
+import { getFreshSession, refreshSession } from "@/lib/auth/server/session";
 import { normalizeApiBaseUrl } from "@/lib/api/base-url";
 import type {
   BroadcastClientInfo,
@@ -32,13 +32,13 @@ async function request<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<ActionResult<T>> {
-  const accessToken = await getAccessToken();
-  if (!accessToken) {
+  const session = await getFreshSession();
+  if (!session?.accessToken) {
     return { success: false, error: "Entre com uma conta autorizada para operar a transmissão." };
   }
 
   try {
-    const response = await fetch(`${API_URL}${path}`, {
+    const requestWithToken = (accessToken: string) => fetch(`${API_URL}${path}`, {
       ...init,
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -47,11 +47,18 @@ async function request<T>(
       },
       cache: "no-store",
     });
+    let response = await requestWithToken(session.accessToken);
+    if (response.status === 401) {
+      const renewed = await refreshSession();
+      if (renewed?.accessToken) response = await requestWithToken(renewed.accessToken);
+    }
     const payload = (await response.json().catch(() => ({}))) as T & {
       message?: string;
       error?: string | { message?: string };
     };
     if (!response.ok) {
+      if (response.status === 401) return { success: false, error: "Sua sessão expirou. Entre novamente para continuar.", errorCode: "AUTH_REQUIRED" };
+      if (response.status === 403) return { success: false, error: "Você não possui permissão para operar a transmissão.", errorCode: "FORBIDDEN" };
       const error =
         typeof payload.error === "object" ? payload.error.message : payload.error;
       return {

@@ -26,10 +26,11 @@ export function getBroadcastWebSocketUrl(
   token: string,
   clientId: string,
 ) {
+  const configured = process.env.NEXT_PUBLIC_BROADCAST_WS_URL?.trim();
   const protocol = getApiOrigin().startsWith("https") ? "wss:" : "ws:";
   const url = new URL(
-    "/broadcast",
-    `${protocol}//${new URL(getApiOrigin()).host}`,
+    configured || `/broadcast`,
+    configured ? undefined : `${protocol}//${new URL(getApiOrigin()).host}`,
   );
   url.searchParams.set("auctionId", auctionId);
   url.searchParams.set("token", token);
