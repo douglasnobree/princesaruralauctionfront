@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { getFreshSession } from "@/lib/auth/server/session";
 import type { ActionResult } from "@/types/common";
 import type { AuctionParticipantSearchResult, EngineAuctionRegistration, EngineAuctionRegistrationPage, EngineAuctionSnapshot, EngineBidHistoryPage, EngineBidHistoryQuery, EngineBidManagementResult, EngineBidResult, EngineOwnProxyBid, EnginePendingBidsPage, EngineRealtimeTicket, EngineStream } from "@/lib/auctions/engine-types";
+import type { AcquisitionSource } from "@/lib/auctions/acquisition-sources";
 import { explainEngineError, getEngineErrorCode } from "@/lib/auctions/engine-errors";
 import { normalizeApiBaseUrl } from "@/lib/api/base-url";
 
@@ -48,11 +49,11 @@ export async function getEngineSnapshotAction(auctionId: string): Promise<Action
   } catch { return { success: false, error: "O motor de leilão está indisponível." }; }
 }
 
-export async function registerAuctionAction(auctionId: string, termsVersion: string): Promise<ActionResult<EngineAuctionRegistration>> {
+export async function registerAuctionAction(auctionId: string, termsVersion: string, acquisitionSource: AcquisitionSource = "UNKNOWN"): Promise<ActionResult<EngineAuctionRegistration>> {
   try {
     const authHeaders = await optionalAuthenticatedHeaders();
     if (!authHeaders.Authorization) return authenticationRequired<EngineAuctionRegistration>();
-    const response = await fetch(`${API_URL}/auction-engine/auctions/${encodeURIComponent(auctionId)}/registration`, { method: "POST", headers: { ...authHeaders, "Content-Type": "application/json", "Idempotency-Key": randomUUID() }, body: JSON.stringify({ termsVersion }), cache: "no-store" });
+    const response = await fetch(`${API_URL}/auction-engine/auctions/${encodeURIComponent(auctionId)}/registration`, { method: "POST", headers: { ...authHeaders, "Content-Type": "application/json", "Idempotency-Key": randomUUID() }, body: JSON.stringify({ termsVersion, acquisitionSource }), cache: "no-store" });
     return parse(response, "Não foi possível habilitar sua participação.");
   } catch { return { success: false, error: "Não foi possível conectar ao motor de leilão." }; }
 }
@@ -204,6 +205,25 @@ export async function searchAuctionParticipantsAction(query: string): Promise<Ac
   } catch { return { success: false, error: "Não foi possível pesquisar os usuários agora." }; }
 }
 
+export async function createQuickParticipantAction(input: { name: string; document: string }): Promise<ActionResult<AuctionParticipantSearchResult>> {
+  const name = input.name.trim();
+  const document = input.document.trim();
+  if (name.length < 2) return { success: false, error: "Informe o nome do participante." };
+  if (![11, 14].includes(document.replace(/\D/g, "").length)) return { success: false, error: "Informe um CPF ou CNPJ válido." };
+
+  try {
+    const response = await fetch(`${API_URL}/auction-engine/manager/participants/quick`, {
+      method: "POST",
+      headers: { ...(await authenticatedHeaders()), "Content-Type": "application/json", "Idempotency-Key": randomUUID() },
+      body: JSON.stringify({ name, document }),
+      cache: "no-store",
+    });
+    return parse(response, "Não foi possível cadastrar o participante rápido.");
+  } catch {
+    return { success: false, error: "Não foi possível cadastrar o participante rápido agora." };
+  }
+}
+
 export async function searchAuctionParticipantsFormAction(
   _previousState: ActionResult<AuctionParticipantSearchResult[]>,
   formData: FormData,
@@ -228,7 +248,7 @@ export async function setAuctionParticipantEligibilityAction(userId: string, ena
   } catch { return { success: false, error: "Não foi possível atualizar a habilitação global agora." }; }
 }
 
-export async function managerFloorBidAction(auctionId: string, lotId: string, input: { participantId: string; amountCents: string; origin: "FLOOR" | "PHONE"; expectedVersion?: string }): Promise<ActionResult<EngineBidResult>> {
+export async function managerFloorBidAction(auctionId: string, lotId: string, input: { participantId: string; amountCents: string; origin: "FLOOR" | "PHONE"; acquisitionSource?: AcquisitionSource; expectedVersion?: string }): Promise<ActionResult<EngineBidResult>> {
   try {
     const response = await fetch(`${API_URL}/auction-engine/manager/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/floor-bids`, { method: "POST", headers: { ...(await authenticatedHeaders()), "Content-Type": "application/json", "Idempotency-Key": randomUUID() }, body: JSON.stringify(input), cache: "no-store" });
     return parse(response, "Não foi possível registrar o lance assistido.");

@@ -15,6 +15,7 @@ import { isAuctionAuthenticationError } from "@/lib/auctions/auth";
 import { getBidderDisplayName, getReadableBidderName, mergeKnownBidderNames } from "@/lib/auctions/bidder-display";
 import { BRAZIL_TIME_ZONE } from "@/lib/utils/formatters";
 import type { ActionResult } from "@/types/common";
+import { detectAcquisitionSource } from "@/lib/auctions/acquisition-sources";
 
 function formatCents(value: string | null, currency = "BRL") {
 	if (value === null) return "—";
@@ -189,7 +190,7 @@ export function AuctionRuntimeBoard({ externalAuctionId, initialSnapshot, focusL
 
 	const handleRegister = async () => {
 		setRegistrationState("checking");
-		const result = await registerAuctionAction(externalAuctionId, snapshot.auction.regulationVersion);
+		const result = await registerAuctionAction(externalAuctionId, snapshot.auction.regulationVersion, detectAcquisitionSource());
 		if (result.success && result.data) {
 			const nextState = result.data.status === "APPROVED" && result.data.globallyEnabled !== false ? "approved" : result.data.status === "PENDING" ? "pending" : "available";
 			setRegistrationState(nextState);

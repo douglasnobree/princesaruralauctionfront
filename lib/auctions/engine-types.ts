@@ -83,6 +83,7 @@ export type EngineIntegerCents = string;
 export type EngineIsoInstant = string;
 export type EngineBidOrigin = "ONLINE" | "PROXY" | "FLOOR" | "PHONE";
 export type EngineBidPhase = "PRE_BID" | "LIVE_BID";
+export type EngineAcquisitionSource = "DIRECT" | "WHATSAPP" | "FACEBOOK" | "INSTAGRAM" | "GOOGLE" | "TIKTOK" | "REFERRAL" | "ORGANIC" | "OTHER" | "UNKNOWN";
 
 export type EngineBidHistoryItem = {
   id: string;
@@ -94,6 +95,7 @@ export type EngineBidHistoryItem = {
   acceptedAt: EngineIsoInstant;
   createdAt: EngineIsoInstant;
   bidderAlias: string;
+  participantId?: string;
   status: "ACTIVE" | "VOIDED";
   voidedAt?: EngineIsoInstant;
   voidReason?: string;
@@ -156,10 +158,13 @@ export type EngineAuctionRegistration = {
   status: "PENDING" | "APPROVED" | "SUSPENDED" | "REVOKED";
   enabled?: boolean;
   termsVersion: string;
+  acquisitionSource?: EngineAcquisitionSource;
   acceptedAt: string;
   displayName?: string;
   email?: string | null;
   globallyEnabled?: boolean;
+  participantType?: "USER" | "QUICK";
+  maskedDocument?: string;
 };
 
 export type EngineAuctionRegistrationPage = {
@@ -171,6 +176,9 @@ export type EngineAuctionRegistrationPage = {
 export type AuctionParticipantSearchResult = {
   id: string;
   displayName: string;
-  email: string;
+  email: string | null;
   enabled: boolean;
+  participantType: "USER" | "QUICK";
+  documentType?: "CPF" | "CNPJ";
+  maskedDocument?: string;
 };

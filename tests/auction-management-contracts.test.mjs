@@ -41,4 +41,32 @@ assert.doesNotMatch(managementShell, /localStorage/);
 const broadcastPanel = await read("components/Broadcast/broadcast-control-panel.tsx");
 assert.match(broadcastPanel, /canManageBroadcast/);
 
+const engineActions = await read("hooks/actions/auctionEngineActions.ts");
+assert.match(engineActions, /createQuickParticipantAction/);
+assert.match(engineActions, /manager\/participants\/quick/);
+assert.match(engineActions, /Idempotency-Key/);
+
+const engineTypes = await read("lib/auctions/engine-types.ts");
+assert.match(engineTypes, /participantType: "USER" \| "QUICK"/);
+assert.match(engineTypes, /maskedDocument\?: string/);
+
+const operationPanel = await read("components/Management/AuctionOperationPanel.tsx");
+assert.match(operationPanel, /Cadastrar participante rápido/);
+assert.match(operationPanel, /CPF ou CNPJ/);
+assert.match(operationPanel, /Esse cadastro não cria conta/);
+assert.match(operationPanel, /Origem do participante/);
+
+const acquisitionSources = await read("lib/auctions/acquisition-sources.ts");
+assert.match(acquisitionSources, /utm_source/);
+assert.match(acquisitionSources, /FACEBOOK/);
+assert.match(acquisitionSources, /REFERRAL/);
+
+const report = await read("app/(management)/admin/leiloes/[id]/relatorio/page.tsx");
+assert.match(report, /Origem dos participantes/);
+assert.match(report, /Lances recentes/);
+
+const participantsPanel = await read("components/Management/AuctionParticipantsPanel.tsx");
+assert.match(participantsPanel, /participant\.participantType === "QUICK"/);
+assert.match(participantsPanel, /Apenas lance assistido/);
+
 console.log("auction-management-contracts: ok");
