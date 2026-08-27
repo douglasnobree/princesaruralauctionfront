@@ -38,6 +38,7 @@ import type { AuctionAdmin, AuctionAdminLot } from "@/types/auction-admin";
 import type { AuctionCapabilities } from "@/components/Management/capabilities";
 import { AuctionForm } from "@/components/Management/AuctionForm";
 import { AuctionLotsPanel } from "@/components/Management/AuctionLotsPanel";
+import { AuctionPendingEligibilityBids } from "@/components/Management/AuctionPendingEligibilityBids";
 import { AuctionOperationPanel } from "@/components/Management/AuctionOperationPanel";
 import { AuctionParticipantsPanel } from "@/components/Management/AuctionParticipantsPanel";
 
@@ -195,7 +196,7 @@ export function AuctionWorkspace({
         </div>
       ) : null}
       {tab === "dados" ? <AuctionForm initialData={auction} capabilities={workspaceCapabilities} /> : null}
-      {tab === "lotes" ? <AuctionLotsPanel auctionId={auction.id} initialLots={lots} capabilities={capabilities} engineLots={engineSnapshot?.lots} /> : null}
+      {tab === "lotes" ? <div className="space-y-5"><AuctionLotsPanel auctionId={auction.id} initialLots={lots} capabilities={capabilities} engineLots={engineSnapshot?.lots} /><div className="space-y-4" aria-label="Lances e pré-lances aguardando habilitação">{(engineSnapshot?.lots ?? []).map((lot) => <AuctionPendingEligibilityBids key={lot.externalId} auctionId={auction.id} lotId={lot.externalId} currency={engineSnapshot?.auction.currency ?? "BRL"} canManageParticipants={capabilities.canManageStatus} />)}</div></div> : null}
       {tab === "participantes" ? <AuctionParticipantsPanel auctionId={auction.id} capabilities={capabilities} /> : null}
       {tab === "operacao" ? <AuctionOperationPanel auctionId={auction.id} initialSnapshot={engineSnapshot} capabilities={capabilities} /> : null}
       {tab === "transmissao" ? <BroadcastSummary auctionId={auction.id} state={broadcastState} config={broadcastConfig} clients={broadcastClients} error={engineError} /> : null}

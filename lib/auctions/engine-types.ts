@@ -151,6 +151,26 @@ export type EnginePendingBidsPage = {
   hasMore: boolean;
 };
 
+export type EnginePendingEligibilityBid = {
+  bidRequestId: string;
+  lotId: string;
+  externalLotId: string;
+  lotNumber: number;
+  lotTitle: string;
+  participantId: string;
+  displayName: string | null;
+  amountCents: EngineIntegerCents;
+  origin: EngineBidOrigin;
+  phase: EngineBidPhase | null;
+  status: "PENDING_ELIGIBILITY";
+  receivedAt: EngineIsoInstant;
+};
+
+export type EnginePendingEligibilityBidsPage = {
+  items: EnginePendingEligibilityBid[];
+  hasMore: boolean;
+};
+
 export type EngineAuctionRegistration = {
   registrationId: string;
   auctionId: string;

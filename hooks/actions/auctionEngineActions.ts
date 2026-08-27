@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getFreshSession } from "@/lib/auth/server/session";
 import type { ActionResult } from "@/types/common";
-import type { AuctionParticipantSearchResult, EngineAuctionRegistration, EngineAuctionRegistrationPage, EngineAuctionSnapshot, EngineBidHistoryPage, EngineBidHistoryQuery, EngineBidManagementResult, EngineBidResult, EngineOwnProxyBid, EnginePendingBidsPage, EngineRealtimeTicket, EngineStream } from "@/lib/auctions/engine-types";
+import type { AuctionParticipantSearchResult, EngineAuctionRegistration, EngineAuctionRegistrationPage, EngineAuctionSnapshot, EngineBidHistoryPage, EngineBidHistoryQuery, EngineBidManagementResult, EngineBidResult, EngineOwnProxyBid, EnginePendingBidsPage, EnginePendingEligibilityBidsPage, EngineRealtimeTicket, EngineStream } from "@/lib/auctions/engine-types";
 import type { AcquisitionSource } from "@/lib/auctions/acquisition-sources";
 import { explainEngineError, getEngineErrorCode } from "@/lib/auctions/engine-errors";
 import { normalizeApiBaseUrl } from "@/lib/api/base-url";
@@ -112,6 +112,16 @@ export async function listManagerPendingBidsAction(auctionId: string): Promise<A
     const response = await fetch(`${API_URL}/auction-engine/manager/auctions/${encodeURIComponent(auctionId)}/pending-bids?limit=100`, { headers: await authenticatedHeaders(), cache: "no-store" });
     return parse(response, "NÃ£o foi possÃ­vel carregar os prÃ©-lances pendentes.");
   } catch { return { success: false, error: "NÃ£o foi possÃ­vel consultar os prÃ©-lances pendentes agora." }; }
+}
+
+export async function listManagerPendingEligibilityBidsAction(auctionId: string, query: { lotId?: string; limit?: string } = {}): Promise<ActionResult<EnginePendingEligibilityBidsPage>> {
+  try {
+    const params = new URLSearchParams();
+    if (query.lotId) params.set("lotId", query.lotId);
+    if (query.limit) params.set("limit", query.limit);
+    const response = await fetch(`${API_URL}/auction-engine/manager/auctions/${encodeURIComponent(auctionId)}/pending-eligibility-bids${params.size ? `?${params.toString()}` : ""}`, { headers: await authenticatedHeaders(), cache: "no-store" });
+    return parse(response, "Não foi possível carregar os lances aguardando análise.");
+  } catch { return { success: false, error: "Não foi possível consultar os lances aguardando análise agora." }; }
 }
 
 /** @deprecated The approval queue is legacy and intentionally disabled. */

@@ -45,10 +45,19 @@ const engineActions = await read("hooks/actions/auctionEngineActions.ts");
 assert.match(engineActions, /createQuickParticipantAction/);
 assert.match(engineActions, /manager\/participants\/quick/);
 assert.match(engineActions, /Idempotency-Key/);
+assert.match(engineActions, /listManagerPendingEligibilityBidsAction/);
+assert.match(engineActions, /pending-eligibility-bids/);
 
 const engineTypes = await read("lib/auctions/engine-types.ts");
 assert.match(engineTypes, /participantType: "USER" \| "QUICK"/);
 assert.match(engineTypes, /maskedDocument\?: string/);
+assert.match(engineTypes, /status: "PENDING_ELIGIBILITY"/);
+
+const pendingEligibility = await read("components/Management/AuctionPendingEligibilityBids.tsx");
+assert.match(pendingEligibility, /Lances aguardando análise/);
+assert.match(pendingEligibility, /Ver dados/);
+assert.match(pendingEligibility, /Habilitar usuário/);
+assert.match(pendingEligibility, /setAuctionRegistrationEnabledAction/);
 
 const operationPanel = await read("components/Management/AuctionOperationPanel.tsx");
 assert.match(operationPanel, /Cadastrar participante rápido/);
