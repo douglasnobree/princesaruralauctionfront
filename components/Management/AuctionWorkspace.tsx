@@ -46,6 +46,7 @@ type Tab =
   | "resumo"
   | "dados"
   | "lotes"
+  | "lances"
   | "participantes"
   | "operacao"
   | "transmissao";
@@ -54,6 +55,7 @@ const tabs: Array<{ value: Tab; label: string; icon: typeof Gavel }> = [
   { value: "resumo", label: "Resumo", icon: Gavel },
   { value: "dados", label: "Dados do leilão", icon: Settings2 },
   { value: "lotes", label: "Lotes", icon: ListOrdered },
+  { value: "lances", label: "Lances e pré-lances", icon: Gavel },
   { value: "participantes", label: "Participantes", icon: ShieldCheck },
   { value: "operacao", label: "Operação", icon: MonitorPlay },
   { value: "transmissao", label: "Broadcast / OBS", icon: MonitorPlay },
@@ -196,7 +198,41 @@ export function AuctionWorkspace({
         </div>
       ) : null}
       {tab === "dados" ? <AuctionForm initialData={auction} capabilities={workspaceCapabilities} /> : null}
-      {tab === "lotes" ? <div className="space-y-5"><AuctionLotsPanel auctionId={auction.id} initialLots={lots} capabilities={capabilities} engineLots={engineSnapshot?.lots} /><div className="space-y-4" aria-label="Lances e pré-lances aguardando habilitação">{(engineSnapshot?.lots ?? []).map((lot) => <AuctionPendingEligibilityBids key={lot.externalId} auctionId={auction.id} lotId={lot.externalId} currency={engineSnapshot?.auction.currency ?? "BRL"} canManageParticipants={capabilities.canManageStatus} />)}</div></div> : null}
+      {tab === "lotes" ? <AuctionLotsPanel auctionId={auction.id} initialLots={lots} capabilities={capabilities} engineLots={engineSnapshot?.lots} /> : null}
+      {tab === "lances" ? (
+        <section className="space-y-5" aria-labelledby="pending-bids-title">
+          <header className="rounded-xl border bg-card p-5 shadow-sm sm:p-6">
+            <div className="flex items-center gap-2 text-secondary">
+              <Gavel className="size-5" aria-hidden="true" />
+              <p className="text-xs font-semibold uppercase tracking-[0.14em]">Gestão de lances</p>
+            </div>
+            <h2 id="pending-bids-title" className="mt-2 text-xl font-bold tracking-tight sm:text-2xl">Lances e pré-lances</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+              Consulte os lances enviados por participantes que ainda aguardam habilitação, confira os dados do usuário e libere sua participação sem sair desta página.
+            </p>
+          </header>
+
+          {engineSnapshot?.lots.length ? (
+            <div className="space-y-4" aria-label="Lances e pré-lances aguardando habilitação">
+              {engineSnapshot.lots.map((lot) => (
+                <AuctionPendingEligibilityBids
+                  key={lot.externalId}
+                  auctionId={auction.id}
+                  lotId={lot.externalId}
+                  lotNumber={lot.lotNumber}
+                  lotTitle={lot.title}
+                  currency={engineSnapshot.auction.currency ?? "BRL"}
+                  canManageParticipants={capabilities.canManageStatus}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed bg-card p-6 text-sm text-muted-foreground">
+              {engineError || "Os lances aparecerão aqui quando o leilão possuir lotes publicados no motor."}
+            </div>
+          )}
+        </section>
+      ) : null}
       {tab === "participantes" ? <AuctionParticipantsPanel auctionId={auction.id} capabilities={capabilities} /> : null}
       {tab === "operacao" ? <AuctionOperationPanel auctionId={auction.id} initialSnapshot={engineSnapshot} capabilities={capabilities} /> : null}
       {tab === "transmissao" ? <BroadcastSummary auctionId={auction.id} state={broadcastState} config={broadcastConfig} clients={broadcastClients} error={engineError} /> : null}

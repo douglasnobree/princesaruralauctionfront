@@ -55,9 +55,16 @@ assert.match(engineTypes, /status: "PENDING_ELIGIBILITY"/);
 
 const pendingEligibility = await read("components/Management/AuctionPendingEligibilityBids.tsx");
 assert.match(pendingEligibility, /Lances aguardando análise/);
+assert.match(pendingEligibility, /aria-label="Status: Aguardando análise"/);
 assert.match(pendingEligibility, /Ver dados/);
 assert.match(pendingEligibility, /Habilitar usuário/);
 assert.match(pendingEligibility, /setAuctionRegistrationEnabledAction/);
+
+const auctionWorkspace = await read("components/Management/AuctionWorkspace.tsx");
+assert.match(auctionWorkspace, /value: "lances", label: "Lances e pré-lances"/);
+assert.match(auctionWorkspace, /tab === "lotes" \? <AuctionLotsPanel/);
+assert.match(auctionWorkspace, /tab === "lances" \? \(/);
+assert.match(auctionWorkspace, /id="pending-bids-title"/);
 
 const operationPanel = await read("components/Management/AuctionOperationPanel.tsx");
 assert.match(operationPanel, /Cadastrar participante rápido/);

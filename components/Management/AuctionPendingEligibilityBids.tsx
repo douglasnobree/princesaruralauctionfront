@@ -34,11 +34,15 @@ function phaseLabel(phase: EnginePendingEligibilityBid["phase"]) {
 export function AuctionPendingEligibilityBids({
   auctionId,
   lotId,
+  lotNumber,
+  lotTitle,
   currency = "BRL",
   canManageParticipants,
 }: {
   auctionId: string;
   lotId: string;
+  lotNumber?: number;
+  lotTitle?: string;
   currency?: string;
   canManageParticipants: boolean;
 }) {
@@ -104,14 +108,15 @@ export function AuctionPendingEligibilityBids({
   }
 
   return (
-    <section className="mt-4 rounded-xl border border-amber-200 bg-amber-50/50 p-4" aria-labelledby={`pending-eligibility-${lotId}`}>
+    <section className="rounded-xl border border-amber-200 bg-amber-50/50 p-4 sm:p-5" aria-labelledby={`pending-eligibility-${lotId}`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2 text-amber-800">
             <Clock3 className="size-4" aria-hidden="true" />
-            <h4 id={`pending-eligibility-${lotId}`} className="text-sm font-semibold">Lances aguardando análise</h4>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em]">{lotNumber ? `Lote ${String(lotNumber).padStart(2, "0")}` : "Lote"}</p>
           </div>
-          <p className="mt-1 text-xs leading-5 text-amber-950/70">Lances recebidos enquanto o participante ainda não estava habilitado.</p>
+          <h3 id={`pending-eligibility-${lotId}`} className="mt-1 text-base font-bold text-amber-950">{lotTitle || "Lances aguardando análise"}</h3>
+          <p className="mt-1 text-xs leading-5 text-amber-950/70">Lances e pré-lances recebidos enquanto o participante ainda não estava habilitado.</p>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={() => void load()} disabled={!canManageParticipants || loading || isPending} className="border-amber-200 bg-white text-amber-900 hover:bg-amber-100">
           <RefreshCw className="size-3.5" aria-hidden="true" />Atualizar
@@ -138,9 +143,14 @@ export function AuctionPendingEligibilityBids({
               return (
                 <div key={item.bidRequestId} className="grid gap-3 px-3 py-3 sm:grid-cols-[minmax(0,1fr)_8rem_9rem_minmax(0,auto)] sm:items-center">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-slate-900">{participantName}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="min-w-0 truncate text-sm font-semibold text-slate-900">{participantName}</p>
+                      <span aria-label="Status: Aguardando análise" className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-900">
+                        <Clock3 className="size-3" aria-hidden="true" />Aguardando análise
+                      </span>
+                    </div>
                     <p className="mt-1 text-xs text-slate-500">{formatEngineBrlCents(item.amountCents, currency)} · {item.participantId}</p>
-                    <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-900 sm:hidden"><Clock3 className="size-3" aria-hidden="true" />{phaseLabel(item.phase)}</span>
+                    <span className="mt-2 inline-flex rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700 sm:hidden">{phaseLabel(item.phase)}</span>
                   </div>
                   <span className="hidden text-xs font-medium text-slate-600 sm:inline">{phaseLabel(item.phase)}</span>
                   <span className="text-xs text-slate-500">{formatEngineBrtInstant(item.receivedAt)}</span>
