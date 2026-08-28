@@ -113,12 +113,10 @@ function registrationState(status?: string, globallyEnabled?: boolean): Registra
 export function AuctionLotBidPanel({
 	initialSnapshot,
 	lotExternalId,
-	payment,
 	closingLabel,
 }: {
 	initialSnapshot: EngineAuctionSnapshot;
 	lotExternalId: string;
-	payment?: string | null;
 	closingLabel?: string | null;
 }) {
 	const [snapshot, setSnapshot] = useState(initialSnapshot);
@@ -434,11 +432,6 @@ export function AuctionLotBidPanel({
 					{bidderName ? <>Lance feito por <span className="text-foreground">{bidderName}</span></> : "Nenhum lance confirmado"}
 				</p>
 			</div>
-
-			{payment ? <div>
-				<p className="text-xs font-medium uppercase text-muted-foreground">Forma de pagamento</p>
-				<p className="mt-1 text-sm font-bold">{payment}</p>
-			</div> : null}
 
 			<div className="rounded-lg bg-muted px-4 py-3 text-center text-sm font-semibold text-muted-foreground">
 				<Clock3 className="mr-1 inline size-4" />{closingText}

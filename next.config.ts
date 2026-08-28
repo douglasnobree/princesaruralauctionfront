@@ -28,6 +28,28 @@ const nextConfig: NextConfig = {
 			{
 				protocol: "http",
 				hostname: "localhost",
+				port: "3000",
+				pathname: "/BestSellers/**",
+			},
+			{
+				protocol: "http",
+				hostname: "localhost",
+				port: "3000",
+				pathname: "/FeaturedProducts/**",
+			},
+			{
+				protocol: "https",
+				hostname: "princesarural.com.br",
+				pathname: "/BestSellers/**",
+			},
+			{
+				protocol: "https",
+				hostname: "princesarural.com.br",
+				pathname: "/FeaturedProducts/**",
+			},
+			{
+				protocol: "http",
+				hostname: "localhost",
 				port: "4000",
 				pathname: "/uploads/**",
 			},

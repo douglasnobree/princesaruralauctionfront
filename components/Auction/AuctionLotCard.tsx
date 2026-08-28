@@ -1,4 +1,4 @@
-import { ArrowRight, CalendarDays, FileText, Gavel } from "lucide-react";
+import { ArrowRight, CalendarDays, Gavel } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { AuctionLotStatusBadge } from "@/components/Auction/AuctionStatusBadge";
@@ -68,8 +68,6 @@ export function AuctionLotCard({ lot, engineLot, currency = "BRL" }: AuctionLotC
 						<span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Gavel className="size-3.5" aria-hidden="true" />{engineLot?.nextBidCents ? `Próximo ${formatCents(engineLot.nextBidCents, currency)}` : "Consulte os lances"}</span>
 						<span className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-2 text-xs font-bold text-secondary-foreground">Dar lance <ArrowRight className="size-3.5" aria-hidden="true" /></span>
 					</div>
-
-					{lot.genealogyUrl ? <p className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><FileText className="size-3.5" aria-hidden="true" />Genealogia disponível</p> : null}
 
 					{lot.payment ? (
 						<div className="space-y-1 text-xs text-muted-foreground">

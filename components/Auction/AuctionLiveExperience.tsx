@@ -6,7 +6,6 @@ import {
   Trophy,
 } from 'lucide-react';
 import Image from 'next/image';
-import { AuctionGenealogyViewer } from '@/components/Auction/AuctionGenealogyViewer';
 import { AuctionLotCard } from '@/components/Auction/AuctionLotCard';
 import { AuctionRuntimeBoard } from '@/components/Auction/AuctionRuntimeBoard';
 import {
@@ -251,9 +250,6 @@ export function AuctionLiveExperience({
             concluída.
           </div>
         )}
-        {catalogLots.length > 0 ? (
-          <AuctionGenealogyViewer lots={catalogLots} />
-        ) : null}
       </div>
     </div>
   );

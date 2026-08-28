@@ -50,6 +50,9 @@ export type Auction = {
 	title: string;
 	mode?: "SHOPPING" | "LIVE" | "TIMED";
 	description?: string | null;
+	regulationText?: string | null;
+	paymentText?: string | null;
+	deliveryText?: string | null;
 	startsAt: string;
 	endsAt?: string | null;
 	date: string;

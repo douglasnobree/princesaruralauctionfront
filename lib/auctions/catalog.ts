@@ -8,6 +8,7 @@ import type {
 	AuctionStatus,
 } from "@/lib/auctions/types";
 import { getApiOrigin, normalizeApiBaseUrl } from "@/lib/api/base-url";
+import { getMarketplaceUrl } from "@/lib/config/urls";
 
 const API_BASE_URL = normalizeApiBaseUrl(
 	process.env.NEXT_PUBLIC_API_BASE_URL || process.env.NEXT_PUBLIC_API_URL,
@@ -47,6 +48,9 @@ type ApiAuction = {
 	title: string;
 	slug: string;
 	description?: string | null;
+	regulationText?: string | null;
+	paymentText?: string | null;
+	deliveryText?: string | null;
 	mode?: "SHOPPING" | "LIVE" | "TIMED";
 	coverImage?: string | null;
 	coverImageUrl?: string | null;
@@ -133,12 +137,12 @@ function resolveAsset(pathOrUrl?: string | null, fallbackPath?: string) {
 	if (/^https?:\/\//i.test(pathOrUrl)) return pathOrUrl;
 	if (pathOrUrl.startsWith("/uploads/")) return `${API_ORIGIN}${pathOrUrl}`;
 	if (
-		pathOrUrl === PLACEHOLDER_IMAGE ||
 		pathOrUrl.startsWith("/BestSellers/") ||
 		pathOrUrl.startsWith("/FeaturedProducts/")
 	) {
-		return pathOrUrl;
+		return `${getMarketplaceUrl()}${pathOrUrl}`;
 	}
+	if (pathOrUrl === PLACEHOLDER_IMAGE) return pathOrUrl;
 	if (fallbackPath && !pathOrUrl.startsWith("/")) {
 		return `${API_ORIGIN}${fallbackPath}${pathOrUrl}`;
 	}
@@ -229,6 +233,9 @@ function mapAuction(auction: ApiAuction): Auction {
 		title: auction.title,
 		mode: auction.mode,
 		description: auction.description,
+		regulationText: auction.regulationText?.trim() || null,
+		paymentText: auction.paymentText?.trim() || null,
+		deliveryText: auction.deliveryText?.trim() || null,
 		startsAt: auction.startsAt,
 		endsAt: auction.endsAt,
 		date: formatDate(auction.startsAt),

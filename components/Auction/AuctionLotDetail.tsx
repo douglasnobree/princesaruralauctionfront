@@ -1,14 +1,12 @@
 import {
 	ChevronLeft,
 	ChevronRight,
-	ExternalLink,
 	FileText,
-	Play,
-	Youtube,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { AuctionLotBidPanel } from "@/components/Auction/AuctionLotBidPanel";
+import { AuctionLotInformationSections } from "@/components/Auction/AuctionLotInformationSections";
+import { AuctionLotMediaGallery } from "@/components/Auction/AuctionLotMediaGallery";
 import type { EngineAuctionSnapshot } from "@/lib/auctions/engine-types";
 import type { Auction, AuctionLot } from "@/lib/auctions/types";
 
@@ -18,33 +16,6 @@ interface AuctionLotDetailProps {
 	previousLot?: AuctionLot;
 	nextLot?: AuctionLot;
 	engineSnapshot?: EngineAuctionSnapshot;
-}
-
-function getYoutubeEmbedUrl(value: string) {
-	try {
-		const url = new URL(value);
-		const hostname = url.hostname.toLowerCase();
-		let videoId = "";
-
-		if (hostname === "youtu.be") {
-			videoId = url.pathname.slice(1);
-		} else if (
-			hostname === "youtube.com" ||
-			hostname.endsWith(".youtube.com")
-		) {
-			if (url.pathname === "/watch") videoId = url.searchParams.get("v") || "";
-			if (url.pathname.startsWith("/shorts/")) {
-				videoId = url.pathname.split("/")[2] || "";
-			}
-			if (url.pathname.startsWith("/embed/")) {
-				videoId = url.pathname.split("/")[2] || "";
-			}
-		}
-
-		return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
-	} catch {
-		return null;
-	}
 }
 
 function getLotStatusLabel(status: string) {
@@ -70,9 +41,6 @@ export function AuctionLotDetail({
 		previousLot && `/leiloes/${auction.slug}/lotes/${previousLot.slug}`;
 	const nextLotHref =
 		nextLot && `/leiloes/${auction.slug}/lotes/${nextLot.slug}`;
-	const youtubeEmbedUrl = lot.youtubeUrl
-		? getYoutubeEmbedUrl(lot.youtubeUrl)
-		: null;
 	const engineLot = engineSnapshot?.lots.find(
 		(item) => item.externalId === lot.id || item.externalId === lot.slug || item.id === lot.id,
 	);
@@ -127,37 +95,7 @@ export function AuctionLotDetail({
 
 				<div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_441px] lg:items-start">
 					<div className="space-y-5">
-						<div className="relative aspect-video overflow-hidden rounded-lg bg-black">
-							<Image
-								src={lot.image}
-								alt={lot.images[0]?.altText || lot.title}
-								fill
-								className="object-cover"
-								sizes="(min-width: 1024px) 65vw, 100vw"
-								priority
-							/>
-							{engineSnapshot?.auction.mode === "LIVE" && engineSnapshot.auction.status === "RUNNING" ? <div className="absolute inset-0 flex items-center justify-center bg-black/15" aria-label="Transmissão ao vivo"><span className="flex size-16 items-center justify-center rounded-full bg-black/55 text-white shadow-lg"><Play className="ml-1 size-7 fill-current" /></span></div> : null}
-							{engineSnapshot?.auction.mode === "LIVE" && engineSnapshot.auction.status === "RUNNING" ? <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 bg-gradient-to-t from-black/75 to-transparent px-4 pb-3 pt-8 text-xs font-semibold text-white"><span>Transmissão do leilão</span><span>Ao vivo</span></div> : null}
-						</div>
-
-						{lot.images.length > 1 ? (
-							<div className="flex gap-3 overflow-x-auto pb-1">
-								{lot.images.map((image) => (
-									<div
-										key={image.id}
-									className="relative size-20 shrink-0 overflow-hidden rounded-md border bg-card"
-									>
-										<Image
-											src={image.url}
-											alt={image.altText || lot.title}
-											fill
-											className="object-cover"
-											sizes="80px"
-										/>
-									</div>
-								))}
-							</div>
-						) : null}
+						<AuctionLotMediaGallery key={lot.id} lot={lot} />
 
 						{lot.details.length > 0 ? (
 							<section className="rounded-xl bg-card p-5 shadow-xs sm:p-6">
@@ -192,53 +130,7 @@ export function AuctionLotDetail({
 							</section>
 						) : null}
 
-						{lot.genealogyUrl ? (
-							<section className="rounded-xl bg-card p-5 shadow-xs sm:p-6">
-								<h2 className="flex items-center gap-2 text-xl font-bold">
-									<FileText className="size-5 text-secondary" />
-									Genealogia do lote
-								</h2>
-								<p className="mt-3 text-sm leading-6 text-muted-foreground">
-									Consulte o documento PDF com a genealogia cadastrada para este lote.
-								</p>
-								<a
-									href={lot.genealogyUrl}
-									target="_blank"
-									rel="noreferrer"
-									className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-secondary hover:underline"
-								>
-									Abrir genealogia em PDF <ExternalLink className="size-4" />
-								</a>
-							</section>
-						) : null}
-
-						{lot.youtubeUrl ? (
-							<section className="rounded-xl bg-card p-5 shadow-xs sm:p-6">
-								<h2 className="flex items-center gap-2 text-xl font-bold">
-									<Youtube className="size-5 text-secondary" />
-									Vídeo do lote
-								</h2>
-								{youtubeEmbedUrl ? (
-									<div className="mt-4 aspect-video overflow-hidden rounded-lg bg-black">
-										<iframe
-											src={youtubeEmbedUrl}
-											title={`Vídeo do lote ${lot.title}`}
-											className="size-full"
-											allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-											allowFullScreen
-										/>
-									</div>
-								) : null}
-								<a
-									href={lot.youtubeUrl}
-									target="_blank"
-									rel="noreferrer"
-									className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-secondary hover:underline"
-								>
-									Abrir vídeo no YouTube <ExternalLink className="size-4" />
-								</a>
-							</section>
-						) : null}
+						<AuctionLotInformationSections auction={auction} lot={lot} />
 					</div>
 
 					<aside className="overflow-hidden rounded-lg border bg-card shadow-xs lg:sticky lg:top-28">
@@ -252,7 +144,6 @@ export function AuctionLotDetail({
 								<AuctionLotBidPanel
 									initialSnapshot={engineSnapshot}
 									lotExternalId={engineLot.externalId}
-									payment={lot.payment}
 									closingLabel={lot.closesAtLabel}
 								/>
 							) : (
