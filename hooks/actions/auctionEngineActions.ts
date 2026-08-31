@@ -176,14 +176,17 @@ export async function createSandboxAuctionAction(input: { label?: string; lotCou
   } catch { return { success: false, error: "Não foi possível conectar ao ambiente de teste." }; }
 }
 
-export async function reserveShoppingLotAction(auctionId: string, lotId: string, quantity = 1): Promise<ActionResult<Record<string, unknown>>> {
+export async function buyShoppingLotAction(auctionId: string, lotId: string): Promise<ActionResult<EngineBidResult>> {
   try {
     const authHeaders = await optionalAuthenticatedHeaders();
-    if (!authHeaders.Authorization) return authenticationRequired<Record<string, unknown>>();
-    const response = await fetch(`${API_URL}/auction-engine/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/reservation`, { method: "POST", headers: { ...authHeaders, "Content-Type": "application/json", "Idempotency-Key": randomUUID() }, body: JSON.stringify({ quantity }), cache: "no-store" });
-    return parse(response, "Não foi possível reservar este lote.");
-  } catch { return { success: false, error: "Não foi possível enviar a reserva." }; }
+    if (!authHeaders.Authorization) return authenticationRequired<EngineBidResult>();
+    const response = await fetch(`${API_URL}/auction-engine/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/reservation`, { method: "POST", headers: { ...authHeaders, "Content-Type": "application/json", "Idempotency-Key": randomUUID() }, body: JSON.stringify({ quantity: 1 }), cache: "no-store" });
+    return parse(response, "Não foi possível concluir a compra deste lote.");
+  } catch { return { success: false, error: "Não foi possível concluir a compra agora." }; }
 }
+
+/** Compatibilidade para consumidores antigos: o shopping não cria mais reservas. */
+export const reserveShoppingLotAction = buyShoppingLotAction;
 
 export async function issueRealtimeTicketAction(auctionId: string): Promise<ActionResult<EngineRealtimeTicket>> {
   try {

@@ -69,6 +69,13 @@ export type EngineBidResult = {
   endsAt: string | null;
   serverTime: string;
   timerExtended?: boolean;
+  lotStatus?: "SOLD";
+  sold?: boolean;
+  winnerName?: string | null;
+  winningAmountCents?: string;
+  winnerAwardId?: string;
+  settlementId?: string;
+  closedAt?: string;
 };
 
 export type EngineOwnProxyBid = {

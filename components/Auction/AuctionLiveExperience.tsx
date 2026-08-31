@@ -24,13 +24,13 @@ function statusLabel(
   preBidClosed = false,
 ) {
   if (
-    (mode === 'TIMED' || mode === 'SHOPPING') &&
+    mode === 'TIMED' &&
     status === 'SCHEDULED' &&
     preBidOpen
   )
     return 'Pré-lance';
   if (
-    (mode === 'TIMED' || mode === 'SHOPPING') &&
+    mode === 'TIMED' &&
     status === 'SCHEDULED'
   )
     return 'Em breve';
@@ -41,7 +41,7 @@ function statusLabel(
   if (mode === 'LIVE' && status === 'SCHEDULED') return 'Aguardando ao vivo';
   if (mode === 'LIVE' && status === 'RUNNING') return 'Ao vivo';
   if (
-    (mode === 'TIMED' || mode === 'SHOPPING') &&
+    mode === 'TIMED' &&
     status === 'RUNNING'
   )
     return 'Aberto';
@@ -114,7 +114,7 @@ export function AuctionLiveExperience({
   const livePreBidClosed = mode === 'LIVE' && preBidClosed;
   const isLiveRunning = mode === 'LIVE' && displayedStatus === 'RUNNING';
   const isPreBidCatalog =
-    catalogLots.length > 0 &&
+    mode !== 'SHOPPING' && catalogLots.length > 0 &&
     (!initialSnapshot
       ? status === 'PRE_LAUNCH'
       : hasConfiguredPreBid(initialSnapshot.auction) &&
@@ -160,7 +160,7 @@ export function AuctionLiveExperience({
                   {mode === 'LIVE'
                     ? 'Ao vivo'
                     : mode === 'SHOPPING'
-                      ? 'Shopping · pré-lance'
+                      ? 'Shopping · compra imediata'
                       : 'Pré-lance'}
                 </span>
               ) : null}
@@ -196,9 +196,7 @@ export function AuctionLiveExperience({
               <h2
                 id='pre-bid-lots-title'
                 className='text-2xl font-bold tracking-tight'>
-                {mode === 'SHOPPING'
-                  ? 'Lotes disponíveis'
-                  : 'Escolha um lote para enviar seu lance'}
+                Escolha um lote para enviar seu lance
               </h2>
               <p className='mt-1 max-w-3xl text-sm leading-6 text-muted-foreground'>
                 Os lotes liberados aparecem aqui antes do fechamento. Abra um

@@ -226,7 +226,9 @@ export function AuctionOperationPanel({
           <h2 id="operation-title" className="mt-2 text-xl font-bold">
             {auction.mode === "LIVE"
               ? "Operação ao vivo"
-              : "Operação de pré-lance"}
+              : auction.mode === "SHOPPING"
+                ? "Operação de compra imediata"
+                : "Operação de pré-lance"}
           </h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
             Os comandos abaixo apenas encaminham ações ao Auction Engine. O

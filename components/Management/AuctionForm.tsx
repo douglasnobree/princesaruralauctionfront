@@ -79,10 +79,10 @@ const modeDetails = {
     badge: "Transmissão obrigatória",
   },
   SHOPPING: {
-    shortTitle: "Shopping / pré-lance",
-    description: "Pré-lance com opção de preço fixo.",
+    shortTitle: "Shopping / compra imediata",
+    description: "O primeiro usuário habilitado que confirmar compra fica com o lote.",
     icon: ShoppingBasket,
-    badge: "Pré-lance sem transmissão",
+    badge: "Compra imediata sem transmissão",
   },
 } as const;
 

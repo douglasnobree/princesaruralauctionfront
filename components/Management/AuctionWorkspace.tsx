@@ -189,7 +189,7 @@ export function AuctionWorkspace({
             </ul>
           </section>
           <div className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
-            <Metric label="Formato" value={auction.mode === "LIVE" ? "Leilão ao vivo" : auction.mode === "SHOPPING" ? "Shopping / pré-lance" : "Pré-lance"} />
+            <Metric label="Formato" value={auction.mode === "LIVE" ? "Leilão ao vivo" : auction.mode === "SHOPPING" ? "Shopping / compra imediata" : "Pré-lance"} />
             <Metric label="Início" value={formatAuctionDate(auction.startsAt)} />
             <Metric label="Encerramento" value={formatAuctionDate(auction.endsAt)} />
             <Metric label="Lotes e incremento" value={`${auction.lotCount} · ${formatCents(auction.incrementCents)}`} />

@@ -20,9 +20,10 @@ import {
 	issueRealtimeTicketAction,
 	placeBidAction,
 	registerAuctionAction,
-	reserveShoppingLotAction,
+	buyShoppingLotAction,
 	setProxyBidAction,
 } from "@/hooks/actions/auctionEngineActions";
+import { ShoppingPurchaseDialog } from "@/components/Auction/ShoppingPurchaseDialog";
 import type {
 	EngineAuctionSnapshot,
 	EngineBidResult,
@@ -81,6 +82,10 @@ function updateLotFromBid(
 						nextBidCents: result.nextBidCents,
 						currentBidderAlias: result.currentBidderAlias,
 						currentBidderName: result.currentBidderName === null ? null : result.currentBidderName ?? lot.currentBidderName,
+						status: result.lotStatus ?? lot.status,
+						winnerName: result.winnerName ?? lot.winnerName,
+						winningAmountCents: result.winningAmountCents ?? lot.winningAmountCents,
+						closedAt: result.closedAt ?? lot.closedAt,
 						endsAt: result.endsAt,
 						lotSequence: result.lotSequence,
 						version: result.version,
@@ -90,6 +95,7 @@ function updateLotFromBid(
 }
 
 function formatBidMessage(result: EngineBidResult, currency: string) {
+	if (result.sold) return `Compra confirmada por ${formatCents(result.winningAmountCents ?? result.currentPriceCents, currency)}. Este lote foi vendido para você.`;
 	if (result.status === "PENDING_ELIGIBILITY") return "Lance recebido. Ele ficará oculto e fora da contagem oficial até sua participação ser habilitada.";
 	if (result.status === "PENDING_APPROVAL") return "Este retorno pertence ao fluxo legado de aprovação. Atualize a página e envie o lance novamente.";
 	if (result.proxyMaxBidCents) {
@@ -134,6 +140,7 @@ export function AuctionLotBidPanel({
 	const [lastSync, setLastSync] = useState<Date | null>(null);
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+	const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
 	const [nowMs, setNowMs] = useState(() => Date.now());
 
 	const applySnapshot = useCallback((next: EngineAuctionSnapshot) => {
@@ -261,6 +268,8 @@ export function AuctionLotBidPanel({
 	}
 
 	const bidWindowOpen = auctionAcceptsBids(snapshot.auction, nowMs) && lot.status === "OPEN";
+	const isShopping = snapshot.auction.mode === "SHOPPING";
+	const shoppingPurchaseOpen = isShopping && registration === "approved" && ["SCHEDULED", "RUNNING"].includes(snapshot.auction.status) && lot.status === "OPEN" && lot.fixedPriceCents !== null;
 	const bidderName = getBidderDisplayName(lot);
 	const requireRegistration = async () => {
 		if (registration === "pending") {
@@ -358,24 +367,21 @@ export function AuctionLotBidPanel({
 		await submit(cents, proxy, proxy ? "proxy" : "custom");
 	};
 
-	const reserve = async () => {
+	const confirmPurchase = async () => {
 		if (busy) return;
-		if (isLotClosed) {
-			setFeedback({ type: "error", message: "Este lote já foi encerrado e não aceita reservas." });
-			return;
-		}
-		if (registration !== "approved") {
-			await requireRegistration();
-			return;
-		}
+		if (!shoppingPurchaseOpen) return;
 		setBusy(true);
 		setPending("reserve");
-		const result = await reserveShoppingLotAction(snapshot.auction.externalId, lot.externalId);
+		const result = await buyShoppingLotAction(snapshot.auction.externalId, lot.externalId);
 		if (!result.success && isAuctionAuthenticationError(result.errorCode)) {
 			setFeedback(null);
 			setLoginDialogOpen(true);
+		} else if (result.success && result.data) {
+			applySnapshot(updateLotFromBid(snapshotRef.current, result.data));
+			setPurchaseDialogOpen(false);
+			setFeedback({ type: "success", message: formatBidMessage(result.data, snapshot.auction.currency) });
 		} else {
-			setFeedback({ type: result.success ? "success" : "error", message: result.success ? "Reserva registrada para este lote." : result.error || "Não foi possível reservar este lote." });
+			setFeedback({ type: "error", message: result.error || "Não foi possível concluir a compra deste lote." });
 		}
 		setBusy(false);
 		setPending(null);
@@ -445,6 +451,13 @@ export function AuctionLotBidPanel({
 			{isLotClosed ? <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
 				<p className="font-bold">{lot.status === "SOLD" ? "Lote vendido" : lot.status === "CANCELLED" ? "Lote cancelado" : "Lote encerrado"}</p>
 				<p className="mt-1">Não é possível enviar novos lances neste lote.</p>
+			</div> : isShopping ? <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
+				<p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Compra imediata</p>
+				<p className="text-sm text-muted-foreground">O primeiro usuário habilitado que confirmar compra fica com este lote.</p>
+				<Button type="button" className="h-11 w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={!shoppingPurchaseOpen || busy} onClick={() => setPurchaseDialogOpen(true)}>
+					{pending === "reserve" ? <Loader2 className="size-4 animate-spin" /> : `Comprar agora por ${formatCents(lot.fixedPriceCents, snapshot.auction.currency)}`}
+				</Button>
+				{!shoppingPurchaseOpen ? <p className="inline-flex items-center gap-2 text-xs text-amber-700"><CircleAlert className="size-4 shrink-0" />{registration !== "approved" ? "Somente usuários habilitados podem comprar este lote." : "Este lote não está disponível para compra agora."}</p> : null}
 			</div> : <>
 			<div className="flex gap-2">
 				<Button type="button" className="h-11 flex-1 bg-primary text-primary-foreground hover:bg-primary/90" disabled={!bidWindowOpen || busy || registrationBlocksCommands || selectedFixedBidIsBlocked} onClick={handlePrimaryBid}>
@@ -471,7 +484,7 @@ export function AuctionLotBidPanel({
 				<div className="grid gap-2 sm:grid-cols-2">
 					<Button type="button" size="sm" variant="secondary" disabled={!bidWindowOpen || busy || registrationBlocksCommands} onClick={() => effectiveSelectedBidValue === "custom" ? void submitCustom(false) : void submit(effectiveSelectedBidValue, false, "quick")}>{pending === "custom" || pending === "quick" ? <Loader2 className="size-4 animate-spin" /> : <><Send className="size-4" />Dar lance</>}</Button>
 				</div>
-				{lot.fixedPriceCents ? <div className="border-t pt-3"><p className="text-xs text-muted-foreground">Compra imediata por {formatCents(lot.fixedPriceCents, snapshot.auction.currency)}.</p><Button type="button" variant="ghost" size="sm" className="mt-1 px-0 text-secondary" disabled={busy || lot.status !== "OPEN"} onClick={() => void reserve()}>{pending === "reserve" ? <Loader2 className="size-4 animate-spin" /> : "Reservar unidade"}</Button></div> : null}
+				{!isShopping && lot.fixedPriceCents ? <div className="border-t pt-3"><p className="text-xs text-muted-foreground">Compra imediata por {formatCents(lot.fixedPriceCents, snapshot.auction.currency)}.</p></div> : null}
 				{proxyMaxBidCents ? <p className="rounded-lg bg-primary/5 px-3 py-2 text-xs leading-5 text-primary">Teto automático ativo até <strong>{formatCents(proxyMaxBidCents, snapshot.auction.currency)}</strong>.</p> : null}
 				{unavailableMessage ? <p className="inline-flex items-center gap-2 text-xs text-amber-700"><CircleAlert className="size-4 shrink-0" />{unavailableMessage}</p> : null}
 				<p className="flex items-center justify-between gap-2 border-t pt-3 text-[11px] text-muted-foreground"><span className="inline-flex items-center gap-1.5"><Clock3 className="size-3.5" />Atualização automática</span><button type="button" className="inline-flex items-center gap-1 font-semibold hover:text-foreground" onClick={() => void getEngineSnapshotAction(snapshot.auction.externalId).then((result) => { if (result.success && result.data) applySnapshot(result.data); })}><RefreshCw className="size-3" />Sincronizar</button>{lastSync ? <span className="sr-only">Última sincronização às {lastSync.toLocaleTimeString("pt-BR")}</span> : null}</p>
@@ -480,6 +493,7 @@ export function AuctionLotBidPanel({
 
 			{feedback ? <p role={feedback.type === "error" ? "alert" : "status"} className={`rounded-lg px-3 py-2 text-xs leading-5 ${feedback.type === "success" ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800"}`}>{feedback.message}</p> : null}
 		</section>
+		<ShoppingPurchaseDialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen} lotTitle={lot.title} priceLabel={formatCents(lot.fixedPriceCents, snapshot.auction.currency)} isSubmitting={pending === "reserve"} onConfirm={() => void confirmPurchase()} />
 		<AuctionLoginDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} />
 		</>
 	);
