@@ -38,6 +38,11 @@ const managementShell = await read("components/Management/AuctionManagementShell
 assert.match(managementShell, /logoutAuctionAction/);
 assert.doesNotMatch(managementShell, /localStorage/);
 
+const auctionHeader = await read("components/AuctionHeader/AuctionHeader.tsx");
+assert.match(auctionHeader, /AUCTION_MANAGEMENT_ROLES/);
+assert.match(auctionHeader, /href="\/admin\/leiloes"/);
+assert.match(auctionHeader, /Administração/);
+
 const broadcastPanel = await read("components/Broadcast/broadcast-control-panel.tsx");
 assert.match(broadcastPanel, /canManageBroadcast/);
 

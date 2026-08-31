@@ -1,7 +1,8 @@
-import { CalendarDays, Gavel, Search, ShoppingBag, ShoppingCart, UserRound } from "lucide-react";
+import { CalendarDays, Gavel, LayoutDashboard, Search, ShoppingBag, ShoppingCart, UserRound } from "lucide-react";
 import Link from "next/link";
 import { getUser } from "@/lib/auth/server/session";
 import { getMarketplaceUrl } from "@/lib/config/urls";
+import { AUCTION_MANAGEMENT_ROLES } from "@/types/role-permissions";
 import { PrincesaLogoIcon } from "@/components/AuctionHeader/PrincesaRuralIcon";
 import { MarketplaceHandoffLink } from "@/components/AuctionHeader/MarketplaceHandoffLink";
 
@@ -15,6 +16,11 @@ const navigation = [
 export async function AuctionHeader() {
   const user = await getUser();
   const marketplaceUrl = getMarketplaceUrl();
+  const canViewManagement = user
+    ? AUCTION_MANAGEMENT_ROLES.includes(
+        user.accountType as (typeof AUCTION_MANAGEMENT_ROLES)[number],
+      )
+    : false;
 
   return (
     <header className="sticky top-0 z-50 text-white shadow-[0_3px_16px_rgba(0,0,0,0.12)]"> 
@@ -56,6 +62,16 @@ export async function AuctionHeader() {
             </form>
 
             <div className="hidden h-8 w-px bg-white/25 md:block" aria-hidden="true" />
+
+            {canViewManagement ? (
+              <Link
+                href="/admin/leiloes"
+                className="order-2 inline-flex min-h-8 items-center gap-2 rounded-md bg-[#f08a24] px-3 text-xs font-bold text-[#183428] outline-none transition-[background-color,transform] hover:bg-[#f6b04e] focus-visible:ring-2 focus-visible:ring-white/80 active:scale-[0.96] md:order-3"
+              >
+                <LayoutDashboard className="size-3.5" aria-hidden="true" />
+                Administração
+              </Link>
+            ) : null}
 
             {user ? (
               <MarketplaceHandoffLink
