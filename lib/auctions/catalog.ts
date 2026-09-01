@@ -33,6 +33,7 @@ type ApiAuctionLot = {
 	title: string;
 	category: AuctionCategory;
 	status: AuctionLotStatus;
+	startingBidCents?: number | null;
 	paymentDescription?: string | null;
 	deliveryDescription?: string | null;
 	details?: unknown;
@@ -202,6 +203,7 @@ function mapLot(lot: ApiAuctionLot, auctionSlug?: string): AuctionLot {
 		auctionSlug: auctionSlug ?? lot.auctionSlug ?? "",
 		category: lot.category,
 		status: lot.status,
+		startingBidCents: lot.startingBidCents ?? null,
 		image: images[0]?.url ?? PLACEHOLDER_IMAGE,
 		images,
 		closesAt: lot.closesAt,

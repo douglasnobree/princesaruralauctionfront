@@ -13,11 +13,13 @@ import {
 } from "@/components/ui/dialog";
 
 export function AuctionLoginDialog({
-  open,
-  onOpenChange,
+	open,
+	onOpenChange,
+	shopping = false,
 }: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	shopping?: boolean;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -26,11 +28,12 @@ export function AuctionLoginDialog({
           <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-primary/10 text-primary sm:mx-0">
             <LogIn className="size-7" aria-hidden="true" />
           </div>
-          <DialogTitle>Faça login para participar do leilão</DialogTitle>
-          <DialogDescription>
-            Para acompanhar a disputa e enviar lances, entre na sua conta
-            Princesa Rural. Ainda não tem cadastro? Crie uma conta gratuita.
-          </DialogDescription>
+			<DialogTitle>{shopping ? "Faça login para comprar este lote" : "Faça login para participar do leilão"}</DialogTitle>
+			<DialogDescription>
+				{shopping
+					? "Para confirmar a compra, entre na sua conta Princesa Rural. Ainda não tem cadastro? Crie uma conta gratuita."
+					: "Para acompanhar a disputa e enviar lances, entre na sua conta Princesa Rural. Ainda não tem cadastro? Crie uma conta gratuita."}
+			</DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" asChild>

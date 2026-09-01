@@ -32,6 +32,7 @@ export type AuctionLot = {
 	auctionSlug: string;
 	category: AuctionCategory;
 	status: AuctionLotStatus;
+	startingBidCents?: number | null;
 	image: string;
 	images: AuctionImage[];
 	closesAt?: string | null;

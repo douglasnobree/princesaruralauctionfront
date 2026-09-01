@@ -45,6 +45,7 @@ export function AuctionLotDetail({
 		(item) => item.externalId === lot.id || item.externalId === lot.slug || item.id === lot.id,
 	);
 	const displayedLotStatus = engineLot?.status ?? lot.status;
+	const isShopping = auction.mode === "SHOPPING";
 
 	return (
 		<div className="bg-muted/40 py-6 sm:py-10">
@@ -145,10 +146,11 @@ export function AuctionLotDetail({
 									initialSnapshot={engineSnapshot}
 									lotExternalId={engineLot.externalId}
 									closingLabel={lot.closesAtLabel}
+									catalogFixedPriceCents={isShopping ? lot.startingBidCents : null}
 								/>
 							) : (
 								<div className="rounded-lg border border-dashed bg-muted/40 px-3 py-3 text-sm text-muted-foreground">
-									Os lances estarão disponíveis assim que este lote for publicado no motor.
+									{isShopping ? "A compra estará disponível assim que este lote for publicado no motor." : "Os lances estarão disponíveis assim que este lote for publicado no motor."}
 								</div>
 							)}
 
@@ -185,7 +187,7 @@ export function AuctionLotDetail({
 					</aside>
 				</div>
 
-				{!engineSnapshot ? <section className="mt-7 rounded-2xl border border-dashed bg-card p-6"><p className="font-semibold">Acompanhamento de lances</p><p className="mt-1 text-sm leading-6 text-muted-foreground">Este lote ainda não está publicado no motor de leilões. Assim que a publicação for concluída, os valores e o formulário aparecerão nesta página.</p></section> : null}
+				{!engineSnapshot ? <section className="mt-7 rounded-2xl border border-dashed bg-card p-6"><p className="font-semibold">{isShopping ? "Acompanhamento da compra" : "Acompanhamento de lances"}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">Este lote ainda não está publicado no motor de leilões. Assim que a publicação for concluída, os valores e {isShopping ? "a compra" : "o formulário de lances"} aparecerão nesta página.</p></section> : null}
 			</div>
 		</div>
 	);

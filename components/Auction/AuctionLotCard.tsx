@@ -4,25 +4,28 @@ import Link from "next/link";
 import { AuctionLotStatusBadge } from "@/components/Auction/AuctionStatusBadge";
 import type { EngineLot } from "@/lib/auctions/engine-types";
 import { getBidderDisplayName } from "@/lib/auctions/bidder-display";
-import type { AuctionLot } from "@/lib/auctions/types";
+import type { AuctionLot, AuctionMode } from "@/lib/auctions/types";
 
 interface AuctionLotCardProps {
 	lot: AuctionLot;
 	engineLot?: EngineLot;
 	currency?: string;
+	mode?: AuctionMode;
 }
 
-function formatCents(value: string | null | undefined, currency = "BRL") {
-	if (value == null) return "Consulte o lance";
+function formatCents(value: string | null | undefined, currency = "BRL", shopping = false) {
+	if (value == null) return shopping ? "Consulte o preço" : "Consulte o lance";
 	const padded = value.padStart(3, "0");
 	const amount = `${padded.slice(0, -2)}.${padded.slice(-2)}`;
 	return new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format(Number(amount));
 }
 
-export function AuctionLotCard({ lot, engineLot, currency = "BRL" }: AuctionLotCardProps) {
+export function AuctionLotCard({ lot, engineLot, currency = "BRL", mode }: AuctionLotCardProps) {
 	const href = `/leiloes/${lot.auctionSlug}/lotes/${lot.slug}`;
-	const currentPrice = engineLot?.currentPriceCents ?? engineLot?.startingBidCents;
-	const hasCurrentPrice = engineLot?.currentPriceCents != null;
+	const isShopping = mode === "SHOPPING";
+	const shoppingPrice = engineLot?.fixedPriceCents ?? (lot.startingBidCents == null ? null : String(lot.startingBidCents));
+	const currentPrice = isShopping ? shoppingPrice : engineLot?.currentPriceCents ?? engineLot?.startingBidCents;
+	const hasCurrentPrice = isShopping ? currentPrice != null : engineLot?.currentPriceCents != null;
 	const bidderName = engineLot ? getBidderDisplayName(engineLot) : null;
 
 	return (
@@ -60,13 +63,13 @@ export function AuctionLotCard({ lot, engineLot, currency = "BRL" }: AuctionLotC
 						{lot.title}
 					</h2>
 					<div className="rounded-lg bg-secondary/5 px-3 py-2">
-						<p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{hasCurrentPrice ? "Último lance" : "Lance inicial"}</p>
-						<p className="mt-1 text-xl font-bold tabular-nums text-secondary">{formatCents(currentPrice, currency)}</p>
-						{bidderName ? <p className="mt-1 truncate text-[11px] text-muted-foreground">Lançado por {bidderName}</p> : null}
+						<p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{isShopping ? "Preço fixo" : hasCurrentPrice ? "Último lance" : "Lance inicial"}</p>
+						<p className="mt-1 text-xl font-bold tabular-nums text-secondary">{formatCents(currentPrice, currency, isShopping)}</p>
+						{!isShopping && bidderName ? <p className="mt-1 truncate text-[11px] text-muted-foreground">Lançado por {bidderName}</p> : null}
 					</div>
 					<div className="flex items-center justify-between gap-3">
-						<span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Gavel className="size-3.5" aria-hidden="true" />{engineLot?.nextBidCents ? `Próximo ${formatCents(engineLot.nextBidCents, currency)}` : "Consulte os lances"}</span>
-						<span className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-2 text-xs font-bold text-secondary-foreground">Dar lance <ArrowRight className="size-3.5" aria-hidden="true" /></span>
+						<span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Gavel className="size-3.5" aria-hidden="true" />{isShopping ? "Compra imediata" : engineLot?.nextBidCents ? `Próximo ${formatCents(engineLot.nextBidCents, currency)}` : "Consulte os lances"}</span>
+						<span className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-2 text-xs font-bold text-secondary-foreground">{isShopping ? "Comprar" : "Dar lance"} <ArrowRight className="size-3.5" aria-hidden="true" /></span>
 					</div>
 
 					{lot.payment ? (

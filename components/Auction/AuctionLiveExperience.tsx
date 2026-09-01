@@ -23,6 +23,10 @@ function statusLabel(
   preBidOpen = false,
   preBidClosed = false,
 ) {
+  if (mode === 'SHOPPING' && ['SCHEDULED', 'RUNNING', 'OPEN'].includes(status))
+    return status === 'SCHEDULED' ? 'Compra programada' : 'Compras abertas';
+  if (mode === 'SHOPPING' && ['FINISHED', 'CLOSED'].includes(status))
+    return 'Compras encerradas';
   if (
     mode === 'TIMED' &&
     status === 'SCHEDULED' &&
@@ -114,11 +118,12 @@ export function AuctionLiveExperience({
   const livePreBidClosed = mode === 'LIVE' && preBidClosed;
   const isLiveRunning = mode === 'LIVE' && displayedStatus === 'RUNNING';
   const isPreBidCatalog =
-    mode !== 'SHOPPING' && catalogLots.length > 0 &&
-    (!initialSnapshot
-      ? status === 'PRE_LAUNCH'
-      : hasConfiguredPreBid(initialSnapshot.auction) &&
-        (preBidOpen || displayedStatus === 'SCHEDULED'));
+    mode === 'SHOPPING' ||
+    (catalogLots.length > 0 &&
+      (!initialSnapshot
+        ? status === 'PRE_LAUNCH'
+        : hasConfiguredPreBid(initialSnapshot.auction) &&
+          (preBidOpen || displayedStatus === 'SCHEDULED')));
   const visibleCatalogLots = catalogLots.filter((catalogLot) => {
     const engineLot = initialSnapshot?.lots.find(
       (lot) =>
@@ -196,15 +201,17 @@ export function AuctionLiveExperience({
               <h2
                 id='pre-bid-lots-title'
                 className='text-2xl font-bold tracking-tight'>
-                Escolha um lote para enviar seu lance
+                {mode === 'SHOPPING'
+                  ? 'Escolha um lote para comprar'
+                  : 'Escolha um lote para enviar seu lance'}
               </h2>
               <p className='mt-1 max-w-3xl text-sm leading-6 text-muted-foreground'>
-                Os lotes liberados aparecem aqui antes do fechamento. Abra um
-                lote para consultar o placar e enviar seu lance diretamente na
-                página do lote
-                {mode === 'LIVE'
-                  ? '; a transmissão já está preparada para a abertura ao vivo.'
-                  : '.'}
+                {mode === 'SHOPPING'
+                  ? 'Os lotes disponíveis aparecem aqui. Abra um lote para consultar todas as informações e confirmar a compra pelo preço fixo.'
+                  : 'Os lotes liberados aparecem aqui antes do fechamento. Abra um lote para consultar o placar e enviar seu lance diretamente na página do lote' +
+                    (mode === 'LIVE'
+                      ? '; a transmissão já está preparada para a abertura ao vivo.'
+                      : '.')}
               </p>
             </div>
             {visibleCatalogLots.length > 0 ? (
@@ -219,6 +226,7 @@ export function AuctionLiveExperience({
                         engineLot.externalId === catalogLot.slug,
                     )}
                     currency={initialSnapshot?.auction.currency}
+                    mode={mode}
                   />
                 ))}
               </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	Bell,
 	CircleAlert,
@@ -120,10 +120,12 @@ export function AuctionLotBidPanel({
 	initialSnapshot,
 	lotExternalId,
 	closingLabel,
+	catalogFixedPriceCents,
 }: {
 	initialSnapshot: EngineAuctionSnapshot;
 	lotExternalId: string;
 	closingLabel?: string | null;
+	catalogFixedPriceCents?: number | string | null;
 }) {
 	const [snapshot, setSnapshot] = useState(initialSnapshot);
 	const snapshotRef = useRef(initialSnapshot);
@@ -142,6 +144,7 @@ export function AuctionLotBidPanel({
 	const [loginDialogOpen, setLoginDialogOpen] = useState(false);
 	const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
 	const [nowMs, setNowMs] = useState(() => Date.now());
+	const isShopping = snapshot.auction.mode === "SHOPPING";
 
 	const applySnapshot = useCallback((next: EngineAuctionSnapshot) => {
 		const merged = mergeKnownBidderNames(snapshotRef.current, next);
@@ -153,12 +156,9 @@ export function AuctionLotBidPanel({
 	const lot = snapshot.lots.find(
 		(item) => item.externalId === lotExternalId || item.id === lotExternalId,
 	);
-	const isLotClosed = Boolean(lot && ["SOLD", "UNSOLD", "CLOSED", "CANCELLED"].includes(lot.status));
-	const quickBidOptions = useMemo(() => {
-		if (!lot) return [];
-		return getEngineQuickBidOptions(lot);
-	}, [lot]);
-	const quickBids = useMemo(() => quickBidOptions.map((option) => option.value), [quickBidOptions]);
+	const fixedPriceCents = lot?.fixedPriceCents ?? (catalogFixedPriceCents == null ? null : String(catalogFixedPriceCents));
+	const quickBidOptions = lot ? getEngineQuickBidOptions(lot) : [];
+	const quickBids = quickBidOptions.map((option) => option.value);
 	const effectiveSelectedBidValue = selectedBidValue !== "custom" && !quickBids.includes(selectedBidValue) ? quickBids[0] ?? "custom" : selectedBidValue;
 
 	useEffect(() => {
@@ -180,14 +180,14 @@ export function AuctionLotBidPanel({
 			if (!active || !result.success) return;
 			const nextState = registrationState(result.data?.status, result.data?.globallyEnabled);
 			setRegistration(nextState);
-			if (nextState === "approved") setFeedback({ type: "success", message: "Seu cadastro foi aprovado. Você já pode enviar lances." });
+			if (nextState === "approved") setFeedback({ type: "success", message: isShopping ? "Seu cadastro foi aprovado. Você já pode comprar este lote." : "Seu cadastro foi aprovado. Você já pode enviar lances." });
 		};
 		const timer = window.setInterval(() => void check(), 5000);
 		return () => { active = false; window.clearInterval(timer); };
-	}, [registration, snapshot.auction.externalId]);
+	}, [isShopping, registration, snapshot.auction.externalId]);
 
 	useEffect(() => {
-		if (registration !== "approved" || !lot) return;
+		if (registration !== "approved" || !lot || isShopping) return;
 		let active = true;
 		void getOwnProxyBidAction(snapshot.auction.externalId, lot.externalId).then((result) => {
 			if (active && result.success) setProxyMaxBidCents(result.data?.maxBidCents ?? null);
@@ -195,7 +195,7 @@ export function AuctionLotBidPanel({
 		return () => {
 			active = false;
 		};
-	}, [lot, registration, snapshot.auction.externalId]);
+	}, [isShopping, lot, registration, snapshot.auction.externalId]);
 
 	useEffect(() => {
 		let stopped = false;
@@ -267,9 +267,9 @@ export function AuctionLotBidPanel({
 		);
 	}
 
+	const isLotClosed = ["SOLD", "UNSOLD", "CLOSED", "CANCELLED"].includes(lot.status);
 	const bidWindowOpen = auctionAcceptsBids(snapshot.auction, nowMs) && lot.status === "OPEN";
-	const isShopping = snapshot.auction.mode === "SHOPPING";
-	const shoppingPurchaseOpen = isShopping && registration === "approved" && ["SCHEDULED", "RUNNING"].includes(snapshot.auction.status) && lot.status === "OPEN" && lot.fixedPriceCents !== null;
+	const shoppingPurchaseOpen = isShopping && registration === "approved" && ["SCHEDULED", "RUNNING"].includes(snapshot.auction.status) && lot.status === "OPEN" && fixedPriceCents !== null;
 	const bidderName = getBidderDisplayName(lot);
 	const requireRegistration = async () => {
 		if (registration === "pending") {
@@ -406,13 +406,21 @@ export function AuctionLotBidPanel({
 	const remainingSeconds = lot.endsAt
 		? Math.max(0, Math.floor((new Date(lot.endsAt).getTime() - nowMs) / 1000))
 		: null;
-	const closingText = remainingSeconds !== null
-		? remainingSeconds > 0
-			? `Lote fecha em ${formatCountdown(remainingSeconds)}`
-			: "Lote encerrado"
-		: closingLabel && closingLabel !== "Data não informada"
-			? `Lote fecha em ${closingLabel}`
-			: "Lote fecha em —";
+	const closingText = isShopping
+		? remainingSeconds !== null
+			? remainingSeconds > 0
+				? `Compra disponível por mais ${formatCountdown(remainingSeconds)}`
+				: "Compra encerrada"
+			: closingLabel && closingLabel !== "Data não informada"
+				? `Compra disponível até ${closingLabel}`
+				: "Compra disponível enquanto o lote estiver aberto"
+		: remainingSeconds !== null
+			? remainingSeconds > 0
+				? `Lote fecha em ${formatCountdown(remainingSeconds)}`
+				: "Lote encerrado"
+			: closingLabel && closingLabel !== "Data não informada"
+				? `Lote fecha em ${closingLabel}`
+				: "Lote fecha em —";
 	const handlePrimaryBid = () => {
 		if (effectiveSelectedBidValue === "custom") {
 			void submitCustom(false);
@@ -423,19 +431,17 @@ export function AuctionLotBidPanel({
 
 	return (
 		<>
-		<section className="space-y-4" aria-label={`Lances do lote ${lot.lotNumber}`}>
+		<section className="space-y-4" aria-label={`${isShopping ? "Compra" : "Lances"} do lote ${lot.lotNumber}`}>
 			<div className="border-l-[3px] border-primary pl-4">
 				<div className="flex items-start justify-between gap-3">
 					<div>
-						<p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Último lance</p>
-						<p className="mt-1 text-[2rem] font-bold leading-none tabular-nums text-primary">{formatCents(lot.currentPriceCents, snapshot.auction.currency)}</p>
+						<p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{isShopping ? "Preço do lote" : "Último lance"}</p>
+						<p className="mt-1 text-[2rem] font-bold leading-none tabular-nums text-primary">{formatCents(isShopping ? fixedPriceCents : lot.currentPriceCents, snapshot.auction.currency)}</p>
 					</div>
-					<span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground">
-						<Clock3 className="size-3.5" /> Últimos 10 lance(s)
-					</span>
+					{isShopping ? <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground"><Coins className="size-3.5" /> Compra imediata</span> : <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground"><Clock3 className="size-3.5" /> Últimos 10 lance(s)</span>}
 				</div>
 				<p className="mt-3 text-xs font-semibold uppercase text-muted-foreground">
-					{bidderName ? <>Lance feito por <span className="text-foreground">{bidderName}</span></> : "Nenhum lance confirmado"}
+					{isShopping ? lot.status === "SOLD" && bidderName ? <>Comprador: <span className="text-foreground">{bidderName}</span></> : "Nenhuma compra confirmada" : bidderName ? <>Lance feito por <span className="text-foreground">{bidderName}</span></> : "Nenhum lance confirmado"}
 				</p>
 			</div>
 
@@ -443,19 +449,19 @@ export function AuctionLotBidPanel({
 				<Clock3 className="mr-1 inline size-4" />{closingText}
 			</div>
 
-			<div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-3 text-sm font-semibold text-muted-foreground">
+			{!isShopping ? <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-3 text-sm font-semibold text-muted-foreground">
 				<Coins className="size-4 shrink-0" />
 				<span>Próximo lance: <strong className="text-foreground">{formatCents(lot.nextBidCents, snapshot.auction.currency)}</strong></span>
-			</div>
+			</div> : null}
 
 			{isLotClosed ? <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
 				<p className="font-bold">{lot.status === "SOLD" ? "Lote vendido" : lot.status === "CANCELLED" ? "Lote cancelado" : "Lote encerrado"}</p>
-				<p className="mt-1">Não é possível enviar novos lances neste lote.</p>
+				<p className="mt-1">{isShopping ? "Não é possível comprar este lote." : "Não é possível enviar novos lances neste lote."}</p>
 			</div> : isShopping ? <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
 				<p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Compra imediata</p>
 				<p className="text-sm text-muted-foreground">O primeiro usuário habilitado que confirmar compra fica com este lote.</p>
 				<Button type="button" className="h-11 w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={!shoppingPurchaseOpen || busy} onClick={() => setPurchaseDialogOpen(true)}>
-					{pending === "reserve" ? <Loader2 className="size-4 animate-spin" /> : `Comprar agora por ${formatCents(lot.fixedPriceCents, snapshot.auction.currency)}`}
+					{pending === "reserve" ? <Loader2 className="size-4 animate-spin" /> : `Comprar agora por ${formatCents(fixedPriceCents, snapshot.auction.currency)}`}
 				</Button>
 				{!shoppingPurchaseOpen ? <p className="inline-flex items-center gap-2 text-xs text-amber-700"><CircleAlert className="size-4 shrink-0" />{registration !== "approved" ? "Somente usuários habilitados podem comprar este lote." : "Este lote não está disponível para compra agora."}</p> : null}
 			</div> : <>
@@ -493,8 +499,8 @@ export function AuctionLotBidPanel({
 
 			{feedback ? <p role={feedback.type === "error" ? "alert" : "status"} className={`rounded-lg px-3 py-2 text-xs leading-5 ${feedback.type === "success" ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800"}`}>{feedback.message}</p> : null}
 		</section>
-		<ShoppingPurchaseDialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen} lotTitle={lot.title} priceLabel={formatCents(lot.fixedPriceCents, snapshot.auction.currency)} isSubmitting={pending === "reserve"} onConfirm={() => void confirmPurchase()} />
-		<AuctionLoginDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} />
+		<ShoppingPurchaseDialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen} lotTitle={lot.title} priceLabel={formatCents(fixedPriceCents, snapshot.auction.currency)} isSubmitting={pending === "reserve"} onConfirm={() => void confirmPurchase()} />
+		<AuctionLoginDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} shopping={isShopping} />
 		</>
 	);
 }
