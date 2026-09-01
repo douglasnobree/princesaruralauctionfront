@@ -2,7 +2,7 @@ import type { EngineAuctionSnapshot, EngineLot } from "@/lib/auctions/engine-typ
 
 type BidderDisplayLot = Pick<
 	EngineLot,
-	"currentBidderName" | "currentBidderAlias" | "currentPriceCents"
+	"currentBidderName" | "currentBidderAlias" | "currentPriceCents" | "winnerName"
 >;
 
 export function getReadableBidderName(value?: string | null): string | null {
@@ -29,6 +29,10 @@ export function getBidderDisplayName(lot: BidderDisplayLot): string | null {
 	return lot.currentPriceCents !== null ? "Participante identificado" : null;
 }
 
+export function getWinnerDisplayName(lot: BidderDisplayLot): string | null {
+	return getReadableBidderName(lot.winnerName) || getBidderDisplayName(lot);
+}
+
 /**
  * Realtime public snapshots intentionally omit private names. Keep a name
  * already received from the accepted-bid response for that same effective
@@ -46,12 +50,18 @@ export function mergeKnownBidderNames(
 			const previousLot = previous.lots.find((lot) => lot.id === nextLot.id);
 			const nextName = nextLot.currentBidderName?.trim();
 			const previousName = previousLot?.currentBidderName?.trim();
+			const nextWinnerName = nextLot.winnerName?.trim();
+			const previousWinnerName = previousLot?.winnerName?.trim();
 
-			if (!previousLot || nextName || !previousName || previousLot.lotSequence !== nextLot.lotSequence) {
+			if (!previousLot || previousLot.lotSequence !== nextLot.lotSequence) {
 				return nextLot;
 			}
 
-			return { ...nextLot, currentBidderName: previousName };
+			return {
+				...nextLot,
+				...(nextName || !previousName ? {} : { currentBidderName: previousName }),
+				...(nextWinnerName || !previousWinnerName ? {} : { winnerName: previousWinnerName }),
+			};
 		}),
 	};
 }

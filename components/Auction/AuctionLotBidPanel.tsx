@@ -33,7 +33,7 @@ import {
 } from "@/lib/auctions/engine-formatters";
 import { auctionAcceptsBids } from "@/lib/auctions/bid-window";
 import { isAuctionAuthenticationError } from "@/lib/auctions/auth";
-import { getBidderDisplayName, mergeKnownBidderNames } from "@/lib/auctions/bidder-display";
+import { getBidderDisplayName, getWinnerDisplayName, mergeKnownBidderNames } from "@/lib/auctions/bidder-display";
 
 function formatCents(value: string | null, currency = "BRL") {
 	if (value === null) return "—";
@@ -270,7 +270,7 @@ export function AuctionLotBidPanel({
 	const isLotClosed = ["SOLD", "UNSOLD", "CLOSED", "CANCELLED"].includes(lot.status);
 	const bidWindowOpen = auctionAcceptsBids(snapshot.auction, nowMs) && lot.status === "OPEN";
 	const shoppingPurchaseOpen = isShopping && registration === "approved" && ["SCHEDULED", "RUNNING"].includes(snapshot.auction.status) && lot.status === "OPEN" && fixedPriceCents !== null;
-	const bidderName = getBidderDisplayName(lot);
+	const bidderName = lot.status === "SOLD" ? getWinnerDisplayName(lot) : getBidderDisplayName(lot);
 	const requireRegistration = async () => {
 		if (registration === "pending") {
 			setFeedback({ type: "success", message: "Sua solicitação está aguardando a validação da equipe Princesa Rural." });
