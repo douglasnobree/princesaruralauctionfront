@@ -1,9 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { normalizeApiBaseUrl } from "@/lib/api/base-url";
-import { getFreshSession, refreshSession } from "@/lib/auth/server/session";
+import { authenticatedFetch } from "@/lib/auth/server/authenticated-fetch";
 import type { ActionResult } from "@/types/common";
 import type { AuctionReport } from "@/types/auction-report";
 import type { AuctionAdmin, AuctionAdminLot, AuctionAdminStatus, AuctionInput, AuctionLotAdminStatus, AuctionLotInput } from "@/types/auction-admin";
@@ -11,22 +10,12 @@ import type { AuctionAdmin, AuctionAdminLot, AuctionAdminStatus, AuctionInput, A
 const API_URL = normalizeApiBaseUrl(process.env.API_BASE_URL);
 type AuctionFetchOptions = RequestInit & { headers?: HeadersInit };
 
-async function requestWithAuth(path: string, options: AuctionFetchOptions, token: string) {
-  const headers = new Headers(options.headers);
-  headers.set("Authorization", `Bearer ${token}`);
-  if (options.body && !(options.body instanceof FormData)) headers.set("Content-Type", "application/json");
-  return fetch(`${API_URL}${path}`, { ...options, headers, cache: "no-store" });
-}
-
 async function auctionFetch(path: string, options: AuctionFetchOptions = {}) {
-  const session = await getFreshSession();
-  if (!session?.accessToken) redirect(`/login?returnTo=${encodeURIComponent("/admin/leiloes")}`);
-  let response = await requestWithAuth(path, options, session.accessToken);
-  if (response.status === 401) {
-    const renewed = await refreshSession();
-    if (renewed?.accessToken) response = await requestWithAuth(path, options, renewed.accessToken);
+  const headers = new Headers(options.headers);
+  if (options.body && !(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
   }
-  return response;
+  return authenticatedFetch(`${API_URL}${path}`, { ...options, headers });
 }
 
 async function responseError(response: Response, fallback: string) {

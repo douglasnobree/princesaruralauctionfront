@@ -20,7 +20,9 @@ O gerenciamento operacional saiu da dependência de telas do marketplace e agora
 
 O login usa o fluxo existente do backend (`/auth/login`). O access token e o refresh token permanecem em cookies `httpOnly`, `secure` em produção, `sameSite=lax` e `path=/`. O frontend não coloca tokens em `localStorage`, logs ou links de navegação administrativa.
 
-O proxy do frontend dedicado verifica as páginas `/admin/*`. Quando a sessão está próxima do vencimento, renova o token no backend usando o cookie de refresh e grava a nova sessão na resposta. Server Actions também usam `getFreshSession()` e fazem uma renovação única quando recebem 401. Se a renovação falhar, a tela recebe o fluxo de login com `returnTo` e não perde o destino original.
+O proxy do frontend dedicado verifica as páginas `/admin/*`. Quando a sessão está próxima do vencimento, renova o token no backend usando o cookie de refresh, propaga a sessão renovada para a renderização atual e grava os cookies na resposta. O mesmo coordenador é reutilizado pelas Route Handlers e Server Actions; requisições simultâneas com o mesmo refresh token compartilham um único refresh dentro da instância do frontend.
+
+As chamadas autenticadas renovam preventivamente apenas na janela final do access token. Se o backend responder `401` antes disso, o frontend executa no máximo um refresh e repete a requisição original uma única vez. Um segundo `401`, ou um refresh `401/403`, encerra a sessão local e remove os dois cookies; falhas transitórias `5xx` ou de rede não apagam o refresh token. Em navegações protegidas, o logout preserva o destino em `returnTo` e não cria um ciclo de refresh.
 
 O domínio compartilhado entre os frontends pode ser configurado com `SESSION_COOKIE_DOMAIN`. Em ambientes locais separados por origem, o handoff SSO existente continua sendo usado.
 

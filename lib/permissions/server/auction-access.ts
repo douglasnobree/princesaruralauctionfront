@@ -22,6 +22,9 @@ export async function getAuctionManagementAccess() {
 
   const role = session.user.accountType as (typeof ROLE_PERMISSION_ROLES)[number];
   const permissionsResult = await getRolePermissionsAction(role);
+  if (permissionsResult.errorCode === "AUTH_REQUIRED") {
+    redirect("/login?returnTo=/admin/leiloes");
+  }
   const permissions = permissionsResult.data ?? null;
   const isAdmin = role === "ADMIN";
   if (!isAdmin && !hasModule(permissions, PERMISSION_MODULE_KEYS.AUCTIONS)) redirect("/acesso-negado");

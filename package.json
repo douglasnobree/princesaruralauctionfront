@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-		"test:public": "node --test tests/auction-public-lot-contracts.test.mjs",
+    "test:auth": "node --test tests/auth-refresh.test.mjs",
+    "test:public": "node --test tests/auction-public-lot-contracts.test.mjs",
     "test:management": "node tests/auction-management-contracts.test.mjs"
   },
   "dependencies": {

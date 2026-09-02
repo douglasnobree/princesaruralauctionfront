@@ -1,7 +1,7 @@
 "use server";
 
-import { getFreshSession, refreshSession } from "@/lib/auth/server/session";
 import { normalizeApiBaseUrl } from "@/lib/api/base-url";
+import { authenticatedFetch } from "@/lib/auth/server/authenticated-fetch";
 import type {
   BroadcastClientInfo,
   BroadcastConfig,
@@ -32,26 +32,15 @@ async function request<T>(
   path: string,
   init: RequestInit = {},
 ): Promise<ActionResult<T>> {
-  const session = await getFreshSession();
-  if (!session?.accessToken) {
-    return { success: false, error: "Entre com uma conta autorizada para operar a transmissão." };
-  }
-
   try {
-    const requestWithToken = (accessToken: string) => fetch(`${API_URL}${path}`, {
+    const response = await authenticatedFetch(`${API_URL}${path}`, {
       ...init,
       headers: {
-        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
         ...init.headers,
       },
       cache: "no-store",
     });
-    let response = await requestWithToken(session.accessToken);
-    if (response.status === 401) {
-      const renewed = await refreshSession();
-      if (renewed?.accessToken) response = await requestWithToken(renewed.accessToken);
-    }
     const payload = (await response.json().catch(() => ({}))) as T & {
       message?: string;
       error?: string | { message?: string };

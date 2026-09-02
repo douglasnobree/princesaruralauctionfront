@@ -1,7 +1,7 @@
 "use server";
 
 import { normalizeApiBaseUrl } from "@/lib/api/base-url";
-import { getFreshSession } from "@/lib/auth/server/session";
+import { authenticatedFetch } from "@/lib/auth/server/authenticated-fetch";
 import { getMarketplaceUrl } from "@/lib/config/urls";
 
 const API_URL = normalizeApiBaseUrl(process.env.API_BASE_URL);
@@ -25,16 +25,10 @@ function getMarketplaceDestination(pathname: string) {
 export async function createMarketplaceHandoffAction(pathname = "/busca") {
   const destination = getMarketplaceDestination(pathname);
   const marketplaceUrl = getMarketplaceUrl();
-  const accessToken = (await getFreshSession())?.accessToken;
-
-  if (!accessToken) {
-    return { success: true, url: destination.toString() };
-  }
 
   try {
-    const response = await fetch(`${API_URL}/auth/sso/tickets`, {
+    const response = await authenticatedFetch(`${API_URL}/auth/sso/tickets`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${accessToken}` },
       cache: "no-store",
     });
 

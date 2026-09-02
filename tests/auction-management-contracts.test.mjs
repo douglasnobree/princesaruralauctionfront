@@ -20,10 +20,25 @@ assert.match(session, /httpOnly: true/);
 assert.match(session, /refreshSession/);
 assert.match(session, /destroySession/);
 
+const refreshCoordinator = await read("lib/auth/server/refresh-coordinator.ts");
+assert.match(refreshCoordinator, /createRefreshCoordinator/);
+assert.match(refreshCoordinator, /createHash\("sha256"\)/);
+assert.match(refreshCoordinator, /flights\.get/);
+
+const authenticatedRequest = await read("lib/auth/server/authenticated-request.ts");
+assert.match(authenticatedRequest, /response\.status !== 401/);
+assert.match(authenticatedRequest, /refreshAttempted/);
+assert.match(authenticatedRequest, /safelyClearSession/);
+
+const engineActions = await read("hooks/actions/auctionEngineActions.ts");
+assert.match(engineActions, /authenticatedFetch/);
+assert.doesNotMatch(engineActions, /authenticatedHeaders/);
+
 const access = await read("lib/permissions/server/auction-access.ts");
 assert.match(access, /PERMISSION_MODULE_KEYS\.AUCTIONS/);
 assert.match(access, /redirect\("\/acesso-negado"\)/);
 assert.match(access, /AUCTION_MANAGEMENT_ROLES/);
+assert.match(access, /errorCode === "AUTH_REQUIRED"/);
 
 const capabilities = await read("components/Management/capabilities.ts");
 for (const key of ["AUCTIONS_VIEW", "AUCTIONS_MANAGE_STATUS", "AUCTIONS_MANAGE_LOTS", "AUCTIONS_MANAGE_BIDS"]) {
@@ -31,7 +46,7 @@ for (const key of ["AUCTIONS_VIEW", "AUCTIONS_MANAGE_STATUS", "AUCTIONS_MANAGE_L
 }
 
 const broadcast = await read("hooks/actions/broadcastActions.ts");
-assert.match(broadcast, /getFreshSession/);
+assert.match(broadcast, /authenticatedFetch/);
 assert.match(await read("hooks/actions/broadcastActions.ts"), /broadcast:read/);
 
 const managementShell = await read("components/Management/AuctionManagementShell.tsx");
@@ -46,7 +61,6 @@ assert.match(auctionHeader, /Administração/);
 const broadcastPanel = await read("components/Broadcast/broadcast-control-panel.tsx");
 assert.match(broadcastPanel, /canManageBroadcast/);
 
-const engineActions = await read("hooks/actions/auctionEngineActions.ts");
 assert.match(engineActions, /createQuickParticipantAction/);
 assert.match(engineActions, /manager\/participants\/quick/);
 assert.match(engineActions, /Idempotency-Key/);

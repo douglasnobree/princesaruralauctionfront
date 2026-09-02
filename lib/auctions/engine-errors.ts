@@ -41,7 +41,7 @@ export function explainEngineError(code: string | undefined, fallback: string, d
 	if (code === "REGISTRATION_REQUIRED") return "Seu cadastro ainda não foi aprovado para este leilão. Solicite a habilitação e aguarde a validação da equipe Princesa Rural.";
 	if (code === "SHOPPING_ALREADY_SOLD") return "Este lote acabou de ser comprado por outro participante. Atualize a página para conferir o estado oficial.";
 	if (code === "SHOPPING_PURCHASE_REQUIRED") return "No Shopping, o lote é comprado pelo preço fixo; não é possível enviar lances tradicionais.";
-	if (code === "UNAUTHORIZED") return "Sua sessão expirou. Entre novamente para continuar participando.";
+	if (code === "UNAUTHORIZED" || code === "AUTH_REQUIRED") return "Sua sessão expirou. Entre novamente para continuar participando.";
 	if (code === "FORBIDDEN") return "Sua conta não tem permissão para executar esta ação neste leilão.";
 	if (code === "AUCTION_NOT_OPEN") return "Este leilão ainda não está aceitando lances. No pré-lance, confira se a etapa está aberta; no ao vivo, aguarde o início da disputa.";
 	if (code === "LOT_NOT_OPEN") return "Este lote não está aberto para receber lances agora.";

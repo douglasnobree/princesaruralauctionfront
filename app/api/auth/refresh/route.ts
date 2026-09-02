@@ -1,10 +1,16 @@
 import { NextResponse } from "next/server";
-import { refreshSession } from "@/lib/auth/server/session";
+import { refreshSessionResult } from "@/lib/auth/server/session";
 
 export async function POST() {
-  const session = await refreshSession();
-  if (!session) {
-    return NextResponse.json({ success: false, error: "Sessão expirada." }, { status: 401 });
+  const result = await refreshSessionResult();
+  if (result.status !== "success") {
+    if (result.status === "missing" || result.status === "invalid") {
+      return NextResponse.json({ success: false, error: "Sessão expirada." }, { status: 401 });
+    }
+    return NextResponse.json(
+      { success: false, error: "Não foi possível renovar a sessão agora." },
+      { status: 503 },
+    );
   }
-  return NextResponse.json({ success: true, expiresAt: session.expiresAt });
+  return NextResponse.json({ success: true, expiresAt: result.session.expiresAt });
 }
