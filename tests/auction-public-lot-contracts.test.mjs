@@ -7,21 +7,50 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (path) => readFile(join(root, path), "utf8");
 
-test("genealogy is removed from the public listing and kept in the lot detail", async () => {
-	const [experience, card, detail, information, fullCatalogButton] = await Promise.all([
+test("lot detail reuses the genealogy URL without preloading or regenerating the PDF", async () => {
+	const [
+		experience,
+		card,
+		detail,
+		information,
+		viewer,
+		catalog,
+		pageLoading,
+		loadingState,
+		fullCatalogButton,
+	] = await Promise.all([
 		read("components/Auction/AuctionLiveExperience.tsx"),
 		read("components/Auction/AuctionLotCard.tsx"),
 		read("components/Auction/AuctionLotDetail.tsx"),
 		read("components/Auction/AuctionLotInformationSections.tsx"),
+		read("components/Auction/AuctionGenealogyViewer.tsx"),
+		read("lib/auctions/catalog.ts"),
+		read("app/leiloes/[auctionSlug]/lotes/[lotSlug]/loading.tsx"),
+		read("components/Auction/AuctionLoadingState.tsx"),
 		read("components/Auction/AuctionFullGenealogyButton.tsx"),
 	]);
 
 	assert.doesNotMatch(experience, /AuctionGenealogyViewer/);
 	assert.doesNotMatch(card, /Genealogia disponível/);
 	assert.match(detail, /AuctionLotInformationSections/);
-	assert.match(information, /Genealogia completa/);
+	assert.match(information, /Ver genealogia do lote/);
+	assert.doesNotMatch(information, /Genealogia completa/);
+	assert.match(information, /Genealogia indisponível/);
+	assert.match(information, /ainda não possui PDF de genealogia cadastrado/);
 	assert.match(information, /lot\.genealogyUrl/);
+	assert.match(information, /href=\{lot\.genealogyUrl\}/);
 	assert.match(information, /target="_blank"/);
+	assert.match(information, /rel="noopener noreferrer"/);
+	assert.match(information, /aria-label=\{`Abrir PDF da genealogia do lote/);
+	assert.match(information, /min-h-14 w-full/);
+	assert.doesNotMatch(information, /\bfetch\s*\(/);
+	assert.doesNotMatch(information, /<(?:embed|iframe|object)\b/i);
+	assert.doesNotMatch(information, /genealogy-catalog/);
+	assert.match(viewer, /href=\{currentLot\.genealogyUrl\}/);
+	assert.match(viewer, /target="_blank"/);
+	assert.match(catalog, /resolveAsset\(lot\.genealogyUrl, "\/uploads\/auctions\/lots\/"\)/);
+	assert.match(pageLoading, /AuctionLoadingState variant="detail"/);
+	assert.match(loadingState, /Carregando os detalhes do lote e a disponibilidade do PDF de genealogia/);
 	assert.match(experience, /AuctionFullGenealogyButton/);
 	assert.match(fullCatalogButton, /window\.open\("about:blank", "_blank"\)/);
 	assert.match(fullCatalogButton, /newTab\.opener = null/);

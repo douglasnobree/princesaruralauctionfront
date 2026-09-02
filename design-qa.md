@@ -53,6 +53,10 @@
 - Nenhum P0, P1 ou P2 pendente.
 - P3: o mockup usa o glifo oficial do WhatsApp; a implementação usa o ícone de mensagem da biblioteca já adotada para evitar uma dependência visual exclusiva.
 
+**Decisão posterior de produto — 02/09/2026**
+
+- O texto visível do botão foi alterado de “Genealogia completa” para “Ver genealogia do lote”, deixando explícito que o PDF pertence somente ao lote aberto. O comportamento, o destino e o layout do controle permanecem iguais aos validados acima.
+
 **Checklist**
 
 - [x] Fonte e implementação abertas.

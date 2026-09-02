@@ -49,14 +49,28 @@ export function AuctionLotInformationSections({
 					href={lot.genealogyUrl}
 					target="_blank"
 					rel="noopener noreferrer"
+					aria-label={`Abrir PDF da genealogia do lote ${String(lot.number).padStart(2, "0")} em nova guia`}
 					className="flex min-h-14 w-full items-center justify-center gap-3 rounded-lg border px-4 py-3 text-center font-semibold text-foreground outline-none transition-[border-color,color,box-shadow] hover:border-secondary/60 hover:text-secondary focus-visible:ring-3 focus-visible:ring-ring"
 				>
 					<GitFork className="size-5 text-secondary" aria-hidden="true" />
-					Genealogia completa
+					Ver genealogia do lote
 				</a>
-			) : null}
+			) : (
+				<div
+					className="flex min-h-14 w-full items-center justify-center gap-3 rounded-lg border border-dashed bg-muted/30 px-4 py-3 text-center text-sm text-muted-foreground"
+					role="status"
+				>
+					<GitFork className="size-5 shrink-0" aria-hidden="true" />
+					<span>
+						<strong className="font-semibold text-foreground">
+							Genealogia indisponível.
+						</strong>{" "}
+						Este lote ainda não possui PDF de genealogia cadastrado.
+					</span>
+				</div>
+			)}
 
-			<div className={lot.genealogyUrl ? "mt-8 border-t pt-8" : ""}>
+			<div className="mt-8 border-t pt-8">
 				<div className="space-y-7">
 					{information.map((item) => (
 						<details

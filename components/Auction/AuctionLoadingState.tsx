@@ -7,11 +7,19 @@ export function AuctionLoadingState({
 }: AuctionLoadingStateProps) {
 	if (variant === "detail") {
 		return (
-			<div className="container mx-auto max-w-6xl animate-pulse px-4 py-8 lg:px-6">
+			<div
+				className="container mx-auto max-w-6xl animate-pulse px-4 py-8 motion-reduce:animate-none lg:px-6"
+				role="status"
+				aria-label="Carregando detalhes do lote"
+			>
+				<span className="sr-only">
+					Carregando os detalhes do lote e a disponibilidade do PDF de genealogia.
+				</span>
 				<div className="mb-5 h-5 w-2/3 rounded bg-muted" />
 				<div className="grid gap-6 lg:grid-cols-[minmax(0,1.7fr)_minmax(320px,1fr)]">
 					<div className="space-y-5">
 						<div className="aspect-video rounded-lg bg-muted" />
+						<div className="h-14 rounded-lg border bg-muted" />
 						<div className="h-48 rounded-xl bg-muted" />
 					</div>
 					<div className="h-[28rem] rounded-xl bg-muted" />
