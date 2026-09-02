@@ -8,11 +8,12 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (path) => readFile(join(root, path), "utf8");
 
 test("genealogy is removed from the public listing and kept in the lot detail", async () => {
-	const [experience, card, detail, information] = await Promise.all([
+	const [experience, card, detail, information, fullCatalogButton] = await Promise.all([
 		read("components/Auction/AuctionLiveExperience.tsx"),
 		read("components/Auction/AuctionLotCard.tsx"),
 		read("components/Auction/AuctionLotDetail.tsx"),
 		read("components/Auction/AuctionLotInformationSections.tsx"),
+		read("components/Auction/AuctionFullGenealogyButton.tsx"),
 	]);
 
 	assert.doesNotMatch(experience, /AuctionGenealogyViewer/);
@@ -21,6 +22,11 @@ test("genealogy is removed from the public listing and kept in the lot detail", 
 	assert.match(information, /Genealogia completa/);
 	assert.match(information, /lot\.genealogyUrl/);
 	assert.match(information, /target="_blank"/);
+	assert.match(experience, /AuctionFullGenealogyButton/);
+	assert.match(fullCatalogButton, /window\.open\("about:blank", "_blank"\)/);
+	assert.match(fullCatalogButton, /newTab\.opener = null/);
+	assert.match(fullCatalogButton, /application\/pdf/);
+	assert.match(fullCatalogButton, /role="alert"/);
 });
 
 test("lot detail exposes commercial sections and WhatsApp contact", async () => {

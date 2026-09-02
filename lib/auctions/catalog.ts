@@ -248,6 +248,7 @@ function mapAuction(auction: ApiAuction): Auction {
 			coverImage || lots[0]?.image,
 			"/uploads/auctions/covers/",
 		),
+		genealogyCatalogUrl: `${API_BASE_URL}/auctions/public/${encodeURIComponent(auction.slug)}/genealogy-catalog`,
 		lots,
 	};
 }

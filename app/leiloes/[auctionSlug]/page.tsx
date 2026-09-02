@@ -15,5 +15,5 @@ export default async function AuctionLotsPage({
 	if (!auction) notFound();
 	const engine = auction.id ? await getEngineSnapshotAction(auction.id) : { success: false as const };
 
-	return <AuctionLiveExperience externalAuctionId={auction.id ?? auction.slug} initialSnapshot={engine.success ? engine.data : undefined} title={auction.title} description={auction.description} image={auction.image} date={auction.date} time={auction.time} lotCount={auction.lotCount} status={auction.status} mode={auction.mode} catalogLots={auction.lots} />;
+	return <AuctionLiveExperience externalAuctionId={auction.id ?? auction.slug} initialSnapshot={engine.success ? engine.data : undefined} title={auction.title} description={auction.description} image={auction.image} date={auction.date} time={auction.time} lotCount={auction.lotCount} status={auction.status} mode={auction.mode} genealogyCatalogUrl={auction.genealogyCatalogUrl} catalogLots={auction.lots} />;
 }

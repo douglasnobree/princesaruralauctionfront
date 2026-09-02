@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { AuctionLotCard } from '@/components/Auction/AuctionLotCard';
+import { AuctionFullGenealogyButton } from '@/components/Auction/AuctionFullGenealogyButton';
 import { AuctionRuntimeBoard } from '@/components/Auction/AuctionRuntimeBoard';
 import {
   hasConfiguredPreBid,
@@ -88,6 +89,7 @@ type AuctionLiveExperienceProps = {
   lotCount: number;
   status: string;
   mode?: 'SHOPPING' | 'LIVE' | 'TIMED';
+  genealogyCatalogUrl?: string;
   catalogLots?: AuctionLot[];
   sandbox?: boolean;
 };
@@ -103,6 +105,7 @@ export function AuctionLiveExperience({
   lotCount,
   status,
   mode: catalogMode,
+  genealogyCatalogUrl,
   catalogLots = [],
   sandbox = false,
 }: AuctionLiveExperienceProps) {
@@ -192,6 +195,11 @@ export function AuctionLiveExperience({
                 </span>
               ) : null}
             </div>
+            {catalogLots.length > 0 && genealogyCatalogUrl ? (
+              <div className='mt-6 border-t pt-5'>
+                <AuctionFullGenealogyButton catalogUrl={genealogyCatalogUrl} />
+              </div>
+            ) : null}
           </div>
         </section>
 

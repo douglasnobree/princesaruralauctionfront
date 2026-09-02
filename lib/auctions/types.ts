@@ -61,5 +61,6 @@ export type Auction = {
 	lotCount: number;
 	status: AuctionStatus;
 	image: string;
+	genealogyCatalogUrl: string;
 	lots: AuctionLot[];
 };
