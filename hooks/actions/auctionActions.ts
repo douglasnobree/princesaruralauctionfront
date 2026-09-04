@@ -1,11 +1,13 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { normalizeApiBaseUrl } from "@/lib/api/base-url";
 import { authenticatedFetch } from "@/lib/auth/server/authenticated-fetch";
 import type { ActionResult } from "@/types/common";
 import type { AuctionReport } from "@/types/auction-report";
 import type { AuctionAdmin, AuctionAdminLot, AuctionAdminStatus, AuctionInput, AuctionLotAdminStatus, AuctionLotInput } from "@/types/auction-admin";
+import type { AuctionWhatsAppMessage, AuctionWhatsAppMessagePage, AuctionWhatsAppSettings } from "@/types/auction-whatsapp";
 
 const API_URL = normalizeApiBaseUrl(process.env.API_BASE_URL);
 type AuctionFetchOptions = RequestInit & { headers?: HeadersInit };
@@ -117,4 +119,24 @@ export async function deleteAuctionLotImageAction(auctionId: string, lotId: stri
 export async function reorderAuctionLotsAction(auctionId: string, lotIds: string[]): Promise<ActionResult<AuctionAdminLot[]>> {
   try { const result = await parseResponse<AuctionAdminLot[]>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/reorder`, { method:"PATCH", body:JSON.stringify({ lotIds }) }), "Não foi possível reordenar os lotes."); if (result.success) revalidateAuctions(); return result; }
   catch { return { success:false, error:"Não foi possível reordenar os lotes." }; }
+}
+
+export async function getAuctionWhatsAppSettingsAction(auctionId: string): Promise<ActionResult<AuctionWhatsAppSettings>> {
+  try { return parseResponse(await auctionFetch(`/auctions/manage/${encodeURIComponent(auctionId)}/whatsapp-settings`, { cache: "no-store" }), "Não foi possível carregar a configuração do WhatsApp."); }
+  catch { return { success: false, error: "Não foi possível carregar a configuração do WhatsApp." }; }
+}
+
+export async function updateAuctionWhatsAppSettingsAction(auctionId: string, input: Partial<Pick<AuctionWhatsAppSettings, "automationEnabled" | "participationApprovedEnabled" | "bidAcceptedEnabled" | "outbidEnabled" | "lotWonEnabled">>): Promise<ActionResult<AuctionWhatsAppSettings>> {
+  try { return parseResponse(await auctionFetch(`/auctions/manage/${encodeURIComponent(auctionId)}/whatsapp-settings`, { method: "PATCH", body: JSON.stringify(input) }), "Não foi possível salvar a configuração do WhatsApp."); }
+  catch { return { success: false, error: "Não foi possível salvar a configuração do WhatsApp." }; }
+}
+
+export async function getAuctionWhatsAppMessagesAction(auctionId: string, cursor?: string): Promise<ActionResult<AuctionWhatsAppMessagePage>> {
+  try { return parseResponse(await auctionFetch(`/auctions/manage/${encodeURIComponent(auctionId)}/whatsapp-messages?limit=50${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`, { cache: "no-store" }), "Não foi possível carregar o histórico do WhatsApp."); }
+  catch { return { success: false, error: "Não foi possível carregar o histórico do WhatsApp." }; }
+}
+
+export async function sendAuctionWhatsAppMessageAction(auctionId: string, participantId: string, input: { text: string; allowWithoutConsent: boolean; lotId?: string }): Promise<ActionResult<AuctionWhatsAppMessage>> {
+  try { return parseResponse(await auctionFetch(`/auctions/manage/${encodeURIComponent(auctionId)}/participants/${encodeURIComponent(participantId)}/whatsapp-messages`, { method: "POST", headers: { "Idempotency-Key": randomUUID() }, body: JSON.stringify(input) }), "Não foi possível enviar a mensagem."); }
+  catch { return { success: false, error: "Não foi possível enviar a mensagem." }; }
 }

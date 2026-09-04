@@ -9,6 +9,7 @@ import {
   Gavel,
   ListOrdered,
   MonitorPlay,
+  MessageCircle,
   Pencil,
   Settings2,
   ShieldCheck,
@@ -41,6 +42,7 @@ import { AuctionLotsPanel } from "@/components/Management/AuctionLotsPanel";
 import { AuctionPendingEligibilityBids } from "@/components/Management/AuctionPendingEligibilityBids";
 import { AuctionOperationPanel } from "@/components/Management/AuctionOperationPanel";
 import { AuctionParticipantsPanel } from "@/components/Management/AuctionParticipantsPanel";
+import { AuctionCommunicationPanel } from "@/components/Management/AuctionCommunicationPanel";
 
 type Tab =
   | "resumo"
@@ -48,6 +50,7 @@ type Tab =
   | "lotes"
   | "lances"
   | "participantes"
+  | "comunicacao"
   | "operacao"
   | "transmissao";
 
@@ -57,6 +60,7 @@ const tabs: Array<{ value: Tab; label: string; icon: typeof Gavel }> = [
   { value: "lotes", label: "Lotes", icon: ListOrdered },
   { value: "lances", label: "Lances e pré-lances", icon: Gavel },
   { value: "participantes", label: "Participantes", icon: ShieldCheck },
+  { value: "comunicacao", label: "Comunicação", icon: MessageCircle },
   { value: "operacao", label: "Operação", icon: MonitorPlay },
   { value: "transmissao", label: "Broadcast / OBS", icon: MonitorPlay },
 ];
@@ -153,7 +157,7 @@ export function AuctionWorkspace({
 
       <nav className="overflow-x-auto pb-1" aria-label="Seções do workspace">
         <div className="flex min-w-max gap-1 rounded-xl border bg-card p-1">
-          {tabs.map(({ value, label, icon: Icon }) => (
+          {tabs.filter((item) => item.value !== "comunicacao" || capabilities.canNotifyParticipants).map(({ value, label, icon: Icon }) => (
             <button
               type="button"
               key={value}
@@ -233,7 +237,8 @@ export function AuctionWorkspace({
           )}
         </section>
       ) : null}
-      {tab === "participantes" ? <AuctionParticipantsPanel auctionId={auction.id} capabilities={capabilities} /> : null}
+      {tab === "participantes" ? <AuctionParticipantsPanel auctionId={auction.id} lots={lots} capabilities={capabilities} /> : null}
+      {tab === "comunicacao" ? <AuctionCommunicationPanel auctionId={auction.id} canNotify={capabilities.canNotifyParticipants} /> : null}
       {tab === "operacao" ? <AuctionOperationPanel auctionId={auction.id} initialSnapshot={engineSnapshot} capabilities={capabilities} /> : null}
       {tab === "transmissao" ? <BroadcastSummary auctionId={auction.id} state={broadcastState} config={broadcastConfig} clients={broadcastClients} error={engineError} /> : null}
     </div>

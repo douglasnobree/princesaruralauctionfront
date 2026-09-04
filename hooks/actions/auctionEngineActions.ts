@@ -37,11 +37,23 @@ export async function getEngineSnapshotAction(auctionId: string): Promise<Action
   } catch { return { success: false, error: "O motor de leilão está indisponível." }; }
 }
 
-export async function registerAuctionAction(auctionId: string, termsVersion: string, acquisitionSource: AcquisitionSource = "UNKNOWN"): Promise<ActionResult<EngineAuctionRegistration>> {
+export async function registerAuctionAction(auctionId: string, termsVersion: string, acquisitionSource: AcquisitionSource = "UNKNOWN", whatsappOptIn = false): Promise<ActionResult<EngineAuctionRegistration>> {
   try {
-    const response = await engineRequest(`/auction-engine/auctions/${encodeURIComponent(auctionId)}/registration`, { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": randomUUID() }, body: JSON.stringify({ termsVersion, acquisitionSource }), cache: "no-store" });
+    const response = await engineRequest(`/auction-engine/auctions/${encodeURIComponent(auctionId)}/registration`, { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": randomUUID() }, body: JSON.stringify({ termsVersion, acquisitionSource, whatsappOptIn }), cache: "no-store" });
     return parse(response, "Não foi possível habilitar sua participação.");
   } catch { return { success: false, error: "Não foi possível conectar ao motor de leilão." }; }
+}
+
+export async function getAuctionWhatsAppAvailabilityAction(auctionId: string): Promise<ActionResult<{ hasWhatsApp: boolean; maskedPhone: string | null }>> {
+  try {
+    return parse(await engineRequest(`/auction-engine/auctions/${encodeURIComponent(auctionId)}/registration/whatsapp-availability`, { cache: "no-store" }, "optional"), "Não foi possível verificar seu telefone.");
+  } catch { return { success: false, error: "Não foi possível verificar seu telefone agora." }; }
+}
+
+export async function setAuctionWhatsAppConsentAction(auctionId: string, whatsappOptIn: boolean): Promise<ActionResult<EngineAuctionRegistration>> {
+  try {
+    return parse(await engineRequest(`/auction-engine/auctions/${encodeURIComponent(auctionId)}/registration/whatsapp-consent`, { method: "PUT", headers: { "Content-Type": "application/json", "Idempotency-Key": randomUUID() }, body: JSON.stringify({ whatsappOptIn }), cache: "no-store" }), "Não foi possível atualizar as notificações.");
+  } catch { return { success: false, error: "Não foi possível atualizar as notificações agora." }; }
 }
 
 export async function listAuctionRegistrationsAction(auctionId: string, query: { cursor?: string; limit?: string } = {}): Promise<ActionResult<EngineAuctionRegistrationPage>> {
@@ -200,7 +212,7 @@ export async function searchAuctionParticipantsAction(query: string): Promise<Ac
   } catch { return { success: false, error: "Não foi possível pesquisar os usuários agora." }; }
 }
 
-export async function createQuickParticipantAction(input: { name: string; document: string }): Promise<ActionResult<AuctionParticipantSearchResult>> {
+export async function createQuickParticipantAction(input: { name: string; document: string; phone?: string; whatsappOptIn?: boolean }): Promise<ActionResult<AuctionParticipantSearchResult>> {
   const name = input.name.trim();
   const document = input.document.trim();
   if (name.length < 2) return { success: false, error: "Informe o nome do participante." };
@@ -210,7 +222,7 @@ export async function createQuickParticipantAction(input: { name: string; docume
     const response = await engineRequest(`/auction-engine/manager/participants/quick`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Idempotency-Key": randomUUID() },
-      body: JSON.stringify({ name, document }),
+      body: JSON.stringify({ name, document, ...(input.phone?.trim() ? { phone: input.phone.trim() } : {}), whatsappOptIn: input.whatsappOptIn === true }),
       cache: "no-store",
     });
     return parse(response, "Não foi possível cadastrar o participante rápido.");

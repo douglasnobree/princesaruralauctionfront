@@ -11,6 +11,8 @@ import {
 	Send,
 } from "lucide-react";
 import { AuctionLoginDialog } from "@/components/Auction/AuctionLoginDialog";
+import { AuctionRegistrationDialog } from "@/components/Auction/AuctionRegistrationDialog";
+import { AuctionWhatsAppConsentControl } from "@/components/Auction/AuctionWhatsAppConsentControl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -143,6 +145,7 @@ export function AuctionLotBidPanel({
 	const [showAdvanced, setShowAdvanced] = useState(false);
 	const [loginDialogOpen, setLoginDialogOpen] = useState(false);
 	const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
+	const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
 	const [nowMs, setNowMs] = useState(() => Date.now());
 	const isShopping = snapshot.auction.mode === "SHOPPING";
 
@@ -280,12 +283,17 @@ export function AuctionLotBidPanel({
 			setFeedback({ type: "error", message: "Sua participação não está habilitada para este leilão. Entre em contato com a equipe Princesa Rural." });
 			return;
 		}
+		setRegistrationDialogOpen(true);
+	};
+
+	const confirmRegistration = async (whatsappOptIn: boolean) => {
 		setRegistration("checking");
-		const result = await registerAuctionAction(snapshot.auction.externalId, snapshot.auction.regulationVersion);
+		const result = await registerAuctionAction(snapshot.auction.externalId, snapshot.auction.regulationVersion, "UNKNOWN", whatsappOptIn);
 		if (result.success && result.data) {
 			const nextState = registrationState(result.data.status);
 			setRegistration(nextState);
 			setFeedback({ type: "success", message: nextState === "approved" ? "Cadastro confirmado. Você já pode enviar lances neste lote." : "Solicitação enviada. A equipe Princesa Rural fará a validação do seu cadastro." });
+			setRegistrationDialogOpen(false);
 		} else {
 			setRegistration("available");
 			if (isAuctionAuthenticationError(result.errorCode)) {
@@ -303,21 +311,8 @@ export function AuctionLotBidPanel({
 			setFeedback({ type: "error", message: "Sua participação não está habilitada para este leilão. Entre em contato com a equipe Princesa Rural." });
 			return false;
 		}
-		setRegistration("checking");
-		const result = await registerAuctionAction(snapshot.auction.externalId, snapshot.auction.regulationVersion);
-		if (!result.success || !result.data) {
-			setRegistration("available");
-			if (isAuctionAuthenticationError(result.errorCode)) {
-				setFeedback(null);
-				setLoginDialogOpen(true);
-				return false;
-			}
-			setFeedback({ type: "error", message: result.error || "Não foi possível registrar sua intenção de participar." });
-			return false;
-		}
-		const nextState = registrationState(result.data.status);
-		setRegistration(nextState);
-		return nextState !== "suspended";
+		setRegistrationDialogOpen(true);
+		return false;
 	};
 
 	const submit = async (value: string, proxy: boolean, control: "quick" | "custom" | "proxy") => {
@@ -498,9 +493,11 @@ export function AuctionLotBidPanel({
 			</>}
 
 			{feedback ? <p role={feedback.type === "error" ? "alert" : "status"} className={`rounded-lg px-3 py-2 text-xs leading-5 ${feedback.type === "success" ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800"}`}>{feedback.message}</p> : null}
+			{registration === "approved" ? <AuctionWhatsAppConsentControl auctionId={snapshot.auction.externalId} /> : null}
 		</section>
 		<ShoppingPurchaseDialog open={purchaseDialogOpen} onOpenChange={setPurchaseDialogOpen} lotTitle={lot.title} priceLabel={formatCents(fixedPriceCents, snapshot.auction.currency)} isSubmitting={pending === "reserve"} onConfirm={() => void confirmPurchase()} />
 		<AuctionLoginDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} shopping={isShopping} />
+		<AuctionRegistrationDialog auctionId={snapshot.auction.externalId} open={registrationDialogOpen} onOpenChange={setRegistrationDialogOpen} onConfirm={confirmRegistration} />
 		</>
 	);
 }

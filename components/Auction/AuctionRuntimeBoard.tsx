@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Activity, BadgeCheck, BellRing, CircleAlert, Clock3, History, Loader2, Radio, RefreshCw, Send, Trophy, Wifi, WifiOff, Zap } from "lucide-react";
 import { AuctionLoginDialog } from "@/components/Auction/AuctionLoginDialog";
+import { AuctionRegistrationDialog } from "@/components/Auction/AuctionRegistrationDialog";
+import { AuctionWhatsAppConsentControl } from "@/components/Auction/AuctionWhatsAppConsentControl";
 import { EngineCommandFeedback } from "@/components/Auction/EngineCommandFeedback";
 import { LiveStreamPlayer } from "@/components/Auction/LiveStreamPlayer";
 import { Button } from "@/components/ui/button";
@@ -105,6 +107,7 @@ export function AuctionRuntimeBoard({ externalAuctionId, initialSnapshot, focusL
 	const [notifications, setNotifications] = useState<LiveNotification[]>([]);
 	const [registrationState, setRegistrationState] = useState<"checking" | "available" | "pending" | "approved">("checking");
 	const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+	const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
 
 	const notify = useCallback((message: string, tone: LiveNotification["tone"] = "system") => {
 		const item = { id: Date.now() + Math.floor(Math.random() * 1000), message, tone, createdAt: new Date() };
@@ -191,14 +194,20 @@ export function AuctionRuntimeBoard({ externalAuctionId, initialSnapshot, focusL
 	};
 
 	const handleRegister = async () => {
+		if (registrationState === "pending") return;
+		setRegistrationDialogOpen(true);
+	};
+
+	const confirmRegistration = async (whatsappOptIn: boolean) => {
 		setRegistrationState("checking");
-		const result = await registerAuctionAction(externalAuctionId, snapshot.auction.regulationVersion, detectAcquisitionSource());
+		const result = await registerAuctionAction(externalAuctionId, snapshot.auction.regulationVersion, detectAcquisitionSource(), whatsappOptIn);
 		if (result.success && result.data) {
 			const nextState = result.data.status === "APPROVED" && result.data.globallyEnabled !== false ? "approved" : result.data.status === "PENDING" ? "pending" : "available";
 			setRegistrationState(nextState);
 			const message = nextState === "approved" ? "Cadastro confirmado nesta conta. Você já pode enviar lances nos lotes abertos." : nextState === "pending" ? "Solicitação enviada. Aguarde a validação da gestão antes de enviar lances." : "Sua participação não está habilitada para este leilão.";
 			setFeedback({ type: "success", message });
 			notify(nextState === "approved" ? "Cadastro confirmado." : "Solicitação de participação enviada.", "system");
+			setRegistrationDialogOpen(false);
 		}
 		else if (isAuctionAuthenticationError(result.errorCode)) {
 			setRegistrationState("available");
@@ -226,7 +235,7 @@ export function AuctionRuntimeBoard({ externalAuctionId, initialSnapshot, focusL
 			<div className="space-y-5">
 				{liveStreamAvailable ? <LiveStreamPlayer stream={snapshot.stream} title={snapshot.auction.title} /> : <div className="flex min-h-56 items-center gap-4 rounded-2xl border bg-card p-6 shadow-xs sm:p-8"><span className="rounded-xl bg-muted p-3 text-muted-foreground">{isPreBid ? <Clock3 className="size-5" /> : <Radio className="size-5" />}</span><div><p className="text-sm font-semibold text-foreground">{isPreBid ? (preBidIsOpen ? "Pré-lance aberto" : "Pré-lance indisponível") : "A transmissão ainda não começou"}</p><p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{isPreBid ? (preBidIsOpen ? "Você já pode enviar pré-lances nos lotes abertos. Esta etapa não depende de transmissão ao vivo." : "O período de pré-lance está pausado ou encerrado.") : "Os lotes podem ser consultados. A disputa ao vivo será liberada quando o manager iniciar o leilão."} Estado atual: <strong className="font-semibold text-foreground">{auctionStatusLabel(snapshot.auction.status)}</strong>.</p></div></div>}
 				<div className="grid gap-3 sm:grid-cols-3"><LiveMetric icon={isPreBid ? <Clock3 className="size-4" /> : <Radio className="size-4" />} label={isPreBid ? "Formato" : "Transmissão"} value={isPreBid ? "Pré-lance" : liveStreamAvailable && snapshot.stream?.status === "LIVE" ? "Ao vivo" : "Aguardando"} tone={isPreBid ? "blue" : liveStreamAvailable && snapshot.stream?.status === "LIVE" ? "green" : "amber"} /><LiveMetric icon={<Activity className="size-4" />} label="Lotes visíveis" value={`${activeLots.length} ${isPreBid ? "em pré-lance" : "em disputa"}`} /><LiveMetric icon={connection === "connected" ? <Wifi className="size-4" /> : <WifiOff className="size-4" />} label="Estado do placar" value={connectionLabel} tone={connection === "connected" ? "green" : "blue"} /></div>
-				{registrationState !== "approved" ? <div className="rounded-2xl border bg-card p-4 shadow-xs sm:p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Sua participação</p><div className="mt-1 inline-flex items-center gap-2 text-lg font-bold"><Zap className="size-5 text-primary" />Entre na disputa</div></div><Button type="button" variant="secondary" className="active:scale-[0.96] transition-transform" onClick={handleRegister} disabled={registrationState === "checking" || registrationState === "pending"}>{registrationState === "pending" ? <Clock3 className="size-4" /> : null}{registrationLabel}</Button></div><p className="mt-3 text-sm leading-6 text-muted-foreground">Seu cadastro é salvo no servidor e verificado novamente quando você voltar a esta página. O placar é atualizado automaticamente.</p></div> : null}
+				{registrationState !== "approved" ? <div className="rounded-2xl border bg-card p-4 shadow-xs sm:p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Sua participação</p><div className="mt-1 inline-flex items-center gap-2 text-lg font-bold"><Zap className="size-5 text-primary" />Entre na disputa</div></div><Button type="button" variant="secondary" className="active:scale-[0.96] transition-transform" onClick={handleRegister} disabled={registrationState === "checking" || registrationState === "pending"}>{registrationState === "pending" ? <Clock3 className="size-4" /> : null}{registrationLabel}</Button></div><p className="mt-3 text-sm leading-6 text-muted-foreground">Seu cadastro é salvo no servidor e verificado novamente quando você voltar a esta página. O placar é atualizado automaticamente.</p></div> : <AuctionWhatsAppConsentControl auctionId={externalAuctionId} />}
 				{feedback?.type === "success" ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{feedback.message}</p> : null}
 				{feedback?.type === "error" ? <EngineCommandFeedback message={feedback.message} code={feedback.code} correlationId={feedback.correlationId} onRefresh={() => void refreshState()} /> : null}
 				<div><div className="mb-4 flex items-end justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{focusLotExternalId ? "Operação do lote" : "Placar oficial"}</p><h2 className="mt-1 text-2xl font-bold tracking-tight">{boardTitle}</h2><p className="mt-1 text-sm text-muted-foreground">{boardDescription}</p></div><Button type="button" variant="ghost" size="sm" onClick={() => void refreshState()}><RefreshCw className="size-4" />Sincronizar</Button></div><div className="grid gap-5 lg:grid-cols-2">{activeLots.length > 0 ? activeLots.map((lot) => <RuntimeLot key={lot.id} auctionId={externalAuctionId} auction={snapshot.auction} currency={snapshot.auction.currency} lot={lot} registrationApproved={registrationState === "approved"} onRequireRegistration={handleRegister} onResult={(result) => { if (result.success && result.data) { const bidResult = result.data as EngineBidResult; applySnapshot(updateLot(snapshotRef.current, bidResult as unknown as Record<string, unknown>)); setFeedback({ type: "success", message: bidSuccessMessage(bidResult, snapshot.auction.currency) }); notify(bidResult.sold ? "Compra confirmada e lote vendido." : "Seu lance foi processado pelo motor.", "price"); } else if (isAuctionAuthenticationError(result.errorCode)) { setFeedback(null); setLoginDialogOpen(true); } else { if (result.errorCode === "REGISTRATION_REQUIRED") setRegistrationState("available"); setFeedback({ type: "error", message: result.error || "Lance rejeitado.", code: result.errorCode, correlationId: result.correlationId }); } }} />) : <div className="rounded-2xl border border-dashed bg-card p-8 text-center lg:col-span-2"><BadgeCheck className="mx-auto size-8 text-primary" /><p className="mt-3 font-semibold">{focusLotExternalId ? "Este lote ainda não está aberto para lances" : isPreBid ? "Nenhum lote aberto para pré-lance" : "O próximo lote ainda não foi aberto"}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{focusLotExternalId ? "O manager ainda não liberou este lote no motor. Assim que o status mudar para aberto, o formulário aparecerá aqui." : isPreBid ? "Os lotes aparecerão assim que forem liberados para receber pré-lances." : "Quando o manager iniciar a próxima disputa, ela aparecerá automaticamente neste placar."}</p></div>}</div>{closedLots.length > 0 ? <ClosedLotsSection lots={closedLots} currency={snapshot.auction.currency} /> : null}</div>
@@ -235,6 +244,7 @@ export function AuctionRuntimeBoard({ externalAuctionId, initialSnapshot, focusL
 		</div>
 	</section>
 	<AuctionLoginDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} />
+	<AuctionRegistrationDialog auctionId={externalAuctionId} open={registrationDialogOpen} onOpenChange={setRegistrationDialogOpen} onConfirm={confirmRegistration} />
 	</>;
 }
 

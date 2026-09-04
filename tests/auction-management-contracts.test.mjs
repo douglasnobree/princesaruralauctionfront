@@ -41,7 +41,7 @@ assert.match(access, /AUCTION_MANAGEMENT_ROLES/);
 assert.match(access, /errorCode === "AUTH_REQUIRED"/);
 
 const capabilities = await read("components/Management/capabilities.ts");
-for (const key of ["AUCTIONS_VIEW", "AUCTIONS_MANAGE_STATUS", "AUCTIONS_MANAGE_LOTS", "AUCTIONS_MANAGE_BIDS"]) {
+for (const key of ["AUCTIONS_VIEW", "AUCTIONS_MANAGE_STATUS", "AUCTIONS_MANAGE_LOTS", "AUCTIONS_MANAGE_BIDS", "AUCTIONS_NOTIFY_PARTICIPANTS"]) {
   assert.match(capabilities, new RegExp(key));
 }
 
@@ -84,12 +84,15 @@ assert.match(auctionWorkspace, /value: "lances", label: "Lances e pré-lances"/)
 assert.match(auctionWorkspace, /tab === "lotes" \? <AuctionLotsPanel/);
 assert.match(auctionWorkspace, /tab === "lances" \? \(/);
 assert.match(auctionWorkspace, /id="pending-bids-title"/);
+assert.match(auctionWorkspace, /label: "Comunicação"/);
+assert.match(auctionWorkspace, /capabilities\.canNotifyParticipants/);
 
 const operationPanel = await read("components/Management/AuctionOperationPanel.tsx");
 assert.match(operationPanel, /Cadastrar participante rápido/);
 assert.match(operationPanel, /CPF ou CNPJ/);
 assert.match(operationPanel, /Esse cadastro não cria conta/);
 assert.match(operationPanel, /Origem do participante/);
+assert.match(operationPanel, /O participante autorizou receber mensagens/);
 
 const acquisitionSources = await read("lib/auctions/acquisition-sources.ts");
 assert.match(acquisitionSources, /utm_source/);
@@ -103,5 +106,15 @@ assert.match(report, /Lances recentes/);
 const participantsPanel = await read("components/Management/AuctionParticipantsPanel.tsx");
 assert.match(participantsPanel, /participant\.participantType === "QUICK"/);
 assert.match(participantsPanel, /Apenas lance assistido/);
+assert.match(participantsPanel, /Enviar WhatsApp/);
+assert.match(participantsPanel, /Confirmo o envio sem consentimento/);
+assert.match(participantsPanel, /maxLength=\{4096\}/);
+
+const communication = await read("components/Management/AuctionCommunicationPanel.tsx");
+assert.match(communication, /Automação geral/);
+assert.match(communication, /Histórico de mensagens/);
+assert.match(communication, /message\.attempts/);
+assert.match(communication, /message\.maskedPhone/);
+assert.doesNotMatch(communication, /normalizedPhone/);
 
 console.log("auction-management-contracts: ok");

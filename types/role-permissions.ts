@@ -17,6 +17,7 @@ export const PERMISSION_KEYS = {
   AUCTIONS_DELETE: "auctions.delete",
   AUCTIONS_MANAGE_STATUS: "auctions.manageStatus",
   AUCTIONS_MANAGE_LOTS: "auctions.manageLots",
+  AUCTIONS_NOTIFY_PARTICIPANTS: "auctions.notifyParticipants",
 } as const;
 
 export const ROLE_PERMISSION_ROLES = [

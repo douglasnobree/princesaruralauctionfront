@@ -109,3 +109,22 @@ test("legacy marketplace lot images resolve through the marketplace origin", asy
 	assert.match(catalog, /pathOrUrl\.startsWith\("\/FeaturedProducts\/"\)/);
 	assert.match(nextConfig, /hostname: "princesarural\.com\.br"/);
 });
+
+test("registration keeps WhatsApp consent optional and revocable", async () => {
+	const [dialog, consentControl, board, bidPanel, actions] = await Promise.all([
+		read("components/Auction/AuctionRegistrationDialog.tsx"),
+		read("components/Auction/AuctionWhatsAppConsentControl.tsx"),
+		read("components/Auction/AuctionRuntimeBoard.tsx"),
+		read("components/Auction/AuctionLotBidPanel.tsx"),
+		read("hooks/actions/auctionEngineActions.ts"),
+	]);
+
+	assert.match(dialog, /useState\(false\)/);
+	assert.match(dialog, /Você pode participar normalmente sem receber mensagens/);
+	assert.match(dialog, /Cadastre um telefone válido/);
+	assert.match(consentControl, /Notificações pelo WhatsApp/);
+	assert.match(consentControl, /setAuctionWhatsAppConsentAction/);
+	assert.match(board, /AuctionRegistrationDialog/);
+	assert.match(bidPanel, /AuctionRegistrationDialog/);
+	assert.match(actions, /registration\/whatsapp-consent/);
+});

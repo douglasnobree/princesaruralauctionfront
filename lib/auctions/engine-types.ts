@@ -187,6 +187,11 @@ export type EngineAuctionRegistration = {
   termsVersion: string;
   acquisitionSource?: EngineAcquisitionSource;
   acceptedAt: string;
+  whatsappOptIn: boolean;
+  whatsappConsentAt: string | null;
+  whatsappConsentVersion: string | null;
+  hasWhatsApp?: boolean;
+  maskedPhone?: string | null;
   displayName?: string;
   email?: string | null;
   globallyEnabled?: boolean;
@@ -208,4 +213,7 @@ export type AuctionParticipantSearchResult = {
   participantType: "USER" | "QUICK";
   documentType?: "CPF" | "CNPJ";
   maskedDocument?: string;
+  hasWhatsApp: boolean;
+  maskedPhone: string | null;
+  whatsappOptIn?: boolean;
 };

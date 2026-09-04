@@ -3,9 +3,10 @@ import { PERMISSION_KEYS, PERMISSION_MODULE_KEYS, type RolePermission } from "@/
 export type AuctionCapabilities = {
   canView: boolean; canViewReports: boolean; canViewBids: boolean; canManageBids: boolean;
   canCreate: boolean; canEdit: boolean; canDelete: boolean; canManageStatus: boolean; canManageLots: boolean;
+  canNotifyParticipants: boolean;
 };
-const NO_ACCESS: AuctionCapabilities = { canView:false, canViewReports:false, canViewBids:false, canManageBids:false, canCreate:false, canEdit:false, canDelete:false, canManageStatus:false, canManageLots:false };
-const ADMIN_ACCESS: AuctionCapabilities = { canView:true, canViewReports:true, canViewBids:true, canManageBids:true, canCreate:true, canEdit:true, canDelete:true, canManageStatus:true, canManageLots:true };
+const NO_ACCESS: AuctionCapabilities = { canView:false, canViewReports:false, canViewBids:false, canManageBids:false, canCreate:false, canEdit:false, canDelete:false, canManageStatus:false, canManageLots:false, canNotifyParticipants:false };
+const ADMIN_ACCESS: AuctionCapabilities = { canView:true, canViewReports:true, canViewBids:true, canManageBids:true, canCreate:true, canEdit:true, canDelete:true, canManageStatus:true, canManageLots:true, canNotifyParticipants:true };
 export function permissionsToAuctionCapabilities(permissions: RolePermission[] | null | undefined, accountType?: string): AuctionCapabilities {
   if (accountType === "ADMIN") return ADMIN_ACCESS;
   if (!permissions?.some((item) => item.key === PERMISSION_MODULE_KEYS.AUCTIONS && item.enabled)) return NO_ACCESS;
@@ -22,5 +23,6 @@ export function permissionsToAuctionCapabilities(permissions: RolePermission[] |
     canDelete: map.get(PERMISSION_KEYS.AUCTIONS_DELETE) === true,
     canManageStatus: map.get(PERMISSION_KEYS.AUCTIONS_MANAGE_STATUS) === true,
     canManageLots: map.get(PERMISSION_KEYS.AUCTIONS_MANAGE_LOTS) === true,
+    canNotifyParticipants: map.get(PERMISSION_KEYS.AUCTIONS_NOTIFY_PARTICIPANTS) === true,
   };
 }

@@ -690,6 +690,8 @@ function FloorBidPanel({
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickName, setQuickName] = useState("");
   const [quickDocument, setQuickDocument] = useState("");
+  const [quickPhone, setQuickPhone] = useState("");
+  const [quickWhatsappOptIn, setQuickWhatsappOptIn] = useState(false);
   const [quickNotice, setQuickNotice] = useState<{ type: "error" | "success"; message: string } | null>(null);
   const [pending, startTransition] = useTransition();
   function search() {
@@ -703,7 +705,7 @@ function FloorBidPanel({
   function createQuickParticipant() {
     setQuickNotice(null);
     startTransition(async () => {
-      const result = await createQuickParticipantAction({ name: quickName, document: quickDocument });
+      const result = await createQuickParticipantAction({ name: quickName, document: quickDocument, phone: quickPhone, whatsappOptIn: quickWhatsappOptIn });
       if (!result.success || !result.data) {
         setQuickNotice({ type: "error", message: result.error || "Não foi possível cadastrar o participante rápido." });
         return;
@@ -715,6 +717,8 @@ function FloorBidPanel({
       setParticipants([]);
       setQuickName("");
       setQuickDocument("");
+      setQuickPhone("");
+      setQuickWhatsappOptIn(false);
       setQuickOpen(false);
       setNotice(
         result.data.participantType === "QUICK"
@@ -853,8 +857,9 @@ function FloorBidPanel({
               <div>
                 <p className="text-xs font-bold text-[#075b3e]">Cadastro rápido</p>
                 <p className="mt-1 text-[11px] leading-5 text-slate-600">
-                  Informe somente Nome e CPF/CNPJ. Esse cadastro não cria conta,
-                  senha ou acesso à plataforma.
+                  Esse cadastro não cria conta. O telefone é opcional; marque a
+                  autorização somente quando o participante tiver consentido com
+                  o contato.
                 </p>
               </div>
               <label className="block text-xs font-semibold text-slate-700" htmlFor="quick-participant-name">
@@ -867,6 +872,23 @@ function FloorBidPanel({
                   autoComplete="off"
                   className="admin-field mt-1"
                 />
+              </label>
+              <label className="block text-xs font-semibold text-slate-700" htmlFor="quick-participant-phone">
+                WhatsApp (opcional)
+                <input
+                  id="quick-participant-phone"
+                  value={quickPhone}
+                  onChange={(event) => setQuickPhone(event.target.value)}
+                  inputMode="tel"
+                  maxLength={30}
+                  autoComplete="tel"
+                  placeholder="(11) 99999-9999"
+                  className="admin-field mt-1"
+                />
+              </label>
+              <label className="flex items-start gap-2 text-xs leading-5 text-slate-700">
+                <input type="checkbox" className="mt-1" checked={quickWhatsappOptIn} onChange={(event) => setQuickWhatsappOptIn(event.target.checked)} disabled={!quickPhone.trim()} />
+                O participante autorizou receber mensagens deste leilão pelo WhatsApp.
               </label>
               <label className="block text-xs font-semibold text-slate-700" htmlFor="quick-participant-document">
                 CPF ou CNPJ
