@@ -101,7 +101,17 @@ assert.match(acquisitionSources, /REFERRAL/);
 
 const report = await read("app/(management)/admin/leiloes/[id]/relatorio/page.tsx");
 assert.match(report, /Origem dos participantes/);
-assert.match(report, /Lances recentes/);
+assert.match(report, /Book final/);
+assert.match(report, /Último lance por lote/);
+assert.match(report, /report\/pdf/);
+
+const reportPrintButton = await read("components/Management/ReportPrintButton.tsx");
+assert.match(reportPrintButton, /Baixar PDF final/);
+assert.match(reportPrintButton, /Imprimir \/ salvar PDF/);
+
+const reportProxy = await read("app/api/auctions/[id]/report/pdf/route.ts");
+assert.match(reportProxy, /report\/pdf/);
+assert.match(reportProxy, /authenticatedFetch/);
 
 const participantsPanel = await read("components/Management/AuctionParticipantsPanel.tsx");
 assert.match(participantsPanel, /participant\.participantType === "QUICK"/);

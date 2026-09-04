@@ -92,6 +92,13 @@ export async function updateAuctionLotAction(auctionId: string, lotId: string, d
   try { const result = await parseResponse<AuctionAdminLot>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}`, { method:"PATCH", body:JSON.stringify(data) }), "Não foi possível atualizar o lote."); if (result.success) revalidateAuctions(); return result; }
   catch { return { success:false, error:"Não foi possível atualizar o lote." }; }
 }
+export async function updateAuctionReportLotCompletionAction(auctionId: string, lotId: string, data: { sellerName: string; quantity?: number; buyerName?: string }): Promise<ActionResult<{ message: string }>> {
+  try {
+    const result = await parseResponse<{ message: string }>(await auctionFetch(`/auctions/manage/${encodeURIComponent(auctionId)}/report/lots/${encodeURIComponent(lotId)}/completion`, { method:"PATCH", body:JSON.stringify(data) }), "Não foi possível salvar os dados do book.");
+    if (result.success) revalidateAuctions();
+    return result;
+  } catch { return { success:false, error:"Não foi possível salvar os dados do book." }; }
+}
 export async function updateAuctionLotStatusAction(auctionId: string, lotId: string, status: AuctionLotAdminStatus): Promise<ActionResult<AuctionAdminLot>> {
   try { const result = await parseResponse<AuctionAdminLot>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/status`, { method:"PATCH", body:JSON.stringify({ status }) }), "Não foi possível alterar o status do lote."); if (result.success) revalidateAuctions(); return result; }
   catch { return { success:false, error:"Não foi possível alterar o status do lote." }; }
