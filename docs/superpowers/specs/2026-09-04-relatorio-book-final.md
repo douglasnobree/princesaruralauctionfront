@@ -21,7 +21,8 @@ dados da tela:
 3. resumo de vendidos, nao vendidos, defendidos e total;
 4. resumo por categoria, geral e resultado final;
 5. ranking de vendas e ranking de compras;
-6. relacao de compradores com dados de contato e endereco quando disponiveis.
+6. relacao de compradores com dados de contato, endereco e identificacao da
+   fazenda (nome, CPF/CNPJ, UF e cidade).
 7. conferência de completude antes da geração, com lista de pendências e
    preenchimento administrativo dos dados do lote.
 
@@ -107,6 +108,9 @@ pagina.
 
 - O comprador é identificado automaticamente pelo participante do lance vencedor e pelo cadastro. O formulário nunca solicita digitar o nome novamente.
 - CPF/CNPJ válido e endereço completo são obrigatórios. O administrador completa esses dados na página do book, uma vez por comprador, incluindo participantes rápidos.
+- Nome da fazenda, CPF/CNPJ da fazenda, UF e cidade da fazenda também são
+  obrigatórios para a emissão do book. Esses campos ficam persistidos junto ao
+  complemento cadastral do comprador e aparecem na relação de compradores.
 - Complementos cadastrais são privados e vinculados ao leilão e ao ID do comprador em `AuctionBookBuyer`; não alteram a identidade da conta. O schema MongoDB é sincronizado pelo processo existente de inicialização do backend.
 - O histórico de cada lote inclui todas as páginas consultadas, valores, datas, participantes, canais, origem de aquisição e anulações. Falhas de consulta bloqueiam a emissão final e solicitam atualização.
 - Canal (online, presencial, telefone, automático) e aquisição (WhatsApp, indicação etc.) são informações distintas. A aquisição é capturada na entrada, preservada na sessão e enviada também na habilitação pela tela do lote. Registros antigos sem atribuição permanecem identificados como não informados.

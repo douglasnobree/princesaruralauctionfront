@@ -105,6 +105,13 @@ assert.match(report, /Book final/);
 assert.match(report, /Último lance por lote/);
 assert.match(report, /report\/pdf/);
 
+const buyerBookForm = await read("components/Management/BookBuyerForm.tsx");
+assert.match(buyerBookForm, /Dados da fazenda/);
+assert.match(buyerBookForm, /Cidade da fazenda/);
+assert.match(buyerBookForm, /farmName/);
+assert.match(buyerBookForm, /farmState/);
+assert.match(buyerBookForm, /farmCity/);
+
 const reportPrintButton = await read("components/Management/ReportPrintButton.tsx");
 assert.match(reportPrintButton, /Baixar PDF final/);
 assert.match(reportPrintButton, /Imprimir \/ salvar PDF/);

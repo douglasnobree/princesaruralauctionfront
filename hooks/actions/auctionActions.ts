@@ -92,7 +92,7 @@ export async function updateAuctionLotAction(auctionId: string, lotId: string, d
   try { const result = await parseResponse<AuctionAdminLot>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}`, { method:"PATCH", body:JSON.stringify(data) }), "Não foi possível atualizar o lote."); if (result.success) revalidateAuctions(); return result; }
   catch { return { success:false, error:"Não foi possível atualizar o lote." }; }
 }
-export async function updateBookBuyerAction(auctionId: string, participantId: string, data: { document: string; phone?: string; email?: string; address: { street: string; number: string; complement?: string; neighborhood: string; city: string; state: string; zipCode: string } }): Promise<ActionResult<{ message: string }>> {
+export async function updateBookBuyerAction(auctionId: string, participantId: string, data: { document: string; phone?: string; email?: string; farmName: string; farmDocument: string; farmState: string; farmCity: string; address: { street: string; number: string; complement?: string; neighborhood: string; city: string; state: string; zipCode: string } }): Promise<ActionResult<{ message: string }>> {
   try {
     const result = await parseResponse<{ message: string }>(await auctionFetch(`/auctions/manage/${encodeURIComponent(auctionId)}/report/buyers/${encodeURIComponent(participantId)}`, { method: 'PATCH', body: JSON.stringify(data) }), 'Não foi possível salvar o comprador.');
     if (result.success) revalidatePath(`/admin/leiloes/${auctionId}/relatorio`);
