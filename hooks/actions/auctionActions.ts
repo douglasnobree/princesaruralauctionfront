@@ -92,10 +92,17 @@ export async function updateAuctionLotAction(auctionId: string, lotId: string, d
   try { const result = await parseResponse<AuctionAdminLot>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}`, { method:"PATCH", body:JSON.stringify(data) }), "Não foi possível atualizar o lote."); if (result.success) revalidateAuctions(); return result; }
   catch { return { success:false, error:"Não foi possível atualizar o lote." }; }
 }
-export async function updateAuctionReportLotCompletionAction(auctionId: string, lotId: string, data: { sellerName: string; quantity?: number; buyerName?: string }): Promise<ActionResult<{ message: string }>> {
+export async function updateBookBuyerAction(auctionId: string, participantId: string, data: { document: string; phone?: string; email?: string; address: { street: string; number: string; complement?: string; neighborhood: string; city: string; state: string; zipCode: string } }): Promise<ActionResult<{ message: string }>> {
+  try {
+    const result = await parseResponse<{ message: string }>(await auctionFetch(`/auctions/manage/${encodeURIComponent(auctionId)}/report/buyers/${encodeURIComponent(participantId)}`, { method: 'PATCH', body: JSON.stringify(data) }), 'Não foi possível salvar o comprador.');
+    if (result.success) revalidatePath(`/admin/leiloes/${auctionId}/relatorio`);
+    return result;
+  } catch { return { success: false, error: 'Não foi possível salvar o comprador.' }; }
+}
+export async function updateAuctionReportLotCompletionAction(auctionId: string, lotId: string, data: { sellerName: string; quantity?: number }): Promise<ActionResult<{ message: string }>> {
   try {
     const result = await parseResponse<{ message: string }>(await auctionFetch(`/auctions/manage/${encodeURIComponent(auctionId)}/report/lots/${encodeURIComponent(lotId)}/completion`, { method:"PATCH", body:JSON.stringify(data) }), "Não foi possível salvar os dados do book.");
-    if (result.success) revalidateAuctions();
+    if (result.success) { revalidateAuctions(); revalidatePath(`/admin/leiloes/${auctionId}/relatorio`); }
     return result;
   } catch { return { success:false, error:"Não foi possível salvar os dados do book." }; }
 }

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuctionHeader } from "@/components/AuctionHeader/AuctionHeader";
+import { AcquisitionCapture } from "@/components/Auction/AcquisitionCapture";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,6 +40,7 @@ export default function RootLayout({
       >
         {/* THESIS: o leilão merece uma entrada própria, com a mesma clareza da Princesa Rural e uma navegação focada em disputa, lotes e participação. OWN-WORLD: verde profundo, branco de alto contraste, laranja pontual e controles compactos de marketplace. STORY: a pessoa encontra a agenda, abre um leilão, escolhe um lote e participa. FIRST VIEWPORT: marca e busca na primeira linha, agenda de leilões logo abaixo, ação primária no conteúdo. FORM: extensão do mundo visual existente, sem trocar a linguagem do produto. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md */}
         <AuctionHeader />
+        <AcquisitionCapture />
         <main className="min-h-screen">{children}</main>
       </body>
     </html>

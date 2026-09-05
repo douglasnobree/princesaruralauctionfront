@@ -70,7 +70,6 @@ function lastBidFor(lot: AuctionReportLot, reportBids: AuctionReportBid[]) {
   const list = [...bids.values()];
   return (
     list.filter((bid) => bid.status === "ACTIVE").sort((left, right) => Date.parse(right.acceptedAt) - Date.parse(left.acceptedAt))[0] ||
-    list.sort((left, right) => Date.parse(right.acceptedAt) - Date.parse(left.acceptedAt))[0] ||
     null
   );
 }
@@ -196,7 +195,7 @@ function BuyerBlock({ buyer, currency }: { buyer: AuctionReportBuyerDetail; curr
   return <article className="report-buyer break-inside-avoid border border-slate-400"><div className="grid gap-2 bg-[#d7d7d7] px-3 py-2 text-[10px] font-bold uppercase tracking-wide sm:grid-cols-[minmax(0,1fr)_minmax(0,auto)] print:bg-[#d7d7d7]"><span className="min-w-0 break-words">Cliente: {text(buyer.name)}</span><span className="min-w-0 break-words sm:text-right">CPF/CNPJ: {buyer.documentType ? `${buyer.documentType}: ` : ""}{buyer.document || "-"}</span></div><div className="grid gap-0 sm:grid-cols-2"><div className="border-b border-slate-300 p-3 text-[11px] sm:border-r"><p className="font-bold uppercase text-slate-500">Contato</p><p className="mt-1 break-words">{buyer.phone || "-"}{buyer.email ? ` · ${buyer.email}` : ""}</p></div><div className="border-b border-slate-300 p-3 text-[11px]"><p className="font-bold uppercase text-slate-500">Endereço</p><p className="mt-1 break-words">{address}</p></div><div className="border-b border-slate-300 p-3 text-[11px] sm:border-r"><p className="font-bold uppercase text-slate-500">Lotes adquiridos</p><p className="mt-1 break-words">{buyer.lotNumbers.join(", ") || "-"}</p></div><div className="border-b border-slate-300 p-3 text-[11px]"><p className="font-bold uppercase text-slate-500">Total</p><p className="mt-1 font-bold">{money(buyer.totalValueCents, currency)}</p></div></div><div className="grid gap-0 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,0.5fr)_minmax(0,1fr)]"><div className="min-w-0 p-3 text-[11px] sm:border-r"><p className="font-bold uppercase text-slate-500">Fazenda</p><p className="mt-1 break-words">{buyer.farmName || "-"}</p></div><div className="min-w-0 border-t border-slate-300 p-3 text-[11px] sm:border-r sm:border-t-0"><p className="font-bold uppercase text-slate-500">CNPJ/CPF</p><p className="mt-1 break-words">{buyer.farmDocument || "-"}</p></div><div className="min-w-0 border-t border-slate-300 p-3 text-[11px] sm:border-r sm:border-t-0"><p className="font-bold uppercase text-slate-500">UF</p><p className="mt-1 break-words">{buyer.farmState || "-"}</p></div><div className="min-w-0 border-t border-slate-300 p-3 text-[11px] sm:border-t-0"><p className="font-bold uppercase text-slate-500">Cidade</p><p className="mt-1 break-words">{buyer.farmCity || "-"}</p></div></div></article>;
 }
 
-function ReportContent({ report, auction }: { report: AuctionReport; auction?: AuctionAdmin }) {
+function ReportContent({ report, auction, canComplete }: { report: AuctionReport; auction?: AuctionAdmin; canComplete: boolean }) {
   const currency = report.auction.currency || "BRL";
   const lots = lotViews(report, auction);
   const completeness = report.completeness || { ready: true, requiredCount: 0, recommendedCount: 0, missing: [] };
@@ -206,6 +205,10 @@ function ReportContent({ report, auction }: { report: AuctionReport; auction?: A
       id: lot.id,
       number: lot.number,
       title: lot.title,
+      sellerName: lot.sellerName,
+      quantity: lot.quantity,
+      quantityProvided: lot.quantityProvided,
+      winnerName: lot.winnerName,
       details: lot.sourceLot?.details,
       missing: completeness.missing.filter((item) => item.lotId === lot.id),
     }));
@@ -244,7 +247,7 @@ function ReportContent({ report, auction }: { report: AuctionReport; auction?: A
 
       {report.warnings.length ? <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 print:border-slate-400 print:bg-white">{report.warnings.join(" ")}</div> : null}
 
-      <AuctionReportCompletenessPanel auctionId={report.auction.id} completeness={completeness} lots={completionLots} />
+      <AuctionReportCompletenessPanel auctionId={report.auction.id} completeness={completeness} lots={canComplete ? completionLots : []} buyers={canComplete ? buyerDetails : []} />
 
       <div className="grid gap-3 sm:grid-cols-4 print:grid-cols-4">
         {[['Lotes', report.summary.lotCount], ['Vendidos', report.summary.soldLots], ['Participantes', report.summary.participantCount], ['Receita', money(report.summary.revenueCents, currency)]].map(([label, value]) => <div key={String(label)} className="rounded-lg border border-slate-300 bg-white p-3 shadow-sm print:rounded-none print:border-slate-700 print:shadow-none"><p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{label}</p><p className="mt-1 text-xl font-black text-[#075b3e] print:text-black">{value}</p></div>)}
@@ -278,7 +281,11 @@ function ReportContent({ report, auction }: { report: AuctionReport; auction?: A
         {buyerDetails.length ? buyerDetails.map((buyer) => <BuyerBlock key={`${buyer.participantId || buyer.name}-${buyer.lotNumbers.join("-")}`} buyer={buyer} currency={currency} />) : <p className="text-sm text-slate-500">Nenhum comprador identificado.</p>}
       </ReportSection>
 
-      <ReportSection title="Origem dos participantes" className="print:hidden">
+      {lots.map((lot) => <ReportSection key={lot.id} title={`Histórico de lances · Lote ${lot.number}`}>
+        <ReportTable headers={["Data", "Participante", "Valor", "Canal do lance", "Origem de aquisição", "Situação"]} rows={(lot.bidHistory || lot.recentBids).map((bid) => [formatAuctionDate(bid.acceptedAt), bid.bidderAlias, money(bid.amountCents, currency), ({ ONLINE: "Online", FLOOR: "Presencial", PHONE: "Telefone", PROXY: "Automático" })[bid.origin] || bid.origin, acquisitionSourceLabel(bid.acquisitionSource), bid.status === "VOIDED" ? `Anulado: ${bid.voidReason || "Sem motivo informado"}` : "Válido"])} empty="Nenhum lance disponível para este lote." />
+      </ReportSection>)}
+
+      <ReportSection title="Origem dos participantes">
         <ReportTable headers={["Origem", "Participantes", "Lances", "Receita"]} rows={report.summary.acquisitionSources.map((item) => [acquisitionSourceLabel(item.source), item.participantCount, item.bidCount, money(item.revenueCents, currency)])} empty="Nenhuma origem registrada." />
       </ReportSection>
 
@@ -300,5 +307,5 @@ export default async function AuctionReportPage({ params }: { params: Promise<{ 
     return <section className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-800"><h1 className="font-semibold">Relatório indisponível</h1><p className="mt-1">{report.error || "Não foi possível carregar o relatório."}</p></section>;
   }
 
-  return <ReportContent report={report.data} auction={auction.success ? auction.data : undefined} />;
+  return <ReportContent report={report.data} auction={auction.success ? auction.data : undefined} canComplete={capabilities.canManageLots} />;
 }

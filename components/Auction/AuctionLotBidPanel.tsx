@@ -1,5 +1,7 @@
 "use client";
 
+import { detectAcquisitionSource } from "@/lib/auctions/acquisition-sources";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	Bell,
@@ -288,7 +290,7 @@ export function AuctionLotBidPanel({
 
 	const confirmRegistration = async (whatsappOptIn: boolean) => {
 		setRegistration("checking");
-		const result = await registerAuctionAction(snapshot.auction.externalId, snapshot.auction.regulationVersion, "UNKNOWN", whatsappOptIn);
+		const result = await registerAuctionAction(snapshot.auction.externalId, snapshot.auction.regulationVersion, detectAcquisitionSource(), whatsappOptIn);
 		if (result.success && result.data) {
 			const nextState = registrationState(result.data.status);
 			setRegistration(nextState);

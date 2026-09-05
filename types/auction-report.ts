@@ -106,6 +106,7 @@ export type AuctionReportLot = {
   bidderCount: number;
   genealogyAvailable: boolean;
   recentBids: AuctionReportBid[];
+  bidHistory?: AuctionReportBid[];
 };
 
 export type AuctionReport = {

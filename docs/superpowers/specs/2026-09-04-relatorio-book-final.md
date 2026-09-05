@@ -42,7 +42,7 @@ dados da tela:
   de visualizar relatorios.
 - A geração do PDF deve bloquear somente quando houver pendência `REQUIRED` e
   devolver a lista estruturada dessas pendências.
-- A equipe deve conseguir preencher vendedor, comprador e quantidade do lote
+- A equipe deve conseguir preencher vendedor e quantidade do lote
   pela tela do relatório, mesmo depois do início do leilão; essa operação não
   pode alterar valor, status ou histórico de lances.
 - O PDF deve respeitar a área imprimível A4, quebrar textos longos e repetir o
@@ -98,10 +98,19 @@ pagina.
 
 **Dado** que o leilão já tenha iniciado ou encerrado
 **Quando** um administrador salvar os dados de completude do lote
-**Então** vendedor, comprador e quantidade devem ser persistidos sem liberar
+**Então** vendedor e quantidade devem ser persistidos sem liberar
   edição dos valores financeiros, status ou lances.
 
 ## Verificacao
+
+### Revisão de completude e histórico
+
+- O comprador é identificado automaticamente pelo participante do lance vencedor e pelo cadastro. O formulário nunca solicita digitar o nome novamente.
+- CPF/CNPJ válido e endereço completo são obrigatórios. O administrador completa esses dados na página do book, uma vez por comprador, incluindo participantes rápidos.
+- Complementos cadastrais são privados e vinculados ao leilão e ao ID do comprador em `AuctionBookBuyer`; não alteram a identidade da conta. O schema MongoDB é sincronizado pelo processo existente de inicialização do backend.
+- O histórico de cada lote inclui todas as páginas consultadas, valores, datas, participantes, canais, origem de aquisição e anulações. Falhas de consulta bloqueiam a emissão final e solicitam atualização.
+- Canal (online, presencial, telefone, automático) e aquisição (WhatsApp, indicação etc.) são informações distintas. A aquisição é capturada na entrada, preservada na sessão e enviada também na habilitação pela tela do lote. Registros antigos sem atribuição permanecem identificados como não informados.
+- Preenchimento rápido preserva metadados não relacionados e aceita lotes antigos cujo campo `deletedAt` não existe. Campos cadastrais só podem ser salvos para um vencedor identificado no leilão.
 
 - teste de tipos e lint do frontend;
 - teste unitario dos helpers de comprador e ultimo lance;
