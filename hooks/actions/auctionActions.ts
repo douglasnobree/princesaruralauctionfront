@@ -110,24 +110,24 @@ export async function updateAuctionLotStatusAction(auctionId: string, lotId: str
   try { const result = await parseResponse<AuctionAdminLot>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/status`, { method:"PATCH", body:JSON.stringify({ status }) }), "Não foi possível alterar o status do lote."); if (result.success) revalidateAuctions(); return result; }
   catch { return { success:false, error:"Não foi possível alterar o status do lote." }; }
 }
-export async function uploadAuctionLotImagesAction(auctionId: string, lotId: string, files: File[]): Promise<ActionResult<AuctionAdminLot>> {
-  try { const form = new FormData(); files.forEach((file) => form.append("images", file)); const result = await parseResponse<AuctionAdminLot>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/images`, { method:"POST", body:form }), "Não foi possível enviar as imagens."); if (result.success) revalidateAuctions(); return result; }
+export async function uploadAuctionLotImagesAction(auctionId: string, lotId: string, files: File[], changeReason?: string): Promise<ActionResult<AuctionAdminLot>> {
+  try { const form = new FormData(); files.forEach((file) => form.append("images", file)); if (changeReason?.trim()) form.append("changeReason", changeReason.trim()); const result = await parseResponse<AuctionAdminLot>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/images`, { method:"POST", body:form }), "Não foi possível enviar as imagens."); if (result.success) revalidateAuctions(); return result; }
   catch { return { success:false, error:"Não foi possível enviar as imagens." }; }
 }
-export async function uploadAuctionLotGenealogyAction(auctionId: string, lotId: string, file: File): Promise<ActionResult<AuctionAdminLot>> {
-  try { const form = new FormData(); form.append("genealogy", file); const result = await parseResponse<AuctionAdminLot>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/genealogy`, { method:"POST", body:form }), "Não foi possível enviar a genealogia."); if (result.success) revalidateAuctions(); return result; }
+export async function uploadAuctionLotGenealogyAction(auctionId: string, lotId: string, file: File, changeReason?: string): Promise<ActionResult<AuctionAdminLot>> {
+  try { const form = new FormData(); form.append("genealogy", file); if (changeReason?.trim()) form.append("changeReason", changeReason.trim()); const result = await parseResponse<AuctionAdminLot>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/genealogy`, { method:"POST", body:form }), "Não foi possível enviar a genealogia."); if (result.success) revalidateAuctions(); return result; }
   catch { return { success:false, error:"Não foi possível enviar a genealogia." }; }
 }
-export async function deleteAuctionLotGenealogyAction(auctionId: string, lotId: string): Promise<ActionResult<{message:string}>> {
-  try { const result = await parseResponse<{message:string}>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/genealogy`, { method:"DELETE" }), "Não foi possível excluir a genealogia."); if (result.success) revalidateAuctions(); return result; }
+export async function deleteAuctionLotGenealogyAction(auctionId: string, lotId: string, changeReason?: string): Promise<ActionResult<{message:string}>> {
+  try { const result = await parseResponse<{message:string}>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/genealogy`, { method:"DELETE", body:JSON.stringify({ changeReason:changeReason?.trim() || undefined }) }), "Não foi possível excluir a genealogia."); if (result.success) revalidateAuctions(); return result; }
   catch { return { success:false, error:"Não foi possível excluir a genealogia." }; }
 }
 export async function deleteAuctionLotAction(auctionId: string, lotId: string): Promise<ActionResult<{message:string}>> {
   try { const result = await parseResponse<{message:string}>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}`, { method:"DELETE" }), "Não foi possível excluir o lote."); if (result.success) revalidateAuctions(); return result; }
   catch { return { success:false, error:"Não foi possível excluir o lote." }; }
 }
-export async function deleteAuctionLotImageAction(auctionId: string, lotId: string, imageId: string): Promise<ActionResult<{message:string}>> {
-  try { const result = await parseResponse<{message:string}>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/images/${encodeURIComponent(imageId)}`, { method:"DELETE" }), "Não foi possível excluir a imagem."); if (result.success) revalidateAuctions(); return result; }
+export async function deleteAuctionLotImageAction(auctionId: string, lotId: string, imageId: string, changeReason?: string): Promise<ActionResult<{message:string}>> {
+  try { const result = await parseResponse<{message:string}>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/images/${encodeURIComponent(imageId)}`, { method:"DELETE", body:JSON.stringify({ changeReason:changeReason?.trim() || undefined }) }), "Não foi possível excluir a imagem."); if (result.success) revalidateAuctions(); return result; }
   catch { return { success:false, error:"Não foi possível excluir a imagem." }; }
 }
 export async function reorderAuctionLotsAction(auctionId: string, lotIds: string[]): Promise<ActionResult<AuctionAdminLot[]>> {

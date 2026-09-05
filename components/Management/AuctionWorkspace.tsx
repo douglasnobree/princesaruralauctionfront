@@ -114,6 +114,9 @@ export function AuctionWorkspace({
       capabilities.canManageLots &&
       (auction.availableActions?.canManageLots ?? true),
   };
+  const canEditLots =
+    capabilities.canManageLots &&
+    (auction.availableActions?.canEditLots ?? true);
   const readiness = [
     Boolean(auction.title && auction.category && auction.startsAt),
     Boolean(auction.startsAt),
@@ -149,7 +152,7 @@ export function AuctionWorkspace({
         </div>
         <div className="flex flex-wrap gap-2 lg:justify-end">
           {workspaceCapabilities.canEdit ? <Link href={`/admin/leiloes/${auction.id}?aba=dados`} className="inline-flex min-h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><Pencil className="size-4" aria-hidden="true" />Editar dados</Link> : null}
-          {workspaceCapabilities.canManageLots ? <Link href={`/admin/leiloes/${auction.id}?aba=lotes`} className="inline-flex min-h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><ListOrdered className="size-4" aria-hidden="true" />Gerenciar lotes</Link> : null}
+          {canEditLots ? <Link href={`/admin/leiloes/${auction.id}?aba=lotes`} className="inline-flex min-h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><ListOrdered className="size-4" aria-hidden="true" />{auction.availableActions?.canManageLots === false ? "Editar lotes" : "Gerenciar lotes"}</Link> : null}
           {capabilities.canViewReports ? <Link href={`/admin/leiloes/${auction.id}/relatorio`} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-secondary px-3 text-sm font-semibold text-secondary-foreground outline-none transition-[background-color,scale] duration-150 hover:bg-secondary/90 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><FileBarChart className="size-4" aria-hidden="true" />Ver relatório</Link> : null}
           {capabilities.canDelete && (auction.availableActions?.canDelete ?? true) ? <DeleteAuctionButton auction={auction} /> : null}
         </div>
@@ -202,7 +205,7 @@ export function AuctionWorkspace({
         </div>
       ) : null}
       {tab === "dados" ? <AuctionForm initialData={auction} capabilities={workspaceCapabilities} /> : null}
-      {tab === "lotes" ? <AuctionLotsPanel auctionId={auction.id} initialLots={lots} capabilities={capabilities} engineLots={engineSnapshot?.lots} /> : null}
+      {tab === "lotes" ? <AuctionLotsPanel auctionId={auction.id} initialLots={lots} capabilities={workspaceCapabilities} canEditLots={canEditLots} engineLots={engineSnapshot?.lots} /> : null}
       {tab === "lances" ? (
         <section className="space-y-5" aria-labelledby="pending-bids-title">
           <header className="rounded-xl border bg-card p-5 shadow-sm sm:p-6">
