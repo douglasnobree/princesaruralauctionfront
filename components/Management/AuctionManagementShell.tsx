@@ -12,7 +12,10 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { PrincesaLogoIcon } from "@/components/AuctionHeader/PrincesaRuralIcon";
+import {
+  PrincesaLogoIcon,
+  PrincesaRuralWordmark,
+} from "@/components/AuctionHeader/PrincesaRuralIcon";
 import { logoutAuctionAction } from "@/hooks/actions/auctionAuthActions";
 import type { RolePermission } from "@/types/role-permissions";
 import type { User } from "@/types/auth/user";
@@ -190,6 +193,7 @@ export function AuctionManagementShell({
       >
         <Link
           href="/admin/leiloes"
+          aria-label="Princesa Rural — Catálogo de leilões"
           className={`block border-b px-4 py-6 outline-none transition-colors hover:bg-accent/5 focus-visible:ring-2 focus-visible:ring-ring ${collapsed ? "px-2" : ""}`}
         >
           <div
@@ -201,10 +205,11 @@ export function AuctionManagementShell({
             />
             {!collapsed ? (
               <div className="min-w-0">
-                <h1 className="truncate text-lg font-bold leading-tight">
-                  <span className="text-primary">Princesa</span>{" "}
-                  <span className="text-secondary">Rural</span>
-                </h1>
+                <PrincesaRuralWordmark
+                  variant="color"
+                  alt=""
+                  className="h-9 max-w-full"
+                />
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   Operação de leilões
                 </p>
@@ -247,13 +252,14 @@ export function AuctionManagementShell({
               <Link
                 href="/admin/leiloes"
                 onClick={() => setMobileOpen(false)}
-                className="flex items-center gap-3"
+                aria-label="Princesa Rural — Catálogo de leilões"
+                className="flex items-center"
               >
-                <PrincesaLogoIcon size={40} aria-hidden="true" />
-                <span className="text-lg font-bold">
-                  <span className="text-primary">Princesa</span>{" "}
-                  <span className="text-secondary">Rural</span>
-                </span>
+                <PrincesaRuralWordmark
+                  variant="color"
+                  alt=""
+                  className="h-8 w-auto"
+                />
               </Link>
               <button
                 type="button"

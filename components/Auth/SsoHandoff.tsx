@@ -10,7 +10,7 @@ import {
   RotateCcw,
   ShieldCheck,
 } from "lucide-react";
-import { PrincesaLogoIcon } from "@/components/AuctionHeader/PrincesaRuralIcon";
+import { PrincesaRuralWordmark } from "@/components/AuctionHeader/PrincesaRuralIcon";
 
 type SsoHandoffProps = {
   ticket?: string;
@@ -174,15 +174,11 @@ export function SsoHandoff({
           <aside className="relative hidden overflow-hidden bg-[#0a5d3e] p-10 text-white lg:flex lg:min-h-[570px] lg:flex-col lg:justify-between">
             <div className="absolute -right-16 -top-16 size-52 rounded-full border border-[#f6b04e]/30" aria-hidden="true" />
             <div>
-              <div className="flex items-center gap-3">
-                <span className="grid size-12 place-items-center rounded-2xl bg-[#fff7e8] shadow-[0_8px_24px_rgba(0,0,0,.14)]">
-                  <PrincesaLogoIcon size={39} aria-hidden="true" />
-                </span>
-                <span className="leading-none">
-                  <span className="block text-[9px] font-bold tracking-[.28em] text-[#f6b04e]">PRINCESA</span>
-                  <span className="block text-3xl font-light tracking-[-.08em]">RURAL</span>
-                </span>
-              </div>
+              <PrincesaRuralWordmark
+                variant="white"
+                alt=""
+                className="h-10 w-auto"
+              />
               <p className="mt-16 max-w-[17rem] text-sm font-medium uppercase tracking-[.22em] text-white/60">
                 Uma conta. Dois mundos.
               </p>
@@ -201,14 +197,12 @@ export function SsoHandoff({
           </aside>
 
           <div className="flex min-h-[570px] flex-col justify-center px-6 py-9 sm:px-12 sm:py-12">
-            <div className="mb-10 flex items-center gap-3 lg:hidden">
-              <span className="grid size-11 place-items-center rounded-2xl bg-[#e8f0df]">
-                <PrincesaLogoIcon size={36} aria-hidden="true" />
-              </span>
-              <span className="leading-none">
-                <span className="block text-[8px] font-bold tracking-[.24em] text-[#0a5d3e]">PRINCESA</span>
-                <span className="block text-2xl font-light tracking-[-.08em] text-[#0a5d3e]">RURAL</span>
-              </span>
+            <div className="mb-10 lg:hidden">
+              <PrincesaRuralWordmark
+                variant="color"
+                alt=""
+                className="h-8 w-auto"
+              />
             </div>
 
             <div className="max-w-xl">

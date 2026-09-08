@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getUser } from "@/lib/auth/server/session";
 import { getMarketplaceUrl } from "@/lib/config/urls";
 import { AUCTION_MANAGEMENT_ROLES } from "@/types/role-permissions";
-import { PrincesaLogoIcon } from "@/components/AuctionHeader/PrincesaRuralIcon";
+import { PrincesaRuralWordmark } from "@/components/AuctionHeader/PrincesaRuralIcon";
 import { MarketplaceHandoffLink } from "@/components/AuctionHeader/MarketplaceHandoffLink";
 
 const navigation = [
@@ -33,13 +33,12 @@ export async function AuctionHeader() {
               className="shrink-0 rounded-sm outline-none transition-[filter,transform] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-white/80 active:scale-[0.96]"
               aria-label="Princesa Rural Leilões"
             >
-              <span className="flex items-center gap-1.5 text-white" aria-hidden="true">
-                <PrincesaLogoIcon size={36} className="brightness-0 invert sm:size-10" />
-                <span className="flex flex-col leading-[0.84]">
-                  <span className="text-[7px] font-semibold tracking-[0.16em]">PRINCESA</span>
-                  <span className="text-[22px] font-light tracking-[-0.07em] sm:text-[25px]">RURAL</span>
-                </span>
-              </span>
+              <PrincesaRuralWordmark
+                variant="white"
+                alt=""
+                priority
+                className="h-8 w-auto sm:h-9"
+              />
             </Link>
 
             <form action="/leiloes" className="order-3 w-full md:order-2 md:flex-1">
