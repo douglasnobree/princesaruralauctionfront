@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
 	title: "Leilões",
 	description:
-		"Acompanhe os leilões rurais da Princesa Rural e consulte seus lotes.",
+		"Acompanhe os leilões rurais do PR Leilões e consulte seus lotes.",
 };
 
 export default async function LeiloesPage({

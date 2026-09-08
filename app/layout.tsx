@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuctionHeader } from "@/components/AuctionHeader/AuctionHeader";
@@ -19,28 +19,58 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_AUCTION_APP_URL || "https://prleiloes.com",
   ),
   title: {
-    default: "Leilões | Princesa Rural",
-    template: "%s | Leilões Princesa Rural",
+    default: "PR Leilões | Leilões rurais",
+    template: "%s | PR Leilões",
   },
   description:
-    "Acompanhe os leilões rurais da Princesa Rural, consulte lotes e participe das disputas.",
-  applicationName: "Leilões Princesa Rural",
+    "Acompanhe leilões rurais, consulte lotes e participe das disputas no PR Leilões.",
+  applicationName: "PR Leilões",
   category: "agriculture",
-  manifest: "/site.webmanifest",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: [
-      { url: "/favicon.ico" },
-      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
-    ],
-    apple: [
+      { url: "/brand/pr-leiloes/favicon.svg", type: "image/svg+xml" },
       {
-        url: "/apple-touch-icon.png",
-        sizes: "180x180",
+        url: "/brand/pr-leiloes/favicon.png",
+        sizes: "512x512",
         type: "image/png",
       },
     ],
+    shortcut: "/brand/pr-leiloes/favicon.svg",
+    apple: {
+      url: "/brand/pr-leiloes/favicon.png",
+      sizes: "512x512",
+      type: "image/png",
+    },
   },
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    siteName: "PR Leilões",
+    title: "PR Leilões | Leilões rurais",
+    description:
+      "Acompanhe leilões rurais, consulte lotes e participe das disputas no PR Leilões.",
+    images: [
+      {
+        url: "/brand/pr-leiloes/share-preview.png",
+        width: 1200,
+        height: 630,
+        alt: "PR Leilões",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PR Leilões | Leilões rurais",
+    description:
+      "Acompanhe leilões rurais, consulte lotes e participe das disputas no PR Leilões.",
+    images: ["/brand/pr-leiloes/share-preview.png"],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#062518",
+  colorScheme: "light",
 };
 
 export default function RootLayout({
@@ -53,7 +83,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* THESIS: o leilão merece uma entrada própria, com a mesma clareza da Princesa Rural e uma navegação focada em disputa, lotes e participação. OWN-WORLD: verde profundo, branco de alto contraste, laranja pontual e controles compactos de marketplace. STORY: a pessoa encontra a agenda, abre um leilão, escolhe um lote e participa. FIRST VIEWPORT: marca e busca na primeira linha, agenda de leilões logo abaixo, ação primária no conteúdo. FORM: extensão do mundo visual existente, sem trocar a linguagem do produto. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md */}
+        {/* PR Leilões: identidade própria, navegação focada em disputa, lotes e participação; verde floresta, verde folha, amarelo ouro e controles compactos de marketplace. */}
         <AuctionHeader />
         <AcquisitionCapture />
         <main className="min-h-screen">{children}</main>

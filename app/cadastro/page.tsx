@@ -4,8 +4,8 @@ import { AuctionRegisterForm } from "@/components/Auth/AuctionRegisterForm";
 import { getMarketplaceUrl } from "@/lib/config/urls";
 
 export const metadata: Metadata = {
-  title: "Criar conta | Leilões Princesa Rural",
-  description: "Crie sua conta para participar dos leilões da Princesa Rural.",
+  title: "Criar conta",
+  description: "Crie sua conta para participar dos leilões do PR Leilões.",
   robots: { index: false, follow: false },
 };
 
@@ -14,7 +14,7 @@ export default function AuctionRegisterPage() {
     <div id="main-content" className="min-h-[calc(100vh-105px)] bg-[#f7f8f7] px-4 py-10 sm:px-6 lg:py-14">
       <div className="mx-auto w-full max-w-[760px]">
         <header className="mb-7">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#08734e]">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#28834c]">
             Participação em leilões
           </p>
           <h1 className="text-3xl font-semibold tracking-[-0.025em] text-slate-950 sm:text-4xl">
@@ -33,7 +33,7 @@ export default function AuctionRegisterPage() {
           Já possui uma conta?{" "}
           <Link
             href="/login"
-            className="font-semibold text-[#08734e] underline decoration-[#08734e]/30 underline-offset-4 transition-colors hover:text-[#075b3e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24] focus-visible:ring-offset-2"
+            className="font-semibold text-[#28834c] underline decoration-[#28834c]/30 underline-offset-4 transition-colors hover:text-[#062518] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fbaa34] focus-visible:ring-offset-2"
           >
             Entrar
           </Link>

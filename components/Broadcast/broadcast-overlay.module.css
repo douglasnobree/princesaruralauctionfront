@@ -1,9 +1,9 @@
 .overlay {
   --broadcast-ink: #f8fbf8;
   --broadcast-muted: rgba(235, 245, 237, 0.72);
-  --broadcast-green: #075c3d;
-  --broadcast-green-deep: #03291e;
-  --broadcast-amber: #f4b64f;
+  --broadcast-green: #28834c;
+  --broadcast-green-deep: #062518;
+  --broadcast-amber: #fbaa34;
   position: fixed;
   inset: 0;
   z-index: 100;
@@ -38,7 +38,21 @@
   width: 42rem;
   height: 42rem;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(7, 92, 61, 0.3), transparent 68%);
+  background: radial-gradient(circle, rgba(40, 131, 76, 0.3), transparent 68%);
+}
+
+.brandMark {
+  position: absolute;
+  left: clamp(1rem, 4vw, 4.75rem);
+  top: clamp(1rem, 4vh, 3rem);
+  width: clamp(7.75rem, 13vw, 10.5rem);
+  filter: drop-shadow(0 0.2rem 0.7rem rgba(0, 0, 0, 0.24));
+}
+
+.brandMark img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .content {
@@ -61,7 +75,7 @@
   padding: 0.42rem 0.7rem;
   border: 1px solid rgba(255, 255, 255, 0.17);
   border-radius: 999px;
-  background: rgba(3, 41, 30, 0.86);
+  background: rgba(6, 37, 24, 0.86);
   box-shadow: 0 0.5rem 1.75rem rgba(0, 0, 0, 0.2);
   font-size: clamp(0.58rem, 0.8vw, 0.72rem);
   font-weight: 800;
@@ -73,12 +87,12 @@
 .statusBadge {
   position: absolute;
   left: clamp(1rem, 4vw, 4.75rem);
-  top: clamp(1rem, 4vh, 3rem);
+  top: clamp(4.25rem, 10vh, 6.5rem);
 }
 
 .statusBadge[data-status="live"] {
-  border-color: rgba(244, 182, 79, 0.5);
-  background: rgba(7, 92, 61, 0.92);
+  border-color: rgba(251, 170, 52, 0.5);
+  background: rgba(40, 131, 76, 0.92);
 }
 
 .statusBadge[data-status="paused"] {
@@ -92,7 +106,7 @@
   flex: 0 0 auto;
   border-radius: 50%;
   background: var(--broadcast-amber);
-  box-shadow: 0 0 0 0.2rem rgba(244, 182, 79, 0.14);
+  box-shadow: 0 0 0 0.2rem rgba(251, 170, 52, 0.14);
 }
 
 .statusBadge[data-status="live"] .statusDot {
@@ -104,7 +118,7 @@
   min-width: 0;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 0.75rem;
-  background: linear-gradient(135deg, rgba(3, 41, 30, 0.96), rgba(7, 92, 61, 0.88));
+  background: linear-gradient(135deg, rgba(6, 37, 24, 0.96), rgba(40, 131, 76, 0.88));
   box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.23);
   backdrop-filter: blur(0.75rem);
 }
@@ -133,8 +147,8 @@
   min-height: 9rem;
   justify-content: center;
   padding: clamp(0.9rem, 1.8vw, 1.5rem);
-  border-color: rgba(244, 182, 79, 0.38);
-  background: linear-gradient(135deg, rgba(70, 44, 13, 0.94), rgba(137, 82, 17, 0.86));
+  border-color: rgba(251, 170, 52, 0.38);
+  background: linear-gradient(135deg, rgba(75, 47, 12, 0.94), rgba(155, 93, 17, 0.86));
 }
 
 .bidSweep {
@@ -223,7 +237,7 @@
   gap: clamp(0.75rem, 2vw, 2rem);
   min-height: clamp(2.75rem, 5.2vh, 4rem);
   padding: 0.65rem clamp(1rem, 4vw, 4.75rem);
-  background: linear-gradient(90deg, rgba(3, 41, 30, 0.96), rgba(3, 41, 30, 0.72), rgba(3, 41, 30, 0.38));
+  background: linear-gradient(90deg, rgba(6, 37, 24, 0.96), rgba(6, 37, 24, 0.72), rgba(6, 37, 24, 0.38));
   border-top: 1px solid rgba(255, 255, 255, 0.14);
   box-shadow: 0 -0.75rem 2rem rgba(0, 0, 0, 0.12);
 }
@@ -274,9 +288,9 @@
   align-items: center;
   gap: 0.4rem;
   padding: clamp(1.5rem, 4vw, 3rem) clamp(2rem, 7vw, 6rem);
-  border: 1px solid rgba(244, 182, 79, 0.7);
+  border: 1px solid rgba(251, 170, 52, 0.7);
   border-radius: 1.25rem;
-  background: radial-gradient(circle at 50% 0%, rgba(244, 182, 79, 0.28), transparent 60%), rgba(3, 41, 30, 0.97);
+  background: radial-gradient(circle at 50% 0%, rgba(251, 170, 52, 0.28), transparent 60%), rgba(6, 37, 24, 0.97);
   box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.38), 0 0 0 100vmax rgba(0, 0, 0, 0.12);
   z-index: 3;
   overflow: hidden;
@@ -287,7 +301,7 @@
 .soldBurst {
   position: absolute;
   inset: 0.75rem;
-  border: 1px solid rgba(244, 182, 79, 0.75);
+  border: 1px solid rgba(251, 170, 52, 0.75);
   border-radius: 0.9rem;
   opacity: 0;
   pointer-events: none;
@@ -327,9 +341,9 @@
   max-width: min(34rem, calc(100vw - 2rem));
   transform: translate(-50%, -50%);
   padding: 0.85rem 1.1rem;
-  border: 1px solid rgba(244, 182, 79, 0.5);
+  border: 1px solid rgba(251, 170, 52, 0.5);
   border-radius: 0.6rem;
-  background: rgba(3, 41, 30, 0.94);
+  background: rgba(6, 37, 24, 0.94);
   color: white;
   font-size: clamp(0.76rem, 1vw, 0.95rem);
   font-weight: 700;
@@ -353,8 +367,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% { box-shadow: 0 0 0 0.2rem rgba(244, 182, 79, 0.14); }
-  50% { box-shadow: 0 0 0 0.5rem rgba(244, 182, 79, 0); }
+  0%, 100% { box-shadow: 0 0 0 0.2rem rgba(251, 170, 52, 0.14); }
+  50% { box-shadow: 0 0 0 0.5rem rgba(251, 170, 52, 0); }
 }
 
 @media (max-width: 680px) {

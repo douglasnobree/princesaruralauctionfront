@@ -3,8 +3,8 @@ import Link from "next/link";
 import { AuctionLoginForm } from "@/components/Auth/AuctionLoginForm";
 
 export const metadata: Metadata = {
-  title: "Entrar | Leilões Princesa Rural",
-  description: "Entre para acompanhar e participar dos leilões da Princesa Rural.",
+  title: "Entrar",
+  description: "Entre para acompanhar e participar dos leilões do PR Leilões.",
   robots: { index: false, follow: false },
 };
 
@@ -15,14 +15,14 @@ export default async function AuctionLoginPage({ searchParams }: { searchParams:
     <div className="min-h-[calc(100vh-105px)] bg-[#f7f8f7] px-4 py-10 sm:px-6 lg:py-16">
       <div className="mx-auto w-full max-w-[440px]">
         <header className="mb-7">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#08734e]">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#28834c]">
             Acesso aos leilões
           </p>
           <h1 className="text-3xl font-semibold tracking-[-0.025em] text-slate-950 sm:text-4xl">
             Entre na sua conta
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600 sm:text-base">
-            Use os mesmos dados da sua conta Princesa Rural para acompanhar lotes e enviar lances.
+            Use sua conta PR Leilões para acompanhar lotes e enviar lances.
           </p>
         </header>
 
@@ -34,7 +34,7 @@ export default async function AuctionLoginPage({ searchParams }: { searchParams:
           Ainda não possui uma conta?{" "}
           <Link
             href="/cadastro"
-            className="font-semibold text-[#08734e] underline decoration-[#08734e]/30 underline-offset-4 transition-colors hover:text-[#075b3e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24] focus-visible:ring-offset-2"
+            className="font-semibold text-[#28834c] underline decoration-[#28834c]/30 underline-offset-4 transition-colors hover:text-[#062518] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fbaa34] focus-visible:ring-offset-2"
           >
             Cadastre-se
           </Link>

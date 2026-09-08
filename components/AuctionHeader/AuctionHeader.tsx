@@ -1,9 +1,9 @@
 import { CalendarDays, Gavel, Home, LayoutDashboard, Search, ShoppingBag, ShoppingCart, UserRound } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { getUser } from "@/lib/auth/server/session";
 import { getMarketplaceUrl } from "@/lib/config/urls";
 import { AUCTION_MANAGEMENT_ROLES } from "@/types/role-permissions";
-import { PrincesaRuralWordmark } from "@/components/AuctionHeader/PrincesaRuralIcon";
 import { MarketplaceHandoffLink } from "@/components/AuctionHeader/MarketplaceHandoffLink";
 
 const navigation = [
@@ -26,19 +26,30 @@ export async function AuctionHeader() {
   return (
     <header className="sticky top-0 z-50 text-white shadow-[0_3px_16px_rgba(0,0,0,0.12)]"> 
 
-      <div className="bg-[#056942]">
+      <div className="bg-[#062518]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center gap-3 py-2 md:flex-nowrap md:gap-5 md:py-1.5">
             <Link
               href="/leiloes"
               className="shrink-0 rounded-sm outline-none transition-[filter,transform] hover:brightness-110 focus-visible:ring-2 focus-visible:ring-white/80 active:scale-[0.96]"
-              aria-label="Princesa Rural Leilões"
+              aria-label="PR Leilões"
             >
-              <PrincesaRuralWordmark
-                variant="white"
-                alt=""
+              <Image
+                src="/brand/pr-leiloes/logo-horizontal-white.svg"
+                alt="PR Leilões"
+                width={247}
+                height={43}
                 priority
-                className="h-8 w-auto sm:h-9"
+                className="hidden h-auto w-[9.25rem] sm:block"
+              />
+              <Image
+                src="/brand/pr-leiloes/logo-icon.svg"
+                alt=""
+                width={512}
+                height={512}
+                priority
+                aria-hidden="true"
+                className="size-9 brightness-0 invert sm:hidden"
               />
             </Link>
 
@@ -52,11 +63,11 @@ export async function AuctionHeader() {
                   name="q"
                   type="search"
                   placeholder="Buscar leilões"
-                  className="h-8 w-full rounded-md border border-white/20 bg-white px-3 pe-10 text-sm text-[#183428] shadow-sm outline-none placeholder:text-[#567065] focus-visible:ring-2 focus-visible:ring-[#f6b04e]"
+                  className="h-8 w-full rounded-md border border-white/20 bg-white px-3 pe-10 text-sm text-[#062518] shadow-sm outline-none placeholder:text-[#567065] focus-visible:ring-2 focus-visible:ring-[#fbaa34]"
                 />
                 <Search
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-y-0 end-3 my-auto size-4 text-[#056942]"
+                  className="pointer-events-none absolute inset-y-0 end-3 my-auto size-4 text-[#28834c]"
                 />
               </div>
             </form>
@@ -66,7 +77,7 @@ export async function AuctionHeader() {
             {canViewManagement ? (
               <Link
                 href="/admin/leiloes"
-                className="order-2 inline-flex min-h-8 items-center gap-2 rounded-md bg-[#f08a24] px-3 text-xs font-bold text-[#183428] outline-none transition-[background-color,transform] hover:bg-[#f6b04e] focus-visible:ring-2 focus-visible:ring-white/80 active:scale-[0.96] md:order-3"
+                className="order-2 inline-flex min-h-8 items-center gap-2 rounded-md bg-[#fbaa34] px-3 text-xs font-bold text-[#062518] outline-none transition-[background-color,transform] hover:bg-[#ffc267] focus-visible:ring-2 focus-visible:ring-white/80 active:scale-[0.96] md:order-3"
               >
                 <LayoutDashboard className="size-3.5" aria-hidden="true" />
                 Administração
@@ -98,7 +109,7 @@ export async function AuctionHeader() {
 
           <nav aria-label="Navegação principal" className="-mx-1 flex min-w-0 gap-1 overflow-x-auto pb-1 sm:gap-2">
             {navigation.map(({ label, href, icon: Icon, active, handoff }) => {
-              const className = `inline-flex min-h-7 shrink-0 items-center gap-2 rounded-md px-2 text-[11px] font-bold uppercase tracking-[0.02em] outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/80 sm:px-3 ${active ? "bg-white/10 text-white" : "text-white/90"}`;
+              const className = `inline-flex min-h-7 shrink-0 items-center gap-2 rounded-md px-2 text-[11px] font-bold uppercase tracking-[0.02em] outline-none transition-colors hover:bg-[#28834c]/70 focus-visible:ring-2 focus-visible:ring-[#fbaa34] sm:px-3 ${active ? "bg-[#28834c]/70 text-white" : "text-white/90"}`;
               return handoff ? (
                 <MarketplaceHandoffLink key={label} pathname={href} baseUrl={marketplaceUrl} className={className}>
                   <Icon className="size-3.5" aria-hidden="true" />

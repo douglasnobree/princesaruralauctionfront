@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import Image from "next/image";
 import type { BroadcastBid, BroadcastLot } from "@/lib/broadcast/broadcast-types";
 import { useBroadcastOverlay } from "@/components/Broadcast/use-broadcast-overlay";
 import { AuctionStatus } from "@/components/Broadcast/auction-status";
@@ -84,6 +85,15 @@ export function BroadcastOverlay({
         aria-hidden={isFinished}
       >
         <div className={styles.cornerGlow} aria-hidden="true" />
+        <div className={styles.brandMark}>
+          <Image
+            src="/brand/pr-leiloes/logo-horizontal-white.svg"
+            alt="PR Leilões"
+            width={247}
+            height={43}
+            priority
+          />
+        </div>
         <AuctionStatus status={status} />
         <ReconnectIndicator status={broadcast.connection} />
         <div className={styles.content}>

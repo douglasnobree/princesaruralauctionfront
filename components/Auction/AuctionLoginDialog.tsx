@@ -31,8 +31,8 @@ export function AuctionLoginDialog({
 			<DialogTitle>{shopping ? "Faça login para comprar este lote" : "Faça login para participar do leilão"}</DialogTitle>
 			<DialogDescription>
 				{shopping
-					? "Para confirmar a compra, entre na sua conta Princesa Rural. Ainda não tem cadastro? Crie uma conta gratuita."
-					: "Para acompanhar a disputa e enviar lances, entre na sua conta Princesa Rural. Ainda não tem cadastro? Crie uma conta gratuita."}
+					? "Para confirmar a compra, entre na sua conta PR Leilões. Ainda não tem cadastro? Crie uma conta gratuita."
+					: "Para acompanhar a disputa e enviar lances, entre na sua conta PR Leilões. Ainda não tem cadastro? Crie uma conta gratuita."}
 			</DialogDescription>
         </DialogHeader>
         <DialogFooter>

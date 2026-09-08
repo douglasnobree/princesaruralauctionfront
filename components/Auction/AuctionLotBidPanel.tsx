@@ -281,11 +281,11 @@ export function AuctionLotBidPanel({
 	const bidderName = lot.status === "SOLD" ? getWinnerDisplayName(lot) : getBidderDisplayName(lot);
 	const requireRegistration = async () => {
 		if (registration === "pending") {
-			setFeedback({ type: "success", message: "Sua solicitação está aguardando a validação da equipe Princesa Rural." });
+			setFeedback({ type: "success", message: "Sua solicitação está aguardando a validação da equipe PR Leilões." });
 			return;
 		}
 		if (registration === "suspended") {
-			setFeedback({ type: "error", message: "Sua participação não está habilitada para este leilão. Entre em contato com a equipe Princesa Rural." });
+			setFeedback({ type: "error", message: "Sua participação não está habilitada para este leilão. Entre em contato com a equipe PR Leilões." });
 			return;
 		}
 		setRegistrationDialogOpen(true);
@@ -297,7 +297,7 @@ export function AuctionLotBidPanel({
 		if (result.success && result.data) {
 			const nextState = registrationState(result.data.status);
 			setRegistration(nextState);
-			setFeedback({ type: "success", message: nextState === "approved" ? "Cadastro confirmado. Você já pode enviar lances neste lote." : "Solicitação enviada. A equipe Princesa Rural fará a validação do seu cadastro." });
+			setFeedback({ type: "success", message: nextState === "approved" ? "Cadastro confirmado. Você já pode enviar lances neste lote." : "Solicitação enviada. A equipe PR Leilões fará a validação do seu cadastro." });
 			setRegistrationDialogOpen(false);
 		} else {
 			setRegistration("available");
@@ -313,7 +313,7 @@ export function AuctionLotBidPanel({
 	const ensureRegistrationForBid = async (): Promise<boolean> => {
 		if (registration === "approved" || registration === "pending") return true;
 		if (registration === "suspended") {
-			setFeedback({ type: "error", message: "Sua participação não está habilitada para este leilão. Entre em contato com a equipe Princesa Rural." });
+			setFeedback({ type: "error", message: "Sua participação não está habilitada para este leilão. Entre em contato com a equipe PR Leilões." });
 			return false;
 		}
 		setRegistrationDialogOpen(true);

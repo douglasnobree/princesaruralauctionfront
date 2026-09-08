@@ -129,7 +129,7 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
   if (submitted) {
     return (
       <div className="py-8 text-center" role="status" aria-live="polite">
-        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-[#e5f4ed] text-[#08734e]">
+        <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-[#e7f4eb] text-[#28834c]">
           <Gavel aria-hidden="true" className="size-8" strokeWidth={1.8} />
         </div>
         <h2 className="mt-5 text-2xl font-semibold tracking-[-0.02em] text-slate-950">Conta criada com sucesso</h2>
@@ -138,7 +138,7 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
         </p>
         <Link
           href="/login"
-          className="mt-7 inline-flex min-h-11 items-center justify-center rounded-md bg-[#08734e] px-6 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(8,115,78,0.18)] transition-[background-color,transform] hover:bg-[#075b3e] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24] focus-visible:ring-offset-2"
+          className="mt-7 inline-flex min-h-11 items-center justify-center rounded-md bg-[#28834c] px-6 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(40,131,76,0.18)] transition-[background-color,transform] hover:bg-[#062518] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fbaa34] focus-visible:ring-offset-2"
         >
           Entrar na conta
         </Link>
@@ -161,11 +161,11 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
       </div>
 
       <fieldset>
-        <legend className="flex items-center gap-2 text-sm font-semibold text-[#08734e]">
+        <legend className="flex items-center gap-2 text-sm font-semibold text-[#28834c]">
           <UserRound aria-hidden="true" className="size-4" strokeWidth={1.8} />
           Dados pessoais
         </legend>
-        <div className="mt-3 h-px bg-[#08734e]/40" />
+        <div className="mt-3 h-px bg-[#28834c]/40" />
 
         <div className="mt-5 grid gap-5 sm:grid-cols-2">
           <div className="sm:col-span-2">
@@ -189,7 +189,7 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
               <legend className="mb-2 block text-xs font-medium text-slate-700">Tipo de cadastro</legend>
               <div className="flex flex-wrap gap-2">
                 {(["PERSON", "COMPANY"] as const).map((accountType) => (
-                  <label key={accountType} className={`cursor-pointer rounded-md border px-3 py-2 text-xs font-semibold transition-[background-color,border-color,color,box-shadow] focus-within:ring-2 focus-within:ring-[#f08a24] focus-within:ring-offset-1 ${values.accountType === accountType ? "border-[#08734e] bg-[#e5f4ed] text-[#075b3e]" : "border-slate-200 text-slate-600 hover:border-[#08734e]/50"}`}>
+                  <label key={accountType} className={`cursor-pointer rounded-md border px-3 py-2 text-xs font-semibold transition-[background-color,border-color,color,box-shadow] focus-within:ring-2 focus-within:ring-[#fbaa34] focus-within:ring-offset-1 ${values.accountType === accountType ? "border-[#28834c] bg-[#e7f4eb] text-[#062518]" : "border-slate-200 text-slate-600 hover:border-[#28834c]/50"}`}>
                     <input
                       type="radio"
                       name="accountType"
@@ -293,7 +293,7 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
             onChange={(event) => update("acceptedTerms", event.target.checked)}
             aria-invalid={Boolean(errors.acceptedTerms)}
             aria-describedby={errors.acceptedTerms ? "register-terms-error" : "register-terms-description"}
-            className="mt-0.5 size-4 shrink-0 accent-[#08734e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24] focus-visible:ring-offset-2"
+            className="mt-0.5 size-4 shrink-0 accent-[#28834c] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fbaa34] focus-visible:ring-offset-2"
           />
           <span id="register-terms-description">
             Li e aceito os{" "}
@@ -301,7 +301,7 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
               href={`${marketplaceUrl}/termos`}
               target="_blank"
               rel="noreferrer"
-              className="font-medium text-[#08734e] underline underline-offset-2 hover:text-[#075b3e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24]"
+              className="font-medium text-[#28834c] underline underline-offset-2 hover:text-[#062518] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fbaa34]"
             >
               Termos de Uso
             </a>{" "}
@@ -310,7 +310,7 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
               href={`${marketplaceUrl}/privacidade`}
               target="_blank"
               rel="noreferrer"
-              className="font-medium text-[#08734e] underline underline-offset-2 hover:text-[#075b3e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24]"
+              className="font-medium text-[#28834c] underline underline-offset-2 hover:text-[#062518] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fbaa34]"
             >
               Política de privacidade
             </a>.
@@ -322,7 +322,7 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
       <button
         type="submit"
         disabled={isSubmitting}
-        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-[#08734e] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(8,115,78,0.18)] transition-[background-color,transform,box-shadow] hover:bg-[#075b3e] hover:shadow-[0_10px_22px_rgba(8,115,78,0.22)] active:scale-[0.96] disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24] focus-visible:ring-offset-2"
+        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-[#28834c] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(40,131,76,0.18)] transition-[background-color,transform,box-shadow] hover:bg-[#062518] hover:shadow-[0_10px_22px_rgba(40,131,76,0.22)] active:scale-[0.96] disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fbaa34] focus-visible:ring-offset-2"
       >
         {isSubmitting ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : null}
         {isSubmitting ? "Concluindo cadastro..." : "Concluir cadastro"}
@@ -371,7 +371,7 @@ function PasswordField({
           type="button"
           onClick={onToggle}
           aria-label={visible ? `Ocultar ${label.toLowerCase()}` : `Mostrar ${label.toLowerCase()}`}
-          className="absolute right-1 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24]"
+          className="absolute right-1 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fbaa34]"
         >
           {visible ? <EyeOff aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}
         </button>

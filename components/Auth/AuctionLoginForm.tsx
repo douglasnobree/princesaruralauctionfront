@@ -123,7 +123,7 @@ export function AuctionLoginForm({ returnTo = "/leiloes" }: { returnTo?: string 
             type="button"
             onClick={() => setShowPassword((current) => !current)}
             aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-            className="absolute right-1 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24]"
+            className="absolute right-1 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fbaa34]"
           >
             {showPassword ? <EyeOff aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}
           </button>
@@ -133,7 +133,7 @@ export function AuctionLoginForm({ returnTo = "/leiloes" }: { returnTo?: string 
       <button
         type="submit"
         disabled={isSubmitting}
-        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-[#08734e] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(8,115,78,0.18)] transition-[background-color,transform,box-shadow] hover:bg-[#075b3e] hover:shadow-[0_10px_22px_rgba(8,115,78,0.22)] active:scale-[0.96] disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24] focus-visible:ring-offset-2"
+        className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-[#28834c] px-5 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(40,131,76,0.18)] transition-[background-color,transform,box-shadow] hover:bg-[#062518] hover:shadow-[0_10px_22px_rgba(40,131,76,0.22)] active:scale-[0.96] disabled:pointer-events-none disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fbaa34] focus-visible:ring-offset-2"
       >
         {isSubmitting ? <LoaderCircle aria-hidden="true" className="size-4 animate-spin" /> : null}
         {isSubmitting ? "Entrando..." : "Entrar"}
