@@ -128,3 +128,15 @@ test("registration keeps WhatsApp consent optional and revocable", async () => {
 	assert.match(bidPanel, /AuctionRegistrationDialog/);
 	assert.match(actions, /registration\/whatsapp-consent/);
 });
+
+test("shopping lot exposes habilitation before immediate purchase", async () => {
+	const panel = await read("components/Auction/AuctionLotBidPanel.tsx");
+
+	assert.match(panel, /Solicite a habilitação do seu cadastro para ficar apto a confirmar a compra/);
+	assert.match(panel, /Solicitar habilitação/);
+	assert.match(panel, /Aguardando validação manual\. Você poderá comprar assim que for habilitado/);
+	assert.match(panel, /Você está habilitado\. A compra será confirmada para o primeiro usuário aprovado/);
+	assert.match(panel, /setRegistrationDialogOpen\(true\)/);
+	assert.match(panel, /Comprar agora por/);
+	assert.match(panel, /SHOPPING_ALREADY_SOLD|Não foi possível concluir a compra deste lote/);
+});
