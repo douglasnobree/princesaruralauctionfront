@@ -35,7 +35,7 @@ import type {
 import {
 	getEngineQuickBidOptions,
 } from "@/lib/auctions/engine-formatters";
-import { auctionAcceptsBids } from "@/lib/auctions/bid-window";
+import { auctionAcceptsBids, isPreBidClosed, isShoppingPurchaseOpen as isShoppingPurchaseWindowOpen } from "@/lib/auctions/bid-window";
 import { isAuctionAuthenticationError } from "@/lib/auctions/auth";
 import { getBidderDisplayName, getWinnerDisplayName, mergeKnownBidderNames } from "@/lib/auctions/bidder-display";
 
@@ -252,6 +252,7 @@ export function AuctionLotBidPanel({
 	useEffect(() => {
 		if (
 			!lot?.endsAt &&
+			!snapshot.auction.endsAt &&
 			!snapshot.auction.preBidStartsAt &&
 			!snapshot.auction.preBidEndsAt
 		)
@@ -260,6 +261,7 @@ export function AuctionLotBidPanel({
 		return () => window.clearInterval(timer);
 	}, [
 		lot?.endsAt,
+		snapshot.auction.endsAt,
 		snapshot.auction.preBidStartsAt,
 		snapshot.auction.preBidEndsAt,
 	]);
@@ -274,7 +276,8 @@ export function AuctionLotBidPanel({
 
 	const isLotClosed = ["SOLD", "UNSOLD", "CLOSED", "CANCELLED"].includes(lot.status);
 	const bidWindowOpen = auctionAcceptsBids(snapshot.auction, nowMs) && lot.status === "OPEN";
-	const shoppingPurchaseOpen = isShopping && registration === "approved" && ["SCHEDULED", "RUNNING"].includes(snapshot.auction.status) && lot.status === "OPEN" && fixedPriceCents !== null;
+	const shoppingPurchaseOpen = isShopping && registration === "approved" && isShoppingPurchaseWindowOpen(snapshot.auction, nowMs) && lot.status === "OPEN" && fixedPriceCents !== null;
+	const isOpeningPause = !isShopping && snapshot.auction.status === "SCHEDULED" && isPreBidClosed(snapshot.auction, nowMs) && Boolean(snapshot.auction.startsAt) && nowMs < new Date(snapshot.auction.startsAt as string).getTime();
 	const bidderName = lot.status === "SOLD" ? getWinnerDisplayName(lot) : getBidderDisplayName(lot);
 	const requireRegistration = async () => {
 		if (registration === "pending") {
@@ -400,10 +403,13 @@ export function AuctionLotBidPanel({
 
 	const registrationBlocksCommands = registration === "checking" || registration === "suspended";
 	const selectedFixedBidIsBlocked = effectiveSelectedBidValue !== "custom" && proxyMaxBidCents !== null && BigInt(effectiveSelectedBidValue) <= BigInt(proxyMaxBidCents);
-	const remainingSeconds = lot.endsAt
-		? Math.max(0, Math.floor((new Date(lot.endsAt).getTime() - nowMs) / 1000))
+	const countdownAt = isShopping ? snapshot.auction.endsAt : lot.endsAt;
+	const remainingSeconds = countdownAt
+		? Math.max(0, Math.floor((new Date(countdownAt).getTime() - nowMs) / 1000))
 		: null;
-	const closingText = isShopping
+	const closingText = isOpeningPause
+		? "Aguardando abertura da etapa principal"
+		: isShopping
 		? remainingSeconds !== null
 			? remainingSeconds > 0
 				? `Compra disponível por mais ${formatCountdown(remainingSeconds)}`
@@ -446,7 +452,7 @@ export function AuctionLotBidPanel({
 				<Clock3 className="mr-1 inline size-4" />{closingText}
 			</div>
 
-			{!isShopping ? <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-3 text-sm font-semibold text-muted-foreground">
+			{!isShopping && !isOpeningPause ? <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-3 text-sm font-semibold text-muted-foreground">
 				<Coins className="size-4 shrink-0" />
 				<span>Próximo lance: <strong className="text-foreground">{formatCents(lot.nextBidCents, snapshot.auction.currency)}</strong></span>
 			</div> : null}
@@ -454,6 +460,9 @@ export function AuctionLotBidPanel({
 			{isLotClosed ? <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
 				<p className="font-bold">{lot.status === "SOLD" ? "Lote vendido" : lot.status === "CANCELLED" ? "Lote cancelado" : "Lote encerrado"}</p>
 				<p className="mt-1">{isShopping ? "Não é possível comprar este lote." : "Não é possível enviar novos lances neste lote."}</p>
+			</div> : isOpeningPause ? <div role="status" className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
+				<p className="font-bold">Aguardando abertura</p>
+				<p className="mt-1">Os pré-lances foram encerrados. Os lances serão liberados no início da etapa principal.</p>
 			</div> : isShopping ? <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
 				<p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Compra imediata</p>
 				<p className="text-sm text-muted-foreground">O primeiro usuário habilitado que confirmar compra fica com este lote.</p>

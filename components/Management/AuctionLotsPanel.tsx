@@ -32,6 +32,7 @@ import {
 import { slugifyAuction } from "@/lib/auctions/form-mappers";
 import type {
   AuctionAdminLot,
+  AuctionAdminMode,
   AuctionLotAdminStatus,
   AuctionLotInput,
 } from "@/types/auction-admin";
@@ -100,14 +101,17 @@ export function AuctionLotsPanel({
   initialLots,
   capabilities,
   canEditLots,
+  mode,
   engineLots = [],
 }: {
   auctionId: string;
   initialLots: AuctionAdminLot[];
   capabilities: AuctionCapabilities;
   canEditLots?: boolean;
+  mode: AuctionAdminMode;
   engineLots?: EngineLot[];
 }) {
+  const isShopping = mode === "SHOPPING";
   const [lots, setLots] = useState(initialLots);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -160,18 +164,21 @@ export function AuctionLotsPanel({
         : false;
       const financialValuesChanged = editingLot
         ? draft.startingBid !== initialDraft?.startingBid ||
-          Boolean(draft.increment) !== !initialIncrementInherited ||
-          (Boolean(draft.increment) && draft.increment !== initialDraft?.increment)
+          (!isShopping &&
+            (Boolean(draft.increment) !== !initialIncrementInherited ||
+              (Boolean(draft.increment) && draft.increment !== initialDraft?.increment)))
         : true;
       const input: Partial<AuctionLotInput> = {
         number: Number(draft.number),
         title: draft.title.trim(),
         slug: draft.slug.trim() || slugifyAuction(draft.title),
         category: draft.category,
-        ...(financialValuesChanged ? { startingBidCents, incrementCents } : {}),
+        ...(financialValuesChanged
+          ? { startingBidCents, ...(isShopping ? {} : { incrementCents }) }
+          : {}),
         paymentDescription: draft.paymentDescription.trim() || undefined,
         deliveryDescription: draft.deliveryDescription.trim() || undefined,
-        closesAt: fromDateTimeLocalBrt(draft.closesAt),
+        ...(!isShopping ? { closesAt: fromDateTimeLocalBrt(draft.closesAt) } : {}),
         documentText: draft.documentText.trim() || undefined,
         youtubeUrl: draft.youtubeUrl.trim() || undefined,
         ...(requiresChangeReason
@@ -357,11 +364,12 @@ export function AuctionLotsPanel({
           requiresChangeReason={requiresChangeReason}
           disabled={isPending || (!canMutate && !editingId) || !canEdit}
           onChange={updateDraft}
-          onCancel={() => {
+        onCancel={() => {
             setDraft(null);
             setEditingId(null);
           }}
           onSubmit={saveLot}
+          mode={mode}
         />
       ) : null}
       <div className="overflow-hidden rounded-2xl border border-[#dfe8e2] bg-white shadow-sm">
@@ -392,6 +400,7 @@ export function AuctionLotsPanel({
                 }
                 onImages={(files) => uploadImages(lot, files)}
                 onGenealogy={(file) => uploadGenealogy(lot, file)}
+                mode={mode}
               />
             ))}
           </div>
@@ -409,6 +418,7 @@ function LotForm({
   onChange,
   onCancel,
   onSubmit,
+  mode,
 }: {
   draft: Draft;
   editing: boolean;
@@ -417,7 +427,9 @@ function LotForm({
   onChange: <K extends keyof Draft>(key: K, value: Draft[K]) => void;
   onCancel: () => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  mode: AuctionAdminMode;
 }) {
+  const isShopping = mode === "SHOPPING";
   return (
     <form
       onSubmit={onSubmit}
@@ -502,7 +514,7 @@ function LotForm({
             className="admin-field"
           />
         </Field>
-        <Field label="Lance inicial (R$)" id="lot-starting">
+        <Field label={isShopping ? "Valor do lote (R$)" : "Lance inicial (R$)"} id="lot-starting">
           <input
             id="lot-starting"
             required
@@ -514,27 +526,29 @@ function LotForm({
             className="admin-field"
           />
         </Field>
-        <Field label="Incremento (R$)" id="lot-increment">
-          <input
-            id="lot-increment"
-            value={draft.increment}
-            onChange={(event) => onChange("increment", event.target.value)}
-            inputMode="decimal"
-            placeholder="Herdado"
-            disabled={disabled}
-            className="admin-field"
-          />
-        </Field>
-        <Field label="Encerramento" id="lot-closes">
-          <input
-            id="lot-closes"
-            type="datetime-local"
-            value={draft.closesAt}
-            onChange={(event) => onChange("closesAt", event.target.value)}
-            disabled={disabled}
-            className="admin-field"
-          />
-        </Field>
+        {!isShopping ? <>
+          <Field label="Incremento (R$)" id="lot-increment">
+            <input
+              id="lot-increment"
+              value={draft.increment}
+              onChange={(event) => onChange("increment", event.target.value)}
+              inputMode="decimal"
+              placeholder="Herdado"
+              disabled={disabled}
+              className="admin-field"
+            />
+          </Field>
+          <Field label="Encerramento" id="lot-closes">
+            <input
+              id="lot-closes"
+              type="datetime-local"
+              value={draft.closesAt}
+              onChange={(event) => onChange("closesAt", event.target.value)}
+              disabled={disabled}
+              className="admin-field"
+            />
+          </Field>
+        </> : null}
         <Field label="YouTube" id="lot-youtube">
           <input
             id="lot-youtube"
@@ -607,6 +621,7 @@ function LotRow({
   onHistory,
   onImages,
   onGenealogy,
+  mode,
 }: {
   lot: AuctionAdminLot;
   index: number;
@@ -624,7 +639,9 @@ function LotRow({
   onHistory: () => void;
   onImages: (files: FileList | null) => void;
   onGenealogy: (file: File | null) => void;
+  mode: AuctionAdminMode;
 }) {
+  const isShopping = mode === "SHOPPING";
   return (
     <article className="p-4 sm:p-5">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -661,7 +678,7 @@ function LotRow({
             </p>
           </div>
           <div>
-            <p className="text-xs text-slate-500">Inicial</p>
+            <p className="text-xs text-slate-500">{isShopping ? "Valor do lote" : "Inicial"}</p>
             <p className="mt-1 font-semibold tabular-nums">
               {formatCents(lot.startingBidCents)}
             </p>

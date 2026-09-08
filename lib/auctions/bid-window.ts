@@ -4,6 +4,7 @@ type EngineAuction = EngineAuctionSnapshot['auction'];
 
 export function hasConfiguredPreBid(auction: EngineAuction): boolean {
   return (
+    auction.mode !== 'SHOPPING' &&
     auction.preBidEnabled &&
     Boolean(
       auction.preBidStartsAt ||
@@ -57,17 +58,38 @@ export function auctionAcceptsBids(
   auction: EngineAuction,
   nowMs = Date.now(),
 ): boolean {
+  if (auction.mode === 'SHOPPING') return false;
+  if (
+    auction.status === 'RUNNING' &&
+    auction.startsAt &&
+    nowMs < new Date(auction.startsAt).getTime()
+  ) {
+    return false;
+  }
   if (auction.mode === 'LIVE') {
     return auction.status === 'RUNNING' || isPreBidOpen(auction, nowMs);
   }
 
   if (auction.status === 'RUNNING') {
-    return !(
-      auction.preBidEnabled &&
-      auction.preBidEndsAt &&
-      nowMs >= new Date(auction.preBidEndsAt).getTime()
-    );
+    return true;
   }
 
   return isPreBidOpen(auction, nowMs);
+}
+
+export function isShoppingPurchaseOpen(
+  auction: EngineAuction,
+  nowMs = Date.now(),
+): boolean {
+  if (
+    auction.mode !== 'SHOPPING' ||
+    !['SCHEDULED', 'RUNNING'].includes(auction.status) ||
+    !auction.startsAt ||
+    !auction.endsAt
+  ) {
+    return false;
+  }
+  const start = new Date(auction.startsAt).getTime();
+  const end = new Date(auction.endsAt).getTime();
+  return nowMs >= start && nowMs < end;
 }

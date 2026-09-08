@@ -36,6 +36,12 @@ function statusLabel(
     return 'Pré-lance';
   if (
     mode === 'TIMED' &&
+    status === 'SCHEDULED' &&
+    preBidClosed
+  )
+    return 'Aguardando abertura';
+  if (
+    mode === 'TIMED' &&
     status === 'SCHEDULED'
   )
     return 'Em breve';
@@ -118,10 +124,9 @@ export function AuctionLiveExperience({
   const preBidClosed = initialSnapshot
     ? isPreBidClosed(initialSnapshot.auction)
     : false;
-  const livePreBidClosed = mode === 'LIVE' && preBidClosed;
   const isLiveRunning = mode === 'LIVE' && displayedStatus === 'RUNNING';
   const isPreBidCatalog =
-    mode === 'SHOPPING' ||
+    (mode === 'SHOPPING' && !['FINISHED', 'CLOSED'].includes(displayedStatus)) ||
     (catalogLots.length > 0 &&
       (!initialSnapshot
         ? status === 'PRE_LAUNCH'
@@ -157,8 +162,8 @@ export function AuctionLiveExperience({
                 className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${isLiveRunning ? 'bg-emerald-50 text-emerald-700' : (mode === 'TIMED' || mode === 'SHOPPING') && ['SCHEDULED', 'RUNNING'].includes(displayedStatus) ? 'bg-sky-50 text-sky-700' : 'bg-muted text-muted-foreground'}`}>
                 {sandbox ? <FlaskConical className='size-3.5' /> : null}
                 {sandbox
-                  ? `Ambiente de teste · ${statusLabel(displayedStatus, mode, preBidOpen, livePreBidClosed)}`
-                  : statusLabel(displayedStatus, mode, preBidOpen, livePreBidClosed)}
+                  ? `Ambiente de teste · ${statusLabel(displayedStatus, mode, preBidOpen, preBidClosed)}`
+                  : statusLabel(displayedStatus, mode, preBidOpen, preBidClosed)}
               </span>
               <span className='rounded-full bg-muted px-2.5 py-1 text-xs font-semibold'>
                 {lotCount} {lotCount === 1 ? 'lote' : 'lotes'}
@@ -240,8 +245,10 @@ export function AuctionLiveExperience({
               </div>
             ) : (
               <div className='rounded-xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground'>
-                {livePreBidClosed
-                  ? 'O pré-lance terminou. Aguarde o início do leilão ao vivo.'
+                {preBidClosed
+                  ? mode === 'LIVE'
+                    ? 'O pré-lance terminou. Aguarde o início do leilão ao vivo.'
+                    : 'O pré-lance terminou. Aguarde o início da etapa principal.'
                   : 'Nenhum lote foi liberado para pré-lance ainda.'}
               </div>
             )}
