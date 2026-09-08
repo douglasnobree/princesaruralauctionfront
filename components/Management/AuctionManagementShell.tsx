@@ -199,10 +199,6 @@ export function AuctionManagementShell({
           <div
             className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}
           >
-            <PrincesaLogoIcon
-              size={collapsed ? 38 : 44}
-              aria-hidden="true"
-            />
             {!collapsed ? (
               <div className="min-w-0">
                 <PrincesaRuralWordmark
