@@ -16,6 +16,39 @@ const API_BASE_URL = normalizeApiBaseUrl(
 const API_ORIGIN = getApiOrigin(API_BASE_URL);
 const PLACEHOLDER_IMAGE = "/placeholder-image.svg";
 
+export type AuctionListingFilter = "all" | "mercado" | "shopping";
+
+const PUBLIC_AUCTION_STATUSES: ReadonlySet<AuctionStatus> = new Set([
+	"PRE_LAUNCH",
+	"COMING_SOON",
+	"WAITING_OPENING",
+	"OPEN",
+]);
+
+export function isPublicAuction(auction: Pick<Auction, "status">) {
+	return PUBLIC_AUCTION_STATUSES.has(auction.status);
+}
+
+export function parseAuctionListingFilter(value?: string): AuctionListingFilter {
+	if (value === "mercado" || value === "shopping") return value;
+	return "all";
+}
+
+export function filterAuctionsByListingFilter(
+	auctions: Auction[],
+	filter: AuctionListingFilter,
+) {
+	if (filter === "shopping") {
+		return auctions.filter((auction) => auction.mode === "SHOPPING");
+	}
+
+	if (filter === "mercado") {
+		return auctions.filter((auction) => auction.mode !== "SHOPPING");
+	}
+
+	return auctions;
+}
+
 type ApiAuctionImage = {
 	id: string;
 	filename: string;
@@ -255,7 +288,7 @@ function mapAuction(auction: ApiAuction): Auction {
 
 export async function getAuctions(): Promise<Auction[]> {
 	const response = await fetchApi<ApiAuction[]>("/auctions/public");
-	return response?.map(mapAuction) ?? [];
+	return (response?.map(mapAuction) ?? []).filter(isPublicAuction);
 }
 
 export async function getAuctionBySlug(
@@ -265,7 +298,8 @@ export async function getAuctionBySlug(
 		`/auctions/public/${encodeURIComponent(slug)}`,
 	);
 
-	return response ? mapAuction(response) : undefined;
+	const auction = response ? mapAuction(response) : undefined;
+	return auction && isPublicAuction(auction) ? auction : undefined;
 }
 
 export async function getAuctionLotBySlug(

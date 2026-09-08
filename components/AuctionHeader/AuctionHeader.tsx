@@ -1,4 +1,4 @@
-import { CalendarDays, Gavel, LayoutDashboard, Search, ShoppingBag, ShoppingCart, UserRound } from "lucide-react";
+import { CalendarDays, Gavel, Home, LayoutDashboard, Search, ShoppingBag, ShoppingCart, UserRound } from "lucide-react";
 import Link from "next/link";
 import { getUser } from "@/lib/auth/server/session";
 import { getMarketplaceUrl } from "@/lib/config/urls";
@@ -9,8 +9,9 @@ import { MarketplaceHandoffLink } from "@/components/AuctionHeader/MarketplaceHa
 const navigation = [
   { label: "Agenda", href: "/leiloes#agenda", icon: CalendarDays },
   { label: "Leilões", href: "/leiloes", icon: Gavel, active: true },
-  { label: "Mercado", href: "/busca", icon: ShoppingCart, external: true },
-  { label: "Shopping", href: "/lojas", icon: ShoppingBag, external: true },
+  { label: "Mercado", href: "/leiloes?tipo=mercado#agenda", icon: ShoppingCart },
+  { label: "Shopping", href: "/leiloes?tipo=shopping#agenda", icon: ShoppingBag },
+  { label: "PrincesaRural", href: "/", icon: Home, handoff: true },
 ];
 
 export async function AuctionHeader() {
@@ -96,9 +97,9 @@ export async function AuctionHeader() {
           </div>
 
           <nav aria-label="Navegação principal" className="-mx-1 flex min-w-0 gap-1 overflow-x-auto pb-1 sm:gap-2">
-            {navigation.map(({ label, href, icon: Icon, active, external }) => {
+            {navigation.map(({ label, href, icon: Icon, active, handoff }) => {
               const className = `inline-flex min-h-7 shrink-0 items-center gap-2 rounded-md px-2 text-[11px] font-bold uppercase tracking-[0.02em] outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/80 sm:px-3 ${active ? "bg-white/10 text-white" : "text-white/90"}`;
-              return external ? (
+              return handoff ? (
                 <MarketplaceHandoffLink key={label} pathname={href} baseUrl={marketplaceUrl} className={className}>
                   <Icon className="size-3.5" aria-hidden="true" />
                   {label}

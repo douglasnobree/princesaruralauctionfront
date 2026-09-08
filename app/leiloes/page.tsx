@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { AuctionCard } from "@/components/Auction/AuctionCard";
 import { AuctionEmptyState } from "@/components/Auction/AuctionEmptyState";
 import { AuctionHeroBanner } from "@/components/Auction/AuctionHeroBanner";
-import { getAuctions } from "@/lib/auctions/catalog";
+import {
+	filterAuctionsByListingFilter,
+	getAuctions,
+	parseAuctionListingFilter,
+} from "@/lib/auctions/catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -15,19 +19,34 @@ export const metadata: Metadata = {
 export default async function LeiloesPage({
 	searchParams,
 }: {
-	searchParams?: Promise<{ q?: string }>;
+	searchParams?: Promise<{ q?: string; tipo?: string }>;
 }) {
 	const auctions = await getAuctions();
-	const query = (await searchParams)?.q?.trim() ?? "";
+	const params = await searchParams;
+	const query = params?.q?.trim() ?? "";
+	const filter = parseAuctionListingFilter(params?.tipo);
+	const filteredAuctions = filterAuctionsByListingFilter(auctions, filter);
 	const normalizedQuery = query.toLocaleLowerCase("pt-BR");
 	const visibleAuctions = normalizedQuery
-		? auctions.filter((auction) =>
+		? filteredAuctions.filter((auction) =>
 				[auction.title, auction.description]
 					.filter(Boolean)
 					.some((value) => value?.toLocaleLowerCase("pt-BR").includes(normalizedQuery)),
 			)
-		: auctions;
-	const featuredAuction = visibleAuctions[0] ?? auctions[0];
+		: filteredAuctions;
+	const featuredAuction = visibleAuctions[0];
+	const listingTitle =
+		filter === "shopping"
+			? "Shopping"
+			: filter === "mercado"
+				? "Leilões de Mercado"
+				: "Leilões agendados";
+	const emptyTitle =
+		filter === "shopping"
+			? "Nenhum Shopping disponível"
+			: filter === "mercado"
+				? "Nenhum leilão de Mercado disponível"
+				: "Nenhum leilão agendado";
 
 	return (
 		<div className="bg-muted/35 pb-10 pt-4 sm:pt-5">
@@ -43,12 +62,16 @@ export default async function LeiloesPage({
 			>
 				<header className="mb-7">
 					<h1 id="scheduled-auctions-title" className="text-3xl font-bold">
-						Leilões agendados
+						{listingTitle}
 					</h1>
 					<p className="mt-2 text-lg text-muted-foreground">
 						{query
 							? `Resultados para “${query}”`
-							: "Confira os próximos leilões e participe"}
+							: filter === "shopping"
+								? "Compre lotes com preço fixo, enquanto estiverem disponíveis"
+								: filter === "mercado"
+									? "Acompanhe os leilões ao vivo e por pré-lance"
+									: "Confira os próximos leilões e participe"}
 					</p>
 				</header>
 
@@ -60,7 +83,7 @@ export default async function LeiloesPage({
 					</div>
 				) : (
 					<AuctionEmptyState
-						title={query ? "Nenhum leilão encontrado" : "Nenhum leilão agendado"}
+						title={query ? "Nenhum leilão encontrado" : emptyTitle}
 						description={
 							query
 								? "Tente buscar por outro nome ou remova o filtro para ver toda a agenda."
