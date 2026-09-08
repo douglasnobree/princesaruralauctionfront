@@ -114,9 +114,14 @@ export function AuctionWorkspace({
       capabilities.canManageLots &&
       (auction.availableActions?.canManageLots ?? true),
   };
+  const canEditLots =
+    capabilities.canManageLots &&
+    (auction.availableActions?.canEditLots ?? true);
   const readiness = [
     Boolean(auction.title && auction.category && auction.startsAt),
-    Boolean(auction.startsAt),
+    auction.mode === "SHOPPING"
+      ? Boolean(auction.startsAt && auction.endsAt)
+      : Boolean(auction.startsAt && auction.preBidStartsAt && auction.pauseHours),
     Boolean(auction.coverImage || auction.coverImageUrl),
     lots.some((lot) => ["OPEN", "SOLD", "CLOSED"].includes(lot.status)),
   ];
@@ -142,14 +147,14 @@ export function AuctionWorkspace({
             </div>
             <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">{auction.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Início {formatAuctionDate(auction.startsAt)} · {auction.lotCount} lote(s) · incremento {formatCents(auction.incrementCents)}
+              Início {formatAuctionDate(auction.startsAt)} · {auction.lotCount} lote(s) · {auction.mode === "SHOPPING" ? "compra imediata" : `incremento ${formatCents(auction.incrementCents)}`}
             </p>
             <AuctionStatusControls auction={auction} capabilities={capabilities} />
           </div>
         </div>
         <div className="flex flex-wrap gap-2 lg:justify-end">
           {workspaceCapabilities.canEdit ? <Link href={`/admin/leiloes/${auction.id}?aba=dados`} className="inline-flex min-h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><Pencil className="size-4" aria-hidden="true" />Editar dados</Link> : null}
-          {workspaceCapabilities.canManageLots ? <Link href={`/admin/leiloes/${auction.id}?aba=lotes`} className="inline-flex min-h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><ListOrdered className="size-4" aria-hidden="true" />Gerenciar lotes</Link> : null}
+          {canEditLots ? <Link href={`/admin/leiloes/${auction.id}?aba=lotes`} className="inline-flex min-h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><ListOrdered className="size-4" aria-hidden="true" />{auction.availableActions?.canManageLots === false ? "Editar lotes" : "Gerenciar lotes"}</Link> : null}
           {capabilities.canViewReports ? <Link href={`/admin/leiloes/${auction.id}/relatorio`} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-secondary px-3 text-sm font-semibold text-secondary-foreground outline-none transition-[background-color,scale] duration-150 hover:bg-secondary/90 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><FileBarChart className="size-4" aria-hidden="true" />Ver relatório</Link> : null}
           {capabilities.canDelete && (auction.availableActions?.canDelete ?? true) ? <DeleteAuctionButton auction={auction} /> : null}
         </div>
@@ -195,14 +200,14 @@ export function AuctionWorkspace({
           <div className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
             <Metric label="Formato" value={auction.mode === "LIVE" ? "Leilão ao vivo" : auction.mode === "SHOPPING" ? "Shopping / compra imediata" : "Pré-lance"} />
             <Metric label="Início" value={formatAuctionDate(auction.startsAt)} />
-            <Metric label="Encerramento" value={formatAuctionDate(auction.endsAt)} />
-            <Metric label="Lotes e incremento" value={`${auction.lotCount} · ${formatCents(auction.incrementCents)}`} />
+            <Metric label={auction.mode === "SHOPPING" ? "Fim das compras" : "Encerramento"} value={formatAuctionDate(auction.endsAt)} />
+            <Metric label={auction.mode === "SHOPPING" ? "Lotes" : "Lotes e incremento"} value={auction.mode === "SHOPPING" ? String(auction.lotCount) : `${auction.lotCount} · ${formatCents(auction.incrementCents)}`} />
           </div>
           {auction.availableActions?.reasons.publish ? <div className="space-y-2"><div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"><p className="font-semibold">Publicação pendente</p><p className="mt-1">{auction.availableActions.reasons.publish.message}</p></div><button type="button" onClick={() => changeTab("dados")} className="text-sm font-medium text-primary underline underline-offset-2">Abrir correção</button></div> : null}
         </div>
       ) : null}
       {tab === "dados" ? <AuctionForm initialData={auction} capabilities={workspaceCapabilities} /> : null}
-      {tab === "lotes" ? <AuctionLotsPanel auctionId={auction.id} initialLots={lots} capabilities={capabilities} engineLots={engineSnapshot?.lots} /> : null}
+      {tab === "lotes" ? <AuctionLotsPanel auctionId={auction.id} initialLots={lots} capabilities={workspaceCapabilities} canEditLots={canEditLots} mode={auction.mode} engineLots={engineSnapshot?.lots} /> : null}
       {tab === "lances" ? (
         <section className="space-y-5" aria-labelledby="pending-bids-title">
           <header className="rounded-xl border bg-card p-5 shadow-sm sm:p-6">

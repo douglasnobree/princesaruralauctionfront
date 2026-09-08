@@ -9,9 +9,9 @@ export type AuctionLotAdminStatus = (typeof AUCTION_LOT_STATUSES)[number];
 export const AUCTION_PUBLIC_LOT_STATUSES: readonly AuctionLotAdminStatus[] = ["OPEN", "SOLD", "CLOSED"];
 
 export type AuctionAdminImage = { id: string; filename: string; url?: string | null; altText?: string | null; sortOrder: number };
-export type AuctionActionName = "edit" | "publish" | "cancel" | "delete" | "manageLots" | "deleteLots";
+export type AuctionActionName = "edit" | "editLots" | "publish" | "cancel" | "delete" | "manageLots" | "deleteLots";
 export type AuctionActionReason = { code: string; message: string };
-export type AuctionAvailableActions = { canEdit: boolean; canPublish: boolean; canCancel: boolean; canDelete: boolean; canManageLots: boolean; canDeleteLots: boolean; reasons: Partial<Record<AuctionActionName, AuctionActionReason>> };
+export type AuctionAvailableActions = { canEdit: boolean; canEditLots: boolean; canPublish: boolean; canCancel: boolean; canDelete: boolean; canManageLots: boolean; canDeleteLots: boolean; reasons: Partial<Record<AuctionActionName, AuctionActionReason>> };
 export type AuctionAdminLot = {
   id: string; auctionId: string; number: number; sortOrder: number; slug: string; title: string;
   category: AuctionAdminCategory; status: AuctionLotAdminStatus; startingBidCents?: number | null;
@@ -26,10 +26,10 @@ export type AuctionAdmin = {
   id: string; title: string; slug: string; category?: AuctionAdminCategory | null; mode: AuctionAdminMode;
   description?: string | null; coverImage?: string | null; coverImageUrl?: string | null;
   regulationText?: string | null; paymentText?: string | null; deliveryText?: string | null;
-  preBidStartsAt?: string | null; preBidEndsAt?: string | null; startsAt: string; endsAt?: string | null;
+  preBidStartsAt?: string | null; preBidEndsAt?: string | null; pauseHours?: number | null; startsAt: string; endsAt?: string | null;
   incrementCents?: number | null; incrementInherited?: boolean; secondaryIncrementCents?: number | null;
   extensionMinutes?: number | null; plannedLotCount: number; lotCount: number; status: AuctionAdminStatus;
   lots: AuctionAdminLot[]; availableActions?: AuctionAvailableActions; createdAt?: string; updatedAt?: string;
 };
-export type AuctionInput = { title: string; slug: string; category?: AuctionAdminCategory; mode?: AuctionAdminMode; description?: string; coverImage?: string; regulationText?: string; paymentText?: string; deliveryText?: string; preBidStartsAt?: string; preBidEndsAt?: string; startsAt: string; endsAt?: string; incrementCents?: number; secondaryIncrementCents?: number | null; extensionMinutes?: number; plannedLotCount?: number };
-export type AuctionLotInput = { number: number; sortOrder?: number; slug: string; title: string; category: AuctionAdminCategory; startingBidCents: number; incrementCents?: number | null; currentBidCents?: number; nextBidCents?: number; currentBidderName?: string; bidCount?: number; paymentDescription?: string; deliveryDescription?: string | null; details?: unknown; comments?: string[]; closesAt?: string; documentText?: string; youtubeUrl?: string; status?: AuctionLotAdminStatus };
+export type AuctionInput = { title: string; slug: string; category?: AuctionAdminCategory; mode?: AuctionAdminMode; description?: string; coverImage?: string; regulationText?: string; paymentText?: string; deliveryText?: string; preBidStartsAt?: string; preBidEndsAt?: string; pauseHours?: number; startsAt: string; endsAt?: string; incrementCents?: number; secondaryIncrementCents?: number | null; extensionMinutes?: number; plannedLotCount?: number };
+export type AuctionLotInput = { number: number; sortOrder?: number; slug: string; title: string; category: AuctionAdminCategory; startingBidCents: number; incrementCents?: number | null; currentBidCents?: number; nextBidCents?: number; currentBidderName?: string; bidCount?: number; paymentDescription?: string; deliveryDescription?: string | null; details?: unknown; comments?: string[]; closesAt?: string; documentText?: string; youtubeUrl?: string; status?: AuctionLotAdminStatus; changeReason?: string };
