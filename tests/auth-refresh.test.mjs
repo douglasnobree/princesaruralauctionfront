@@ -205,3 +205,41 @@ test("optional requests remain anonymous when there is no session", async () => 
   assert.equal(response.status, 200);
   assert.equal(authorization, null);
 });
+
+test("temporary refresh failure returns 503 and preserves the session", async () => {
+  for (const auth of ["required", "optional"]) {
+    const request = createAuthenticatedRequester({
+      getSession: async () => session("expired-access", NOW - 1),
+      refreshSession: async () => ({ status: "unavailable", session: null }),
+      clearSession: async () => assert.fail("temporary failures must not log out"),
+      fetch: async () => assert.fail("must not downgrade an authenticated request to anonymous"),
+      now: () => NOW,
+    });
+    assert.equal((await request("http://controlled.invalid/protected", {}, { auth })).status, 503);
+  }
+});
+
+test("backend 401 followed by unavailable refresh is not reported as logout", async () => {
+  const request = createAuthenticatedRequester({
+    getSession: async () => session("current-access", NOW + 5 * 60_000),
+    refreshSession: async () => ({ status: "unavailable", session: null }),
+    clearSession: async () => assert.fail("temporary failures must not log out"),
+    fetch: async () => Response.json({}, { status: 401 }),
+    now: () => NOW,
+  });
+  assert.equal((await request("http://controlled.invalid/protected")).status, 503);
+});
+
+test("unavailable proactive refresh can still use an unexpired access token", async () => {
+  const request = createAuthenticatedRequester({
+    getSession: async () => session("current-access", NOW + 10_000),
+    refreshSession: async () => ({ status: "unavailable", session: null }),
+    clearSession: async () => assert.fail("temporary failures must not log out"),
+    fetch: async (_input, init) => {
+      assert.equal(new Headers(init.headers).get("authorization"), "Bearer current-access");
+      return Response.json({ ok: true });
+    },
+    now: () => NOW,
+  });
+  assert.equal((await request("http://controlled.invalid/protected")).status, 200);
+});

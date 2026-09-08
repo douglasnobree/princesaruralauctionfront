@@ -60,6 +60,8 @@ function nextWithSession(
 }
 
 export async function proxy(request: NextRequest) {
+  const isManagement = request.nextUrl.pathname === "/admin" || request.nextUrl.pathname.startsWith("/admin/");
+  const isPageRequest = request.method === "GET" || request.method === "HEAD";
   const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const refreshToken = request.cookies.get(REFRESH_TOKEN_COOKIE_NAME)?.value;
 
@@ -77,10 +79,10 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!refreshToken) {
-    if (request.method === "GET" || request.method === "HEAD") {
+    if (isManagement && isPageRequest) {
       return expireAuthCookies(NextResponse.redirect(loginUrl(request)));
     }
-    return expireAuthCookies(NextResponse.next());
+    return sessionCookie ? expireAuthCookies(NextResponse.next()) : NextResponse.next();
   }
 
   const refreshed = await requestRefreshSingleFlight({
@@ -110,13 +112,25 @@ export async function proxy(request: NextRequest) {
   }
 
   if (refreshed.status === "invalid") {
-    if (request.method === "GET" || request.method === "HEAD") {
+    if (isManagement && isPageRequest) {
       return expireAuthCookies(NextResponse.redirect(loginUrl(request)));
     }
     return expireAuthCookies(NextResponse.next());
   }
 
+  // Keep a still-valid token during a temporary refresh outage. When it has
+  // expired, do not let the page's access guard mistake the outage for logout.
+  // Server Actions handle this through authenticatedFetch with their own response.
+  if (isPageRequest && expiresAt <= Date.now()) {
+    return new NextResponse("Não foi possível renovar a sessão agora. Tente recarregar a página em instantes.", {
+      status: 503,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "Retry-After": "5" },
+    });
+  }
+
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/admin/:path*"] };
+// Public auction pages also render session-dependent UI and execute actions.
+// Refresh before rendering so the browser AND Server Components see the cookies.
+export const config = { matcher: ["/((?!api(?:/|$)|_next(?:/|$)|.*\\.[^/]+$).*)"] };

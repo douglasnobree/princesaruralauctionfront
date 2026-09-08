@@ -31,6 +31,13 @@ function authenticationRequiredResponse() {
   );
 }
 
+function authenticationUnavailableResponse() {
+  return Response.json(
+    { code: "AUTH_UNAVAILABLE", message: "Não foi possível renovar a sessão agora. Tente novamente em instantes." },
+    { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "5" } },
+  );
+}
+
 /**
  * Central retry policy for authenticated backend requests. A request is sent
  * at most twice: once with the current access token and once after one refresh.
@@ -75,12 +82,20 @@ export function createAuthenticatedRequester<TSession extends AuthSession>({
     );
 
     let refreshAttempted = false;
+    let refreshUnavailable = false;
     let session = currentIsFresh ? currentSession : null;
 
     if (!session) {
       refreshAttempted = true;
       const refreshed = await refreshSession();
+      refreshUnavailable = refreshed.status === "unavailable";
       session = refreshed.status === "success" ? refreshed.session : null;
+      if (refreshUnavailable) {
+        if (!currentSession || currentSession.expiresAt <= now()) {
+          return authenticationUnavailableResponse();
+        }
+        session = currentSession;
+      }
       if (refreshed.status === "invalid" || (refreshed.status === "missing" && currentSession)) {
         await safelyClearSession();
       }
@@ -96,6 +111,7 @@ export function createAuthenticatedRequester<TSession extends AuthSession>({
     if (response.status !== 401) return response;
 
     if (refreshAttempted) {
+      if (refreshUnavailable) return authenticationUnavailableResponse();
       await safelyClearSession();
       return response;
     }
@@ -103,6 +119,7 @@ export function createAuthenticatedRequester<TSession extends AuthSession>({
     refreshAttempted = true;
     const refreshed = await refreshSession();
     if (refreshed.status !== "success") {
+      if (refreshed.status === "unavailable") return authenticationUnavailableResponse();
       if (refreshed.status === "invalid" || refreshed.status === "missing") {
         await safelyClearSession();
       }
