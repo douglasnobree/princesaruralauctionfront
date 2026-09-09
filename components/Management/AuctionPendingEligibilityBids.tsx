@@ -1,13 +1,12 @@
 "use client";
 
 import { Clock3, Eye, RefreshCw, UserCheck } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import {
-  listAuctionRegistrationsAction,
   listManagerPendingEligibilityBidsAction,
   setAuctionRegistrationEnabledAction,
 } from "@/hooks/actions/auctionEngineActions";
-import type { EngineAuctionRegistration, EnginePendingEligibilityBid } from "@/lib/auctions/engine-types";
+import type { EnginePendingEligibilityBid } from "@/lib/auctions/engine-types";
 import { formatEngineBrlCents, formatEngineBrtInstant } from "@/lib/auctions/engine-formatters";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,15 +19,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const registrationStatusLabels: Record<EngineAuctionRegistration["status"], string> = {
-  PENDING: "Aguardando análise",
-  APPROVED: "Habilitado",
-  SUSPENDED: "Suspenso",
-  REVOKED: "Revogado",
-};
-
 function phaseLabel(phase: EnginePendingEligibilityBid["phase"]) {
-  return phase === "LIVE_BID" ? "Lance ao vivo" : "Pré-lance";
+  return phase === "LIVE_BID" ? "Lance ao vivo" : phase === "PRE_BID" ? "Pré-lance" : "Fase não informada";
+}
+
+function originLabel(origin: EnginePendingEligibilityBid["origin"]) {
+  return { ONLINE: "Online", PROXY: "Automático", FLOOR: "Operação", PHONE: "Telefone" }[origin];
 }
 
 export function AuctionPendingEligibilityBids({
@@ -47,7 +43,6 @@ export function AuctionPendingEligibilityBids({
   canManageParticipants: boolean;
 }) {
   const [items, setItems] = useState<EnginePendingEligibilityBid[]>([]);
-  const [registrations, setRegistrations] = useState<EngineAuctionRegistration[]>([]);
   const [selected, setSelected] = useState<EnginePendingEligibilityBid | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,16 +56,10 @@ export function AuctionPendingEligibilityBids({
     }
 
     setError(null);
-    const [pendingResult, registrationResult] = await Promise.all([
-      listManagerPendingEligibilityBidsAction(auctionId, { lotId, limit: "100" }),
-      listAuctionRegistrationsAction(auctionId, { limit: "100" }),
-    ]);
+    const pendingResult = await listManagerPendingEligibilityBidsAction(auctionId, { lotId, limit: "100" });
 
     if (pendingResult.success) setItems(pendingResult.data?.items ?? []);
     else setError(pendingResult.error || "Não foi possível carregar os lances aguardando análise.");
-
-    if (registrationResult.success) setRegistrations(registrationResult.data?.items ?? []);
-    else if (!pendingResult.success) setError(registrationResult.error || "Não foi possível carregar os dados dos participantes.");
 
     setLoading(false);
   }, [auctionId, canManageParticipants, lotId]);
@@ -84,25 +73,26 @@ export function AuctionPendingEligibilityBids({
     };
   }, [load]);
 
-  const registrationsByUserId = useMemo(
-    () => new Map(registrations.map((registration) => [registration.userId, registration])),
-    [registrations],
-  );
-
   function enableParticipant(item: EnginePendingEligibilityBid) {
     if (!canManageParticipants) return;
-
-    const registration = registrationsByUserId.get(item.participantId);
-    if (!registration || registration.enabled === true) return;
+    const registrationId = item.registrationId;
+    if (!registrationId) {
+      setError("Esta pendência não possui um registro de participação válido para habilitar.");
+      return;
+    }
 
     startTransition(async () => {
-      const result = await setAuctionRegistrationEnabledAction(auctionId, registration.registrationId, true);
+      const result = await setAuctionRegistrationEnabledAction(auctionId, registrationId, true);
       if (!result.success) {
-        setNotice(result.error || "Não foi possível habilitar este participante.");
+        setError(result.error || "Não foi possível habilitar este participante.");
         return;
       }
 
-      setNotice("Participante habilitado. Os lances elegíveis serão liberados pelo motor.");
+      const released = result.data?.releasedBids;
+      const releaseMessage = released
+        ? ` ${released.processed} lance(s) liberado(s): ${released.accepted} aceito(s) e ${released.rejected} rejeitado(s) pelo motor.`
+        : " O motor processará os lances mantidos para este participante.";
+      setNotice(`${item.participant.displayName || item.displayName || "Participante"} habilitado.${releaseMessage}`);
       await load();
     });
   }
@@ -136,9 +126,9 @@ export function AuctionPendingEligibilityBids({
           </div>
           <div className="divide-y divide-amber-100">
             {items.map((item) => {
-              const registration = registrationsByUserId.get(item.participantId);
-              const canEnable = Boolean(registration && registration.enabled !== true);
-              const participantName = item.displayName || registration?.displayName || registration?.email || item.participantId;
+              const canEnable = Boolean(item.registrationId);
+              const participantName = item.participant.displayName || item.displayName || item.participantId;
+              const participantReference = item.participant.maskedDocument || item.participant.email || item.participantId;
 
               return (
                 <div key={item.bidRequestId} className="grid gap-3 px-3 py-3 sm:grid-cols-[minmax(0,1fr)_8rem_9rem_minmax(0,auto)] sm:items-center">
@@ -149,11 +139,11 @@ export function AuctionPendingEligibilityBids({
                         <Clock3 className="size-3" aria-hidden="true" />Aguardando análise
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-slate-500">{formatEngineBrlCents(item.amountCents, currency)} · {item.participantId}</p>
+                    <p className="mt-1 text-xs text-slate-500">{formatEngineBrlCents(item.amountCents, currency)} · {participantReference}</p>
                     <span className="mt-2 inline-flex rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700 sm:hidden">{phaseLabel(item.phase)}</span>
                   </div>
                   <span className="hidden text-xs font-medium text-slate-600 sm:inline">{phaseLabel(item.phase)}</span>
-                  <span className="text-xs text-slate-500">{formatEngineBrtInstant(item.receivedAt)}</span>
+                  <span className="text-xs text-slate-500">{originLabel(item.origin)} · {formatEngineBrtInstant(item.receivedAt)}</span>
                   <div className="flex flex-wrap gap-2">
                     <Button type="button" variant="outline" size="sm" onClick={() => setSelected(item)} className="border-slate-200 text-slate-700">
                       <Eye className="size-3.5" aria-hidden="true" />Ver dados
@@ -176,13 +166,14 @@ export function AuctionPendingEligibilityBids({
             <DialogDescription>Informações associadas ao lance que aguarda habilitação.</DialogDescription>
           </DialogHeader>
           {selected ? (() => {
-            const registration = registrationsByUserId.get(selected.participantId);
             return (
               <dl className="grid gap-3 text-sm">
-                <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nome</dt><dd className="mt-1 font-medium">{selected.displayName || registration?.displayName || "Não informado"}</dd></div>
-                <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">E-mail</dt><dd className="mt-1">{registration?.email || "Não informado"}</dd></div>
+                <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nome</dt><dd className="mt-1 font-medium">{selected.participant.displayName || selected.displayName || "Não informado"}</dd></div>
+                <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">E-mail</dt><dd className="mt-1">{selected.participant.email || "Não informado"}</dd></div>
+                <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tipo</dt><dd className="mt-1">{selected.participant.participantType === "QUICK" ? "Participante rápido" : "Usuário cadastrado"}</dd></div>
+                {selected.participant.maskedDocument ? <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Documento</dt><dd className="mt-1">{selected.participant.maskedDocument}</dd></div> : null}
                 <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">ID do usuário</dt><dd className="mt-1 break-all font-mono text-xs">{selected.participantId}</dd></div>
-                <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status da inscrição</dt><dd className="mt-1">{registration ? registrationStatusLabels[registration.status] : "Inscrição não localizada"}</dd></div>
+                <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status da inscrição</dt><dd className="mt-1">Aguardando análise</dd></div>
                 <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Lance recebido</dt><dd className="mt-1 font-semibold">{formatEngineBrlCents(selected.amountCents, currency)} · {phaseLabel(selected.phase)}</dd></div>
                 <div><dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Data</dt><dd className="mt-1">{formatEngineBrtInstant(selected.receivedAt)}</dd></div>
               </dl>

@@ -164,8 +164,15 @@ export type EnginePendingEligibilityBid = {
   externalLotId: string;
   lotNumber: number;
   lotTitle: string;
+  registrationId: string | null;
   participantId: string;
   displayName: string | null;
+  participant: {
+    displayName: string;
+    email: string | null;
+    participantType: "USER" | "QUICK";
+    maskedDocument?: string;
+  };
   amountCents: EngineIntegerCents;
   origin: EngineBidOrigin;
   phase: EngineBidPhase | null;
@@ -197,6 +204,11 @@ export type EngineAuctionRegistration = {
   globallyEnabled?: boolean;
   participantType?: "USER" | "QUICK";
   maskedDocument?: string;
+  releasedBids?: {
+    processed: number;
+    accepted: number;
+    rejected: number;
+  };
 };
 
 export type EngineAuctionRegistrationPage = {

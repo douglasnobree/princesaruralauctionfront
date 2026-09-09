@@ -78,6 +78,9 @@ assert.match(pendingEligibility, /aria-label="Status: Aguardando análise"/);
 assert.match(pendingEligibility, /Ver dados/);
 assert.match(pendingEligibility, /Habilitar usuário/);
 assert.match(pendingEligibility, /setAuctionRegistrationEnabledAction/);
+assert.match(pendingEligibility, /item\.registrationId/);
+assert.match(pendingEligibility, /releasedBids/);
+assert.match(pendingEligibility, /participant\.maskedDocument/);
 
 const auctionWorkspace = await read("components/Management/AuctionWorkspace.tsx");
 assert.match(auctionWorkspace, /value: "lances", label: "Lances e pré-lances"/);
