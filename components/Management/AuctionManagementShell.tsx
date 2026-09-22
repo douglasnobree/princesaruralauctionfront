@@ -4,6 +4,7 @@ import {
   CalendarRange,
   Gavel,
   Home,
+  Image as ImageIcon,
   LogOut,
   Menu,
   MonitorPlay,
@@ -25,6 +26,7 @@ import type { User } from "@/types/auth/user";
 const navItems = [
   { href: "/admin/leiloes", label: "Catálogo de leilões", icon: Gavel },
   { href: "/admin/habilitacoes", label: "Habilitações globais", icon: ShieldCheck },
+  { href: "/admin/banners", label: "Banners da plataforma", icon: ImageIcon },
   {
     href: "/admin/leiloes/sandbox",
     label: "Ambiente de teste",
@@ -47,8 +49,10 @@ function Navigation({
   onNavigate,
   compact = false,
   canManage = false,
+  canEditBanners = false,
 }: {
   canManage?: boolean;
+  canEditBanners?: boolean;
   onNavigate?: () => void;
   compact?: boolean;
 }) {
@@ -63,7 +67,7 @@ function Navigation({
         Gestão de leilões
       </p>
       <div className="space-y-1">
-        {navItems.filter((item) => item.href !== "/admin/habilitacoes" || canManage).map(({ href, label, icon: Icon }) => {
+        {navItems.filter((item) => (item.href !== "/admin/habilitacoes" || canManage) && (item.href !== "/admin/banners" || canEditBanners)).map(({ href, label, icon: Icon }) => {
           const active = (pathname === href || pathname.startsWith(`${href}/`)) && !(href === "/admin/leiloes" && pathname.startsWith("/admin/leiloes/sandbox"));
           return (
             <Link
@@ -160,7 +164,8 @@ export function AuctionManagementShell({
   user: User;
   permissions?: RolePermission[] | null;
 }) {
-  const canManage = permissionsToAuctionCapabilities(permissions, user.accountType).canManageStatus;
+  const capabilities = permissionsToAuctionCapabilities(permissions, user.accountType);
+  const canManage = capabilities.canManageStatus;
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -175,7 +180,7 @@ export function AuctionManagementShell({
     });
   }
 
-  const currentLabel = pathname.includes("/habilitacoes") ? "Habilitações globais" : pathname.includes("/sandbox")
+  const currentLabel = pathname.includes("/banners") ? "Banners da plataforma" : pathname.includes("/habilitacoes") ? "Habilitações globais" : pathname.includes("/sandbox")
     ? "Ambiente de teste"
     : pathname.includes("/broadcast")
       ? "Broadcast / OBS"
@@ -221,7 +226,7 @@ export function AuctionManagementShell({
             ) : null}
           </div>
         </Link>
-        <Navigation compact={collapsed} canManage={canManage} />
+        <Navigation compact={collapsed} canManage={canManage} canEditBanners={capabilities.canEdit} />
         <UserSummary
           user={user}
           onLogout={logout}
@@ -244,7 +249,7 @@ export function AuctionManagementShell({
           <DialogDescription className="sr-only">Navegue entre leilões e habilitações globais.</DialogDescription>
           <div className="flex h-full min-h-0 flex-col">
             <div className="border-b px-4 py-6"><PrincesaRuralWordmark variant="color" alt="Princesa Rural" className="h-8 w-auto" /></div>
-            <Navigation canManage={canManage} onNavigate={() => setMobileOpen(false)} />
+            <Navigation canManage={canManage} canEditBanners={capabilities.canEdit} onNavigate={() => setMobileOpen(false)} />
             <UserSummary user={user} onLogout={logout} isPending={isPending} />
           </div>
         </DialogContent>

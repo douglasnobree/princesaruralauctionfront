@@ -6,7 +6,7 @@ import { normalizeApiBaseUrl } from "@/lib/api/base-url";
 import { authenticatedFetch } from "@/lib/auth/server/authenticated-fetch";
 import type { ActionResult } from "@/types/common";
 import type { AuctionReport } from "@/types/auction-report";
-import type { AuctionAdmin, AuctionAdminLot, AuctionAdminStatus, AuctionInput, AuctionLotAdminStatus, AuctionLotInput } from "@/types/auction-admin";
+import type { AuctionPlatformBanners, AuctionAdmin, AuctionAdminLot, AuctionAdminStatus, AuctionInput, AuctionLotAdminStatus, AuctionLotInput } from "@/types/auction-admin";
 import type { AuctionWhatsAppMessage, AuctionWhatsAppMessagePage, AuctionWhatsAppSettings } from "@/types/auction-whatsapp";
 
 const API_URL = normalizeApiBaseUrl(process.env.API_BASE_URL);
@@ -167,4 +167,22 @@ export async function saveAuctionBannerAction(id: string, device: "desktop" | "m
     if (result.success) revalidateAuctions();
     return result;
   } catch { return { success: false, error: "Não foi possível salvar o banner. Tente novamente." }; }
+}
+
+export async function getAuctionPlatformBannersAction(): Promise<ActionResult<AuctionPlatformBanners>> {
+  try { return parseResponse(await auctionFetch("/auction-platform/banners", { cache: "no-store" }), "Não foi possível carregar os banners da plataforma."); }
+  catch { return { success: false, error: "Não foi possível carregar os banners da plataforma." }; }
+}
+
+export async function saveAuctionPlatformBannerAction(device: "desktop" | "mobile", file: File | null): Promise<ActionResult<AuctionPlatformBanners>> {
+  if (device !== "desktop" && device !== "mobile") return { success: false, error: "Tipo de banner inválido." };
+  try {
+    const body = new FormData();
+    if (file) body.append("image", file);
+    const result = await parseResponse<AuctionPlatformBanners>(await auctionFetch(`/auction-platform/banners/${device}`, {
+      method: file ? "POST" : "DELETE", ...(file ? { body } : {}),
+    }), "Não foi possível salvar o banner da plataforma.");
+    if (result.success) { revalidatePath("/admin/banners"); revalidatePath("/leiloes"); }
+    return result;
+  } catch { return { success: false, error: "Não foi possível salvar o banner da plataforma. Tente novamente." }; }
 }

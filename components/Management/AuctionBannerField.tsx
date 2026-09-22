@@ -30,7 +30,7 @@ export function AuctionBannerField({ device, savedUrl, value, disabled, onChange
       }
       setError(null); setPreview({ file, url: URL.createObjectURL(file) }); onChange(file);
     }} />
-    <p id={`banner-${device}-help`} className="text-xs leading-5 text-muted-foreground">JPG, PNG ou WEBP, até 10 MB. Sugestão: {device === "mobile" ? "750 × 600" : "1920 × 600"} px. O envio acontece ao salvar o leilão.</p>
+    <p id={`banner-${device}-help`} className="text-xs leading-5 text-muted-foreground">JPG, PNG ou WEBP, até 10 MB. Sugestão: {device === "mobile" ? "750 × 600" : "1920 × 600"} px. O envio acontece ao salvar as alterações.</p>
     {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : null}
     {url || value ? <button type="button" disabled={disabled} onClick={() => { setError(null); onChange(null); }} className="min-h-11 rounded-md border px-3 text-sm font-medium hover:bg-muted disabled:opacity-50">Remover banner</button> : null}
   </div>;

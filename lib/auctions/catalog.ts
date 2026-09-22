@@ -316,3 +316,13 @@ export async function getAuctionLotBySlug(
 
 	return response ? mapLot(response, auctionSlug) : undefined;
 }
+
+export async function getAuctionPlatformBanners() {
+  try {
+    const banners = await fetchApi<import("@/types/auction-admin").AuctionPlatformBanners>("/auction-platform/banners");
+    return {
+      desktopBannerUrl: banners?.desktopBannerUrl ? resolveAsset(banners.desktopBannerUrl, "/uploads/auctions/platform-banners/") : null,
+      mobileBannerUrl: banners?.mobileBannerUrl ? resolveAsset(banners.mobileBannerUrl, "/uploads/auctions/platform-banners/") : null,
+    };
+  } catch { return { desktopBannerUrl: null, mobileBannerUrl: null }; }
+}

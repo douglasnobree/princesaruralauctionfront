@@ -34,3 +34,5 @@ export type AuctionAdmin = {
 };
 export type AuctionInput = { title: string; slug: string; category?: AuctionAdminCategory; mode?: AuctionAdminMode; description?: string; coverImage?: string; regulationText?: string; paymentText?: string; deliveryText?: string; preBidStartsAt?: string; preBidEndsAt?: string; pauseHours?: number; startsAt: string; endsAt?: string; incrementCents?: number; secondaryIncrementCents?: number | null; extensionMinutes?: number; plannedLotCount?: number };
 export type AuctionLotInput = { number: number; sortOrder?: number; slug: string; title: string; category: AuctionAdminCategory; startingBidCents: number; incrementCents?: number | null; currentBidCents?: number; nextBidCents?: number; currentBidderName?: string; bidCount?: number; paymentDescription?: string; deliveryDescription?: string | null; details?: unknown; comments?: string[]; closesAt?: string; documentText?: string; youtubeUrl?: string; status?: AuctionLotAdminStatus; changeReason?: string };
+
+export type AuctionPlatformBanners = { desktopBannerUrl: string | null; mobileBannerUrl: string | null };

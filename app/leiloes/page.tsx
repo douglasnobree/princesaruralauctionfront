@@ -1,3 +1,4 @@
+import { AuctionResponsiveBanner } from "@/components/Auction/AuctionResponsiveBanner";
 import type { Metadata } from "next";
 import { AuctionCard } from "@/components/Auction/AuctionCard";
 import { AuctionEmptyState } from "@/components/Auction/AuctionEmptyState";
@@ -5,6 +6,7 @@ import { AuctionHeroBanner } from "@/components/Auction/AuctionHeroBanner";
 import {
 	filterAuctionsByListingFilter,
 	getAuctions,
+	getAuctionPlatformBanners,
 	parseAuctionListingFilter,
 } from "@/lib/auctions/catalog";
 
@@ -21,7 +23,7 @@ export default async function LeiloesPage({
 }: {
 	searchParams?: Promise<{ q?: string; tipo?: string }>;
 }) {
-	const auctions = await getAuctions();
+	const [auctions, platformBanners] = await Promise.all([getAuctions(), getAuctionPlatformBanners()]);
 	const params = await searchParams;
 	const query = params?.q?.trim() ?? "";
 	const filter = parseAuctionListingFilter(params?.tipo);
@@ -50,13 +52,13 @@ export default async function LeiloesPage({
 
 	return (
 		<div className="bg-muted/35 pb-10 pt-4 sm:pt-5">
-			<AuctionHeroBanner
+			{platformBanners.desktopBannerUrl || platformBanners.mobileBannerUrl ? <div className="mx-auto max-w-6xl px-4 sm:px-6"><AuctionResponsiveBanner desktopUrl={platformBanners.desktopBannerUrl} mobileUrl={platformBanners.mobileBannerUrl} title="PR Leilões" altText="Banner da plataforma PR Leilões" /></div> : <AuctionHeroBanner
 				image={featuredAuction?.image}
 				title={featuredAuction?.title}
 				desktopBannerUrl={featuredAuction?.desktopBannerUrl}
 				mobileBannerUrl={featuredAuction?.mobileBannerUrl}
 				slug={featuredAuction?.slug}
-			/>
+			/>}
 
 			<section
 				id="agenda"
