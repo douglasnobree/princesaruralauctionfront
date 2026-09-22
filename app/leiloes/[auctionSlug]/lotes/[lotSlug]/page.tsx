@@ -18,6 +18,8 @@ export default async function AuctionLotPage({
 	if (!auction || !lot) notFound();
 	const engineResult = auction.id ? await getEngineSnapshotAction(auction.id) : { success: false as const };
 
+	if (engineResult.success && engineResult.data && ["FINISHED", "CLOSED", "CANCELLED", "ABORTED"].includes(engineResult.data.auction.status)) notFound();
+
 	const currentLotIndex = auction.lots.findIndex(
 		(auctionLot) => auctionLot.id === lot.id,
 	);

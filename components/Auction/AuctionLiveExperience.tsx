@@ -143,8 +143,8 @@ export function AuctionLiveExperience({
         lot.externalId === catalogLot.id || lot.externalId === catalogLot.slug,
     );
     return engineLot
-      ? ['OPEN', 'CLOSING'].includes(engineLot.status)
-      : catalogLot.status === 'OPEN';
+      ? ['OPEN', 'CLOSING', 'SOLD'].includes(engineLot.status)
+      : ['OPEN', 'SOLD'].includes(catalogLot.status);
   });
 
   return (
@@ -220,17 +220,10 @@ export function AuctionLiveExperience({
               <h2
                 id='pre-bid-lots-title'
                 className='text-2xl font-bold tracking-tight'>
-                {mode === 'SHOPPING'
-                  ? 'Escolha um lote para comprar'
-                  : 'Escolha um lote para enviar seu lance'}
+                Lotes do leilão
               </h2>
               <p className='mt-1 max-w-3xl text-sm leading-6 text-muted-foreground'>
-                {mode === 'SHOPPING'
-                  ? 'Os lotes disponíveis aparecem aqui. Abra um lote para consultar todas as informações e confirmar a compra pelo preço fixo.'
-                  : 'Os lotes liberados aparecem aqui antes do fechamento. Abra um lote para consultar o placar e enviar seu lance diretamente na página do lote' +
-                    (mode === 'LIVE'
-                      ? '; a transmissão já está preparada para a abertura ao vivo.'
-                      : '.')}
+                Consulte os lotes disponíveis e os já vendidos. Os vendidos ficam disponíveis para consulta até o encerramento do leilão.
               </p>
             </div>
             {visibleCatalogLots.length > 0 ? (
@@ -262,7 +255,7 @@ export function AuctionLiveExperience({
             )}
             {initialSnapshot ? (
               <ClosedLotsPreview
-                lots={initialSnapshot.lots}
+                lots={initialSnapshot.lots.filter((lot) => lot.status !== 'SOLD')}
                 currency={initialSnapshot.auction.currency}
               />
             ) : null}
@@ -271,6 +264,8 @@ export function AuctionLiveExperience({
           <AuctionRuntimeBoard
             externalAuctionId={externalAuctionId}
             initialSnapshot={initialSnapshot}
+            catalogLots={catalogLots}
+            hideClosedAuction={!sandbox}
           />
         ) : (
           <div className='mt-7 rounded-2xl border bg-card p-6 text-sm text-muted-foreground'>
