@@ -88,6 +88,8 @@ type ApiAuction = {
 	mode?: "SHOPPING" | "LIVE" | "TIMED";
 	coverImage?: string | null;
 	coverImageUrl?: string | null;
+	desktopBannerUrl?: string | null;
+	mobileBannerUrl?: string | null;
 	startsAt: string;
 	endsAt?: string | null;
 	plannedLotCount?: number;
@@ -281,6 +283,8 @@ function mapAuction(auction: ApiAuction): Auction {
 			coverImage || lots[0]?.image,
 			"/uploads/auctions/covers/",
 		),
+		desktopBannerUrl: auction.desktopBannerUrl ? resolveAsset(auction.desktopBannerUrl, "/uploads/auctions/banners/") : null,
+		mobileBannerUrl: auction.mobileBannerUrl ? resolveAsset(auction.mobileBannerUrl, "/uploads/auctions/banners/") : null,
 		genealogyCatalogUrl: `${API_BASE_URL}/auctions/public/${encodeURIComponent(auction.slug)}/genealogy-catalog`,
 		lots,
 	};

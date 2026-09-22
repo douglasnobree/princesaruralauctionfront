@@ -229,3 +229,9 @@ export type AuctionParticipantSearchResult = {
   maskedPhone: string | null;
   whatsappOptIn?: boolean;
 };
+
+export type AuctionEnabledParticipantsPage = {
+  items: AuctionParticipantSearchResult[];
+  hasMore: boolean;
+  nextCursor: string | null;
+};

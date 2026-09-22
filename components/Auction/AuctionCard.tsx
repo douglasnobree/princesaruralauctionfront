@@ -20,18 +20,18 @@ function AuctionCardAction({ auction }: AuctionCardProps) {
 
 function AuctionCardContent({ auction }: AuctionCardProps) {
 	return (
-		<div className="grid h-full sm:grid-cols-[35%_minmax(0,1fr)]">
-			<div className="relative aspect-[3/4] bg-muted sm:aspect-auto">
+		<div className="grid h-full grid-cols-[30%_minmax(0,1fr)] sm:grid-cols-[35%_minmax(0,1fr)]">
+			<div className="relative min-h-44 bg-muted">
 				<Image
 					src={auction.image}
 					alt={`Imagem do leilão ${auction.title}`}
 					fill
 					className="object-contain"
-					sizes="(min-width: 768px) 35vw, 100vw"
+					sizes="(min-width: 768px) 20vw, 30vw"
 				/>
 			</div>
 
-			<div className="flex min-w-0 flex-col p-5">
+			<div className="flex min-w-0 flex-col p-3 sm:p-5">
 				<div className="flex flex-wrap gap-2">
 					<AuctionStatusBadge status={auction.status} />
 					<span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
@@ -39,11 +39,11 @@ function AuctionCardContent({ auction }: AuctionCardProps) {
 					</span>
 				</div>
 
-				<h2 className="mt-5 line-clamp-2 text-xl font-bold leading-6">
+				<h2 className="mt-3 line-clamp-3 text-base sm:text-xl font-bold leading-6">
 					{auction.title}
 				</h2>
 
-				<div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-base font-semibold text-muted-foreground">
+				<div className="my-3 flex flex-wrap gap-x-5 gap-y-2 text-sm font-semibold text-muted-foreground">
 					<span className="inline-flex items-center gap-2">
 						<CalendarDays className="size-4 text-secondary" />
 						{auction.date}
@@ -54,7 +54,7 @@ function AuctionCardContent({ auction }: AuctionCardProps) {
 					</span>
 				</div>
 
-				<div className="mt-auto border-t pt-5">
+				<div className="mt-auto border-t pt-2">
 					<AuctionCardAction auction={auction} />
 				</div>
 			</div>
@@ -64,7 +64,7 @@ function AuctionCardContent({ auction }: AuctionCardProps) {
 
 export function AuctionCard({ auction }: AuctionCardProps) {
 	return (
-		<article className="group overflow-hidden rounded-xl border border-border bg-card shadow-xs transition-shadow hover:shadow-md sm:aspect-[2.15/1]">
+		<article className="group overflow-hidden rounded-xl border border-border bg-card shadow-xs transition-shadow hover:shadow-md">
 			<Link
 				href={`/leiloes/${auction.slug}`}
 				className="block h-full outline-none focus-visible:ring-3 focus-visible:ring-ring"

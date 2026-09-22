@@ -123,7 +123,7 @@ export function AuctionLoginForm({ returnTo = "/leiloes" }: { returnTo?: string 
             type="button"
             onClick={() => setShowPassword((current) => !current)}
             aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-            className="absolute right-1 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fbaa34]"
+            className="absolute right-1 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fbaa34]"
           >
             {showPassword ? <EyeOff aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}
           </button>

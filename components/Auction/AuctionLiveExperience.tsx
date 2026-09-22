@@ -6,6 +6,7 @@ import {
   Trophy,
 } from 'lucide-react';
 import Image from 'next/image';
+import { AuctionResponsiveBanner } from './AuctionResponsiveBanner';
 import { AuctionLotCard } from '@/components/Auction/AuctionLotCard';
 import { AuctionFullGenealogyButton } from '@/components/Auction/AuctionFullGenealogyButton';
 import { AuctionRuntimeBoard } from '@/components/Auction/AuctionRuntimeBoard';
@@ -90,6 +91,8 @@ type AuctionLiveExperienceProps = {
   title: string;
   description?: string | null;
   image?: string;
+  desktopBannerUrl?: string | null;
+  mobileBannerUrl?: string | null;
   date?: string;
   time?: string;
   lotCount: number;
@@ -106,6 +109,8 @@ export function AuctionLiveExperience({
   title,
   description,
   image = '/placeholder-image.svg',
+  desktopBannerUrl,
+  mobileBannerUrl,
   date,
   time,
   lotCount,
@@ -125,8 +130,8 @@ export function AuctionLiveExperience({
     ? isPreBidClosed(initialSnapshot.auction)
     : false;
   const isLiveRunning = mode === 'LIVE' && displayedStatus === 'RUNNING';
-  const isPreBidCatalog =
-    (mode === 'SHOPPING' && !['FINISHED', 'CLOSED'].includes(displayedStatus)) ||
+  const isLotCatalog =
+    mode !== 'LIVE' ||
     (catalogLots.length > 0 &&
       (!initialSnapshot
         ? status === 'PRE_LAUNCH'
@@ -145,8 +150,9 @@ export function AuctionLiveExperience({
   return (
     <div className='w-full bg-muted/35 py-6 sm:py-8'>
       <div className='mx-auto w-full max-w-6xl px-4 sm:px-6'>
+        <AuctionResponsiveBanner desktopUrl={desktopBannerUrl} mobileUrl={mobileBannerUrl} title={title} />
         <section className='grid w-full overflow-hidden rounded-xl border bg-card shadow-xs sm:grid-cols-[16rem_1fr]'>
-          <div className='relative aspect-[4/3] bg-muted sm:aspect-auto'>
+          <div className={`relative aspect-[16/9] bg-muted sm:aspect-auto ${desktopBannerUrl || mobileBannerUrl ? 'hidden sm:block' : ''}`}>
             <Image
               src={image}
               alt={`Imagem do leilão ${title}`}
@@ -208,7 +214,7 @@ export function AuctionLiveExperience({
           </div>
         </section>
 
-        {isPreBidCatalog ? (
+        {isLotCatalog ? (
           <section className='mt-7' aria-labelledby='pre-bid-lots-title'>
             <div className='mb-4'>
               <h2
@@ -228,7 +234,7 @@ export function AuctionLiveExperience({
               </p>
             </div>
             {visibleCatalogLots.length > 0 ? (
-              <div className='grid gap-4 sm:grid-cols-2 xl:grid-cols-3'>
+              <div className='grid gap-3 min-[380px]:grid-cols-2 sm:gap-4 xl:grid-cols-3'>
                 {visibleCatalogLots.map((catalogLot) => (
                   <AuctionLotCard
                     key={catalogLot.id}
@@ -248,8 +254,10 @@ export function AuctionLiveExperience({
                 {preBidClosed
                   ? mode === 'LIVE'
                     ? 'O pré-lance terminou. Aguarde o início do leilão ao vivo.'
-                    : 'O pré-lance terminou. Aguarde o início da etapa principal.'
-                  : 'Nenhum lote foi liberado para pré-lance ainda.'}
+                    : 'O período de pré-lances terminou. Consulte os resultados dos lotes abaixo.'
+                  : mode === 'SHOPPING'
+                    ? 'Nenhum lote disponível para compra no momento.'
+                    : 'Nenhum lote disponível para lances no momento.'}
               </div>
             )}
             {initialSnapshot ? (
@@ -259,7 +267,7 @@ export function AuctionLiveExperience({
               />
             ) : null}
           </section>
-        ) : initialSnapshot ? (
+        ) : mode === 'LIVE' && initialSnapshot ? (
           <AuctionRuntimeBoard
             externalAuctionId={externalAuctionId}
             initialSnapshot={initialSnapshot}
@@ -306,7 +314,7 @@ function ClosedLotsPreview({
             Resultado final, vencedor e valor registrado pelo motor.
           </p>
         </div>
-        <span className='rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground'>
+        <span className='shrink-0 whitespace-nowrap rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground'>
           {closedLots.length} {closedLots.length === 1 ? 'lote' : 'lotes'}
         </span>
       </div>

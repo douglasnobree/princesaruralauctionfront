@@ -24,7 +24,7 @@ export async function AuctionHeader() {
     : false;
 
   return (
-    <header className="sticky top-0 z-50 text-white shadow-[0_3px_16px_rgba(0,0,0,0.12)]"> 
+    <header className="relative z-50 md:sticky md:top-0 text-white shadow-[0_3px_16px_rgba(0,0,0,0.12)]">
 
       <div className="bg-[#062518]">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -63,12 +63,11 @@ export async function AuctionHeader() {
                   name="q"
                   type="search"
                   placeholder="Buscar leilões"
-                  className="h-8 w-full rounded-md border border-white/20 bg-white px-3 pe-10 text-sm text-[#062518] shadow-sm outline-none placeholder:text-[#567065] focus-visible:ring-2 focus-visible:ring-[#fbaa34]"
+                  className="h-11 w-full rounded-md md:h-8 border border-white/20 bg-white px-3 pe-10 text-base text-[#062518] md:text-sm shadow-sm outline-none placeholder:text-[#567065] focus-visible:ring-2 focus-visible:ring-[#fbaa34]"
                 />
-                <Search
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-y-0 end-3 my-auto size-4 text-[#28834c]"
-                />
+                <button type="submit" aria-label="Buscar leilões" className="absolute inset-y-0 end-0 flex w-11 items-center justify-center rounded-md text-[#28834c] focus-visible:outline-2 focus-visible:outline-[#fbaa34]">
+                  <Search aria-hidden="true" className="size-4" />
+                </button>
               </div>
             </form>
 
@@ -77,7 +76,7 @@ export async function AuctionHeader() {
             {canViewManagement ? (
               <Link
                 href="/admin/leiloes"
-                className="order-2 inline-flex min-h-8 items-center gap-2 rounded-md bg-[#fbaa34] px-3 text-xs font-bold text-[#062518] outline-none transition-[background-color,transform] hover:bg-[#ffc267] focus-visible:ring-2 focus-visible:ring-white/80 active:scale-[0.96] md:order-3"
+                className="order-2 inline-flex min-h-11 md:min-h-8 items-center gap-2 rounded-md bg-[#fbaa34] px-3 text-xs font-bold text-[#062518] outline-none transition-[background-color,transform] hover:bg-[#ffc267] focus-visible:ring-2 focus-visible:ring-white/80 active:scale-[0.96] md:order-3"
               >
                 <LayoutDashboard className="size-3.5" aria-hidden="true" />
                 Administração
@@ -88,19 +87,19 @@ export async function AuctionHeader() {
               <MarketplaceHandoffLink
                 pathname="/perfil"
                 baseUrl={marketplaceUrl}
-                className="order-2 inline-flex min-h-8 max-w-[12rem] items-center gap-2 rounded-full border border-white/75 px-3 text-xs font-medium outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/80 md:order-3"
+                className="order-2 inline-flex min-h-11 md:min-h-8 max-w-[12rem] items-center gap-2 rounded-full border border-white/75 px-3 text-xs font-medium outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/80 md:order-3"
               >
                 <UserRound className="size-3.5 shrink-0" aria-hidden="true" />
                 <span className="truncate">{user.email}</span>
               </MarketplaceHandoffLink>
             ) : (
-              <div className="order-2 inline-flex min-h-8 items-center gap-1.5 rounded-full border border-white/75 px-3 text-xs font-medium md:order-3">
+              <div className="order-2 inline-flex min-h-11 md:min-h-8 items-center gap-1.5 rounded-full border border-white/75 px-3 text-xs font-medium md:order-3">
                 <UserRound className="size-3.5" aria-hidden="true" />
-                <Link href="/login" className="underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80">
+                <Link href="/login" className="inline-flex min-h-11 items-center md:min-h-8 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80">
                   Entrar
                 </Link>
                 <span className="text-white/55">ou</span>
-                <Link href="/cadastro" className="underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80">
+                <Link href="/cadastro" className="inline-flex min-h-11 items-center md:min-h-8 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80">
                   cadastre-se
                 </Link>
               </div>
@@ -109,7 +108,7 @@ export async function AuctionHeader() {
 
           <nav aria-label="Navegação principal" className="-mx-1 flex min-w-0 gap-1 overflow-x-auto pb-1 sm:gap-2">
             {navigation.map(({ label, href, icon: Icon, active, handoff }) => {
-              const className = `inline-flex min-h-7 shrink-0 items-center gap-2 rounded-md px-2 text-[11px] font-bold uppercase tracking-[0.02em] outline-none transition-colors hover:bg-[#28834c]/70 focus-visible:ring-2 focus-visible:ring-[#fbaa34] sm:px-3 ${active ? "bg-[#28834c]/70 text-white" : "text-white/90"}`;
+              const className = `inline-flex min-h-11 md:min-h-7 shrink-0 items-center gap-2 rounded-md px-2 text-[11px] font-bold uppercase tracking-[0.02em] outline-none transition-colors hover:bg-[#28834c]/70 focus-visible:ring-2 focus-visible:ring-[#fbaa34] sm:px-3 ${active ? "bg-[#28834c]/70 text-white" : "text-white/90"}`;
               return handoff ? (
                 <MarketplaceHandoffLink key={label} pathname={href} baseUrl={marketplaceUrl} className={className}>
                   <Icon className="size-3.5" aria-hidden="true" />

@@ -53,11 +53,14 @@ export default async function LeiloesPage({
 			<AuctionHeroBanner
 				image={featuredAuction?.image}
 				title={featuredAuction?.title}
+				desktopBannerUrl={featuredAuction?.desktopBannerUrl}
+				mobileBannerUrl={featuredAuction?.mobileBannerUrl}
+				slug={featuredAuction?.slug}
 			/>
 
 			<section
 				id="agenda"
-				className="container mx-auto max-w-6xl px-4 py-10 lg:px-0 sm:py-11"
+				className="container mx-auto max-w-6xl scroll-mt-16 px-4 py-6 sm:py-11 lg:px-6"
 				aria-labelledby="scheduled-auctions-title"
 			>
 				<header className="mb-7">

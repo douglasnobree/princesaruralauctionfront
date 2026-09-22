@@ -1,11 +1,17 @@
 import Image from "next/image";
+import Link from "next/link";
+import { AuctionResponsiveBanner } from "./AuctionResponsiveBanner";
 
 interface AuctionHeroBannerProps {
 	image?: string;
+	desktopBannerUrl?: string | null;
+	mobileBannerUrl?: string | null;
+	slug?: string;
 	title?: string;
 }
 
-export function AuctionHeroBanner({ image, title }: AuctionHeroBannerProps) {
+export function AuctionHeroBanner({ image, title, desktopBannerUrl, mobileBannerUrl, slug }: AuctionHeroBannerProps) {
+	if ((desktopBannerUrl || mobileBannerUrl) && slug) return <Link href={`/leiloes/${slug}`} className="mx-auto block max-w-6xl px-4 sm:px-6" aria-label={`Ver lotes de ${title}`}><AuctionResponsiveBanner desktopUrl={desktopBannerUrl} mobileUrl={mobileBannerUrl} title={title || "PR Leilões"} /></Link>;
 	return (
 		<section className="relative mx-4 min-h-[220px] overflow-hidden rounded-2xl bg-[#062518] sm:min-h-0 sm:aspect-[1024/250]">
 			{image ? (

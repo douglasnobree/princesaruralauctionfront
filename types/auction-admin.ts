@@ -25,6 +25,7 @@ export type AuctionAdminLot = {
 export type AuctionAdmin = {
   id: string; title: string; slug: string; category?: AuctionAdminCategory | null; mode: AuctionAdminMode;
   description?: string | null; coverImage?: string | null; coverImageUrl?: string | null;
+  desktopBannerUrl?: string | null; mobileBannerUrl?: string | null;
   regulationText?: string | null; paymentText?: string | null; deliveryText?: string | null;
   preBidStartsAt?: string | null; preBidEndsAt?: string | null; pauseHours?: number | null; startsAt: string; endsAt?: string | null;
   incrementCents?: number | null; incrementInherited?: boolean; secondaryIncrementCents?: number | null;

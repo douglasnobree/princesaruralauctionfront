@@ -42,6 +42,7 @@ function revalidateAuctions() {
   revalidatePath("/admin/leiloes/[id]", "page");
   revalidatePath("/admin/leiloes/[id]/lotes", "page");
   revalidatePath("/leiloes");
+  revalidatePath("/leiloes/[auctionSlug]", "page");
 }
 
 export async function getAdminAuctionsAction(status?: AuctionAdminStatus): Promise<ActionResult<AuctionAdmin[]>> {
@@ -153,4 +154,17 @@ export async function getAuctionWhatsAppMessagesAction(auctionId: string, cursor
 export async function sendAuctionWhatsAppMessageAction(auctionId: string, participantId: string, input: { text: string; allowWithoutConsent: boolean; lotId?: string }): Promise<ActionResult<AuctionWhatsAppMessage>> {
   try { return parseResponse(await auctionFetch(`/auctions/manage/${encodeURIComponent(auctionId)}/participants/${encodeURIComponent(participantId)}/whatsapp-messages`, { method: "POST", headers: { "Idempotency-Key": randomUUID() }, body: JSON.stringify(input) }), "Não foi possível enviar a mensagem."); }
   catch { return { success: false, error: "Não foi possível enviar a mensagem." }; }
+}
+
+export async function saveAuctionBannerAction(id: string, device: "desktop" | "mobile", file: File | null): Promise<ActionResult<AuctionAdmin>> {
+  try {
+    if (device !== "desktop" && device !== "mobile") return { success: false, error: "Tipo de banner inválido." };
+    const form = new FormData();
+    if (file) form.append("image", file);
+    const result = await parseResponse<AuctionAdmin>(await auctionFetch(`/auctions/${encodeURIComponent(id)}/banner-${device}`, {
+      method: file ? "POST" : "DELETE", ...(file ? { body: form } : {}),
+    }), "Não foi possível salvar o banner.");
+    if (result.success) revalidateAuctions();
+    return result;
+  } catch { return { success: false, error: "Não foi possível salvar o banner. Tente novamente." }; }
 }

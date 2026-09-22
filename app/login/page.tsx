@@ -12,7 +12,7 @@ export default async function AuctionLoginPage({ searchParams }: { searchParams:
   const { returnTo } = await searchParams;
   const safeReturnTo = returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/leiloes";
   return (
-    <div className="min-h-[calc(100vh-105px)] bg-[#f7f8f7] px-4 py-10 sm:px-6 lg:py-16">
+    <div className="min-h-[calc(100vh-105px)] bg-[#f7f8f7] px-4 py-6 sm:py-10 sm:px-6 lg:py-16">
       <div className="mx-auto w-full max-w-[440px]">
         <header className="mb-7">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#28834c]">

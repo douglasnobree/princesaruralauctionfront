@@ -140,3 +140,25 @@ test("shopping lot exposes habilitation before immediate purchase", async () => 
 	assert.match(panel, /Comprar agora por/);
 	assert.match(panel, /SHOPPING_ALREADY_SOLD|Não foi possível concluir a compra deste lote/);
 });
+
+test("non-live auctions always use the lot catalog, regardless of execution status", async () => {
+	const experience = await read("components/Auction/AuctionLiveExperience.tsx");
+	assert.match(experience, /const isLotCatalog =\s*mode !== 'LIVE' \|\|/);
+	assert.match(experience, /isLotCatalog \? \(/);
+	assert.match(experience, /mode === 'LIVE' && initialSnapshot \? \(\s*<AuctionRuntimeBoard/);
+	assert.match(experience, /<AuctionLotCard/);
+});
+
+test("closed lots never show a countdown or a next bid, and dates are not status labels", async () => {
+	const [panel, detail] = await Promise.all([
+		read("components/Auction/AuctionLotBidPanel.tsx"),
+		read("components/Auction/AuctionLotDetail.tsx"),
+	]);
+	assert.match(detail, /catalogClosesAt=\{lot\.closesAt\}/);
+	assert.doesNotMatch(panel, /closingLabel/);
+	assert.match(panel, /lot\.endsAt \?\? catalogClosesAt/);
+	assert.match(panel, /Number\.isFinite\(new Date\(countdownAt\)\.getTime\(\)\)/);
+	assert.match(panel, /!isLotClosed \? <div[^>]+>[\s\S]*?\{closingText\}/);
+	assert.match(panel, /!isShopping && !isOpeningPause && !isLotClosed \?/);
+	assert.match(panel, /Valor de arremate/);
+});

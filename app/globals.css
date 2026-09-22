@@ -297,3 +297,11 @@ body:has(.auction-management-shell) > main {
 @media (max-width: 640px) {
   .auction-management-shell :where(button, summary) { min-height: 44px; }
 }
+
+/* Keep public controls usable without iOS focus zoom or horizontal overflow. */
+main { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 639px) {
+  .register-input, main input:not([type="checkbox"]):not([type="radio"]), main select, main textarea,
+  [data-slot="dialog-content"] input, [data-slot="dialog-content"] select, [data-slot="dialog-content"] textarea { font-size: 16px; }
+  [data-slot="dialog-content"] button { min-height: 44px; }
+}

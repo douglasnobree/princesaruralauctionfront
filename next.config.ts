@@ -11,10 +11,8 @@ const nextConfig: NextConfig = {
 	allowedDevOrigins: isDev ? ["127.0.0.1"] : undefined,
 	experimental: {
 		serverActions: {
-			// Com upload SEQUENCIAL (uma imagem por vez), não precisamos de limite alto
-			// Cada requisição envia no máximo 1 imagem de 5MB + overhead (~30%) = ~6.5MB
-			// Configurando 10MB como margem de segurança
-			bodySizeLimit: '10mb',
+			// One image up to 10 MB per request, plus multipart overhead.
+			bodySizeLimit: '12mb',
 		},
 	},
 	images: {

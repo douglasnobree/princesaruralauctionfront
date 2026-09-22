@@ -189,7 +189,7 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
               <legend className="mb-2 block text-xs font-medium text-slate-700">Tipo de cadastro</legend>
               <div className="flex flex-wrap gap-2">
                 {(["PERSON", "COMPANY"] as const).map((accountType) => (
-                  <label key={accountType} className={`cursor-pointer rounded-md border px-3 py-2 text-xs font-semibold transition-[background-color,border-color,color,box-shadow] focus-within:ring-2 focus-within:ring-[#fbaa34] focus-within:ring-offset-1 ${values.accountType === accountType ? "border-[#28834c] bg-[#e7f4eb] text-[#062518]" : "border-slate-200 text-slate-600 hover:border-[#28834c]/50"}`}>
+                  <label key={accountType} className={`inline-flex min-h-11 cursor-pointer items-center rounded-md border px-3 py-2 text-xs font-semibold transition-[background-color,border-color,color,box-shadow] focus-within:ring-2 focus-within:ring-[#fbaa34] focus-within:ring-offset-1 ${values.accountType === accountType ? "border-[#28834c] bg-[#e7f4eb] text-[#062518]" : "border-slate-200 text-slate-600 hover:border-[#28834c]/50"}`}>
                     <input
                       type="radio"
                       name="accountType"
@@ -371,7 +371,7 @@ function PasswordField({
           type="button"
           onClick={onToggle}
           aria-label={visible ? `Ocultar ${label.toLowerCase()}` : `Mostrar ${label.toLowerCase()}`}
-          className="absolute right-1 top-1/2 inline-flex size-9 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fbaa34]"
+          className="absolute right-1 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fbaa34]"
         >
           {visible ? <EyeOff aria-hidden="true" className="size-4" /> : <Eye aria-hidden="true" className="size-4" />}
         </button>

@@ -215,6 +215,13 @@ export async function managerCurrentLotAction(auctionId: string, lotId: string, 
   } catch { return { success: false, error: "Não foi possível atualizar o lote em destaque." }; }
 }
 
+export async function getEnabledAuctionParticipantsAction(cursor?: string): Promise<ActionResult<import("@/lib/auctions/engine-types").AuctionEnabledParticipantsPage>> {
+  try {
+    const response = await engineRequest(`/auction-engine/manager/participants/enabled${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ""}`, { cache: "no-store" });
+    return parse(response, "Não foi possível carregar os usuários habilitados.");
+  } catch { return { success: false, error: "Não foi possível carregar os usuários habilitados agora." }; }
+}
+
 export async function searchAuctionParticipantsAction(query: string): Promise<ActionResult<AuctionParticipantSearchResult[]>> {
   try {
     const response = await engineRequest(`/auction-engine/manager/participants?q=${encodeURIComponent(query)}`, { cache: "no-store" });

@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default function AuctionRegisterPage() {
   return (
-    <div id="main-content" className="min-h-[calc(100vh-105px)] bg-[#f7f8f7] px-4 py-10 sm:px-6 lg:py-14">
+    <div id="main-content" className="min-h-[calc(100vh-105px)] bg-[#f7f8f7] px-4 py-6 sm:py-10 sm:px-6 lg:py-14">
       <div className="mx-auto w-full max-w-[760px]">
         <header className="mb-7">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#28834c]">

@@ -18,6 +18,7 @@ import {
   createAuctionAction,
   updateAuctionAction,
   uploadAuctionCoverImageAction,
+  saveAuctionBannerAction,
 } from "@/hooks/actions/auctionActions";
 import {
   fromDateTimeLocalBrt,
@@ -28,6 +29,8 @@ import {
 import { slugifyAuction } from "@/lib/auctions/form-mappers";
 import type { AuctionAdmin, AuctionInput } from "@/types/auction-admin";
 import type { AuctionCapabilities } from "@/components/Management/capabilities";
+
+import { AuctionBannerField } from "./AuctionBannerField";
 
 type FormState = {
   title: string;
@@ -151,6 +154,8 @@ export function AuctionForm({
       ? getAuctionAssetUrl(initialData.coverImageUrl || initialData.coverImage)
       : null,
   );
+  const [banners, setBanners] = useState<Partial<Record<"desktop" | "mobile", File | null>>>({});
+  const [bannerUrls, setBannerUrls] = useState({ desktop: initialData?.desktopBannerUrl, mobile: initialData?.mobileBannerUrl });
   const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -263,6 +268,16 @@ export function AuctionForm({
         }
       }
       setCover(null);
+      for (const device of ["desktop", "mobile"] as const) {
+        if (banners[device] === undefined) continue;
+        const bannerResult = await saveAuctionBannerAction(result.data.id, device, banners[device] ?? null);
+        if (!bannerResult.success) {
+          setNotice(`Dados salvos, mas o banner ${device === "mobile" ? "para celular" : "para desktop"} não foi salvo: ${bannerResult.error} Salve novamente para tentar concluir.`);
+          return;
+        }
+        setBannerUrls((current) => ({ ...current, [device]: device === "mobile" ? bannerResult.data?.mobileBannerUrl : bannerResult.data?.desktopBannerUrl }));
+        setBanners((current) => { const next = { ...current }; delete next[device]; return next; });
+      }
       setNotice(initialData ? "Alterações salvas." : "Rascunho criado.");
       if (!initialData) {
         router.replace(`/admin/leiloes/${result.data.id}?aba=lotes`);
@@ -362,6 +377,14 @@ export function AuctionForm({
             <section className="rounded-xl border bg-background"><div className="border-b px-5 py-4"><h2 className="font-semibold">Informações comerciais e capa</h2></div><div className="grid gap-5 p-5 md:grid-cols-2"><Field label="Regulamento" id="auction-regulation"><textarea id="auction-regulation" value={form.regulationText} onChange={(event) => update("regulationText", event.target.value)} disabled={fieldDisabled} rows={5} className="management-field h-auto py-2" /></Field><div className="grid gap-5 sm:grid-cols-2 md:col-span-2"><Field label="Pagamento" id="auction-payment"><textarea id="auction-payment" value={form.paymentText} onChange={(event) => update("paymentText", event.target.value)} disabled={fieldDisabled} rows={4} className="management-field h-auto py-2" /></Field><Field label="Entrega" id="auction-delivery"><textarea id="auction-delivery" value={form.deliveryText} onChange={(event) => update("deliveryText", event.target.value)} disabled={fieldDisabled} rows={4} className="management-field h-auto py-2" /></Field></div><div className="space-y-2 text-sm font-medium"><span>Capa do leilão</span><label className="flex min-h-28 cursor-pointer items-center justify-center rounded-lg border border-dashed border-input bg-muted/20 p-3 text-center outline-none transition-[background-color] duration-150 hover:bg-muted/40 focus-within:ring-2 focus-within:ring-ring has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60"><input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => handleCoverChange(event.target.files?.[0])} disabled={fieldDisabled} />{coverPreview ? <div className="relative h-28 w-full overflow-hidden rounded-md outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"><Image src={coverPreview} alt="Prévia da capa do leilão" fill className="object-cover" unoptimized /></div> : <span className="flex flex-col items-center gap-2 text-muted-foreground"><ImagePlus className="size-6" aria-hidden="true" />Selecionar imagem</span>}</label><p className="text-xs font-normal text-muted-foreground">PNG, JPG ou WEBP. O envio acontece depois de salvar.</p></div></div></section>
           </div>
         </details>
+
+        <section className="rounded-xl border bg-card p-5" aria-labelledby="auction-banners-title">
+          <h2 id="auction-banners-title" className="font-semibold">Banners da página do leilão</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Use uma arte para cada tela. As imagens aparecem inteiras no topo da página, separadas da capa. Sem banner para celular, será usada a imagem para desktop.</p>
+          <div className="mt-5 grid gap-5 md:grid-cols-2">
+            {(["desktop", "mobile"] as const).map((device) => <AuctionBannerField key={device} device={device} savedUrl={bannerUrls[device]} value={banners[device]} disabled={fieldDisabled} onChange={(file) => setBanners((current) => ({ ...current, [device]: file }))} />)}
+          </div>
+        </section>
 
         <div className="sticky bottom-4 z-10 flex flex-col-reverse items-stretch justify-between gap-3 rounded-xl border bg-background/95 p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center"><span className="inline-flex items-center gap-2 text-xs text-muted-foreground">{!canSave ? <><LockKeyhole className="size-4" aria-hidden="true" />Edição bloqueada</> : <><span className="text-destructive">*</span> Campos obrigatórios · {isEditing ? "Atualize e salve quando necessário" : "Rascunho ainda não criado"}</>}</span><button type="submit" disabled={fieldDisabled} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground outline-none transition-[background-color,scale] duration-150 hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96] disabled:opacity-50 sm:min-w-44"><Save className="size-4" aria-hidden="true" />{isPending ? "Salvando dados…" : isEditing ? "Salvar alterações" : "Criar rascunho"}</button></div>
       </form>

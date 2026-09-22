@@ -130,7 +130,7 @@ export function LiveStreamPlayer({
       aria-label={`Transmissão ${title}`}
       className="overflow-hidden rounded-2xl bg-slate-950 text-white shadow-[0_18px_50px_-24px_rgba(15,23,42,0.7)]"
     >
-      <div className="relative aspect-video min-h-[230px] overflow-hidden rounded-xl bg-slate-900">
+      <div className="relative w-full aspect-video min-h-[260px] sm:min-h-[230px] overflow-hidden rounded-xl bg-slate-900">
         {youtubeEmbedUrl ? (
           <iframe
             src={youtubeEmbedUrl}
@@ -176,7 +176,7 @@ export function LiveStreamPlayer({
 
         <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-4 sm:p-5">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
               <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${isLive && hasSource ? "bg-red-500 text-white" : "bg-white/15 text-white/80"}`}>
                 <CircleDot className={`size-3 ${isLive && hasSource ? "animate-pulse" : ""}`} />
                 {streamLabel(stream?.status ?? "FAILED")}
@@ -196,7 +196,7 @@ export function LiveStreamPlayer({
               </button>
             ) : null}
           </div>
-          <div>
+          <div className={hasSource ? "hidden sm:block" : "hidden"}>
             <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
               <Camera className="size-3.5" /> Fonte oficial do leilão
             </p>

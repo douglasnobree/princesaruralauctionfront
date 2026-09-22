@@ -41,9 +41,9 @@ export function AuctionLotCard({ lot, engineLot, currency = "BRL", mode }: Aucti
 						alt={lot.images[0]?.altText || lot.title}
 						fill
 						className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-						sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+						sizes="(min-width: 1024px) 33vw, (min-width: 380px) 50vw, 100vw"
 					/>
-					<div className="absolute left-0 top-0 flex items-center gap-2 rounded-br-lg bg-card/95 px-3 py-2 text-xs font-bold text-foreground">
+					<div className="absolute left-0 top-0 flex flex-wrap items-center gap-1 rounded-br-lg bg-card/95 px-3 py-2 text-xs font-bold text-foreground">
 						<span>LOTE {String(lot.number).padStart(2, "0")}</span>
 						<AuctionLotStatusBadge status={lot.status} />
 					</div>
@@ -58,18 +58,18 @@ export function AuctionLotCard({ lot, engineLot, currency = "BRL", mode }: Aucti
 					</div>
 				</div>
 
-				<div className="space-y-4 p-4">
+				<div className="space-y-3 p-3 sm:p-4">
 					<h2 className="min-h-12 text-base font-bold leading-tight text-foreground">
 						{lot.title}
 					</h2>
 					<div className="rounded-lg bg-secondary/5 px-3 py-2">
 						<p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{isShopping ? "Preço fixo" : hasCurrentPrice ? "Último lance" : "Lance inicial"}</p>
-						<p className="mt-1 text-xl font-bold tabular-nums text-secondary">{formatCents(currentPrice, currency, isShopping)}</p>
+						<p className="mt-1 break-words text-base font-bold sm:text-xl tabular-nums text-secondary">{formatCents(currentPrice, currency, isShopping)}</p>
 						{!isShopping && bidderName ? <p className="mt-1 truncate text-[11px] text-muted-foreground">Lançado por {bidderName}</p> : null}
 					</div>
-					<div className="flex items-center justify-between gap-3">
+					<div className="flex flex-wrap items-center justify-between gap-2">
 						<span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Gavel className="size-3.5" aria-hidden="true" />{isShopping ? "Compra imediata" : engineLot?.nextBidCents ? `Próximo ${formatCents(engineLot.nextBidCents, currency)}` : "Consulte os lances"}</span>
-						<span className="inline-flex items-center gap-1.5 rounded-md bg-secondary px-3 py-2 text-xs font-bold text-secondary-foreground">{isShopping ? "Comprar" : "Dar lance"} <ArrowRight className="size-3.5" aria-hidden="true" /></span>
+						<span className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-secondary px-3 py-2 text-xs font-bold text-secondary-foreground">{isShopping ? "Comprar" : "Dar lance"} <ArrowRight className="size-3.5" aria-hidden="true" /></span>
 					</div>
 
 					{lot.payment ? (

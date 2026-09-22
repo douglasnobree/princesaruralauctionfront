@@ -123,12 +123,12 @@ function registrationState(status?: string, globallyEnabled?: boolean): Registra
 export function AuctionLotBidPanel({
 	initialSnapshot,
 	lotExternalId,
-	closingLabel,
+	catalogClosesAt,
 	catalogFixedPriceCents,
 }: {
 	initialSnapshot: EngineAuctionSnapshot;
 	lotExternalId: string;
-	closingLabel?: string | null;
+	catalogClosesAt?: string | null;
 	catalogFixedPriceCents?: number | string | null;
 }) {
 	const [snapshot, setSnapshot] = useState(initialSnapshot);
@@ -148,7 +148,8 @@ export function AuctionLotBidPanel({
 	const [loginDialogOpen, setLoginDialogOpen] = useState(false);
 	const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
 	const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
-	const [nowMs, setNowMs] = useState(() => Date.now());
+	// The shared snapshot instant keeps the first browser render identical to the server.
+	const [nowMs, setNowMs] = useState(() => Date.parse(initialSnapshot.serverTime) || 0);
 	const isShopping = snapshot.auction.mode === "SHOPPING";
 
 	const applySnapshot = useCallback((next: EngineAuctionSnapshot) => {
@@ -252,6 +253,7 @@ export function AuctionLotBidPanel({
 	useEffect(() => {
 		if (
 			!lot?.endsAt &&
+			!catalogClosesAt &&
 			!snapshot.auction.endsAt &&
 			!snapshot.auction.preBidStartsAt &&
 			!snapshot.auction.preBidEndsAt
@@ -260,6 +262,7 @@ export function AuctionLotBidPanel({
 		const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
 		return () => window.clearInterval(timer);
 	}, [
+		catalogClosesAt,
 		lot?.endsAt,
 		snapshot.auction.endsAt,
 		snapshot.auction.preBidStartsAt,
@@ -403,8 +406,8 @@ export function AuctionLotBidPanel({
 
 	const registrationBlocksCommands = registration === "checking" || registration === "suspended";
 	const selectedFixedBidIsBlocked = effectiveSelectedBidValue !== "custom" && proxyMaxBidCents !== null && BigInt(effectiveSelectedBidValue) <= BigInt(proxyMaxBidCents);
-	const countdownAt = isShopping ? snapshot.auction.endsAt : lot.endsAt;
-	const remainingSeconds = countdownAt
+	const countdownAt = isShopping ? snapshot.auction.endsAt : lot.endsAt ?? catalogClosesAt;
+	const remainingSeconds = countdownAt && Number.isFinite(new Date(countdownAt).getTime())
 		? Math.max(0, Math.floor((new Date(countdownAt).getTime() - nowMs) / 1000))
 		: null;
 	const closingText = isOpeningPause
@@ -414,16 +417,14 @@ export function AuctionLotBidPanel({
 			? remainingSeconds > 0
 				? `Compra disponível por mais ${formatCountdown(remainingSeconds)}`
 				: "Compra encerrada"
-			: closingLabel && closingLabel !== "Data não informada"
-				? `Compra disponível até ${closingLabel}`
-				: "Compra disponível enquanto o lote estiver aberto"
+			: "Encerramento das compras ainda não definido"
 		: remainingSeconds !== null
 			? remainingSeconds > 0
 				? `Lote fecha em ${formatCountdown(remainingSeconds)}`
-				: "Lote encerrado"
-			: closingLabel && closingLabel !== "Data não informada"
-				? `Lote fecha em ${closingLabel}`
-				: "Lote fecha em —";
+				: "Aguardando confirmação do encerramento"
+			: snapshot.auction.mode === "LIVE"
+				? "Encerramento definido pelo leiloeiro"
+				: "Encerramento ainda não definido";
 	const handlePrimaryBid = () => {
 		if (effectiveSelectedBidValue === "custom") {
 			void submitCustom(false);
@@ -436,10 +437,10 @@ export function AuctionLotBidPanel({
 		<>
 		<section className="space-y-4" aria-label={`${isShopping ? "Compra" : "Lances"} do lote ${lot.lotNumber}`}>
 			<div className="border-l-[3px] border-primary pl-4">
-				<div className="flex items-start justify-between gap-3">
+				<div className="flex flex-wrap items-start justify-between gap-3">
 					<div>
-						<p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{isShopping ? "Preço do lote" : "Último lance"}</p>
-						<p className="mt-1 text-[2rem] font-bold leading-none tabular-nums text-primary">{formatCents(isShopping ? fixedPriceCents : lot.currentPriceCents, snapshot.auction.currency)}</p>
+						<p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{isShopping ? "Preço do lote" : lot.status === "SOLD" ? "Valor de arremate" : "Último lance"}</p>
+						<p className="mt-1 text-[clamp(1.25rem,6vw,2rem)] font-bold leading-none tabular-nums text-primary">{formatCents(isShopping ? fixedPriceCents : lot.currentPriceCents, snapshot.auction.currency)}</p>
 					</div>
 					{isShopping ? <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground"><Coins className="size-3.5" /> Compra imediata</span> : <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground"><Clock3 className="size-3.5" /> Últimos 10 lance(s)</span>}
 				</div>
@@ -448,11 +449,11 @@ export function AuctionLotBidPanel({
 				</p>
 			</div>
 
-			<div className="rounded-lg bg-muted px-4 py-3 text-center text-sm font-semibold text-muted-foreground">
+			{!isLotClosed ? <div className="rounded-lg bg-muted px-4 py-3 text-center text-sm font-semibold text-muted-foreground">
 				<Clock3 className="mr-1 inline size-4" />{closingText}
-			</div>
+			</div> : null}
 
-			{!isShopping && !isOpeningPause ? <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-3 text-sm font-semibold text-muted-foreground">
+			{!isShopping && !isOpeningPause && !isLotClosed ? <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-3 text-sm font-semibold text-muted-foreground">
 				<Coins className="size-4 shrink-0" />
 				<span>Próximo lance: <strong className="text-foreground">{formatCents(lot.nextBidCents, snapshot.auction.currency)}</strong></span>
 			</div> : null}
