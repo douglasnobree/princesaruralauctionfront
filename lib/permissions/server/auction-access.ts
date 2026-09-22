@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { redirect } from "next/navigation";
 import { getRolePermissionsAction } from "@/hooks/actions/rolePermissionActions";
 import { getSession } from "@/lib/auth/server/session";
@@ -7,7 +8,7 @@ function hasModule(permissions: RolePermission[] | null, key: string) {
   return permissions?.some((permission) => permission.key === key && permission.enabled) ?? false;
 }
 
-export async function getAuctionManagementAccess() {
+export const getAuctionManagementAccess = cache(async function getAuctionManagementAccess() {
   const session = await getSession();
   if (!session?.user) redirect("/login?returnTo=/admin/leiloes");
   if (session.expiresAt <= Date.now()) redirect("/login?returnTo=/admin/leiloes");
@@ -30,4 +31,4 @@ export async function getAuctionManagementAccess() {
   if (!isAdmin && !hasModule(permissions, PERMISSION_MODULE_KEYS.AUCTIONS)) redirect("/acesso-negado");
 
   return { session, permissions };
-}
+});

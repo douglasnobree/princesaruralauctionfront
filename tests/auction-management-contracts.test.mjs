@@ -124,8 +124,9 @@ assert.match(reportProxy, /report\/pdf/);
 assert.match(reportProxy, /authenticatedFetch/);
 
 const participantsPanel = await read("components/Management/AuctionParticipantsPanel.tsx");
-assert.match(participantsPanel, /participant\.participantType === "QUICK"/);
-assert.match(participantsPanel, /Apenas lance assistido/);
+const eligibilityPanel = await read("components/Management/AuctionEligibilityPanel.tsx");
+assert.match(eligibilityPanel, /participant\.participantType === "QUICK"/);
+assert.match(eligibilityPanel, /apenas lances assistidos/);
 assert.match(participantsPanel, /Enviar WhatsApp/);
 assert.match(participantsPanel, /Confirmo o envio sem consentimento/);
 assert.match(participantsPanel, /maxLength=\{4096\}/);

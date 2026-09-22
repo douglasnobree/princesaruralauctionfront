@@ -1,12 +1,13 @@
 "use client";
 
 import { Clock3, Eye, RefreshCw, UserCheck } from "lucide-react";
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import {
-  listManagerPendingEligibilityBidsAction,
   setAuctionRegistrationEnabledAction,
 } from "@/hooks/actions/auctionEngineActions";
-import type { EnginePendingEligibilityBid } from "@/lib/auctions/engine-types";
+import { managerRead } from "@/lib/auctions/manager-read";
+import { useVisiblePoll } from "@/hooks/use-visible-poll";
+import type { EnginePendingEligibilityBidsPage, EnginePendingEligibilityBid } from "@/lib/auctions/engine-types";
 import { formatEngineBrlCents, formatEngineBrtInstant } from "@/lib/auctions/engine-formatters";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +37,7 @@ export function AuctionPendingEligibilityBids({
   canManageParticipants,
 }: {
   auctionId: string;
-  lotId: string;
+  lotId?: string;
   lotNumber?: number;
   lotTitle?: string;
   currency?: string;
@@ -46,32 +47,22 @@ export function AuctionPendingEligibilityBids({
   const [selected, setSelected] = useState<EnginePendingEligibilityBid | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
 
-  const load = useCallback(async () => {
-    if (!canManageParticipants) {
-      setLoading(false);
-      return;
-    }
-
-    setError(null);
-    const pendingResult = await listManagerPendingEligibilityBidsAction(auctionId, { lotId, limit: "100" });
-
-    if (pendingResult.success) setItems(pendingResult.data?.items ?? []);
-    else setError(pendingResult.error || "Não foi possível carregar os lances aguardando análise.");
-
-    setLoading(false);
+  const load = useCallback(async (signal?: AbortSignal) => {
+    if (!canManageParticipants) { setLoading(false); return; }
+    try {
+      const query = new URLSearchParams({ limit: "100", ...(lotId ? { lotId } : {}) });
+      const page = await managerRead<EnginePendingEligibilityBidsPage>(`manager/auctions/${encodeURIComponent(auctionId)}/pending-eligibility-bids?${query}`, signal);
+      if (signal?.aborted) return;
+      setItems(page.items); setHasMore(page.hasMore); setError(null);
+    } catch (cause) {
+      if (!signal?.aborted) setError(cause instanceof Error ? cause.message : "Não foi possível atualizar a fila.");
+    } finally { if (!signal?.aborted) setLoading(false); }
   }, [auctionId, canManageParticipants, lotId]);
-
-  useEffect(() => {
-    const initialLoad = window.setTimeout(() => void load(), 0);
-    const refresh = window.setInterval(() => void load(), 5000);
-    return () => {
-      window.clearTimeout(initialLoad);
-      window.clearInterval(refresh);
-    };
-  }, [load]);
+  useVisiblePoll(async (signal) => { if (!isPending) await load(signal); }, 5000);
 
   function enableParticipant(item: EnginePendingEligibilityBid) {
     if (!canManageParticipants) return;
@@ -92,7 +83,8 @@ export function AuctionPendingEligibilityBids({
       const releaseMessage = released
         ? ` ${released.processed} lance(s) liberado(s): ${released.accepted} aceito(s) e ${released.rejected} rejeitado(s) pelo motor.`
         : " O motor processará os lances mantidos para este participante.";
-      setNotice(`${item.participant.displayName || item.displayName || "Participante"} habilitado.${releaseMessage}`);
+      setNotice(`${item.participant.displayName || item.displayName || "Participante"} habilitado globalmente.${releaseMessage}`);
+      window.dispatchEvent(new Event("auction-participants-updated"));
       await load();
     });
   }
@@ -103,12 +95,12 @@ export function AuctionPendingEligibilityBids({
         <div>
           <div className="flex items-center gap-2 text-amber-800">
             <Clock3 className="size-4" aria-hidden="true" />
-            <p className="text-xs font-semibold uppercase tracking-[0.12em]">{lotNumber ? `Lote ${String(lotNumber).padStart(2, "0")}` : "Lote"}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em]">{lotNumber ? `Lote ${String(lotNumber).padStart(2, "0")}` : "Todos os lotes"}</p>
           </div>
           <h3 id={`pending-eligibility-${lotId}`} className="mt-1 text-base font-bold text-amber-950">{lotTitle || "Lances aguardando análise"}</h3>
           <p className="mt-1 text-xs leading-5 text-amber-950/70">Lances e pré-lances recebidos enquanto o participante ainda não estava habilitado.</p>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={() => void load()} disabled={!canManageParticipants || loading || isPending} className="border-amber-200 bg-white text-amber-900 hover:bg-amber-100">
+        <Button type="button" variant="outline" size="sm" onClick={() => { setLoading(true); void load(); }} disabled={!canManageParticipants || loading || isPending} className="border-amber-200 bg-white text-amber-900 hover:bg-amber-100">
           <RefreshCw className="size-3.5" aria-hidden="true" />Atualizar
         </Button>
       </div>
@@ -117,8 +109,9 @@ export function AuctionPendingEligibilityBids({
       {!canManageParticipants ? <p className="mt-3 text-xs text-slate-600">Seu perfil não possui permissão para consultar ou administrar a fila de habilitação.</p> : null}
       {error ? <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">{error}</p> : null}
       {canManageParticipants && loading ? <p className="mt-4 text-xs text-slate-600">Carregando lances aguardando análise…</p> : null}
-      {canManageParticipants && !loading && !error && items.length === 0 ? <p className="mt-4 text-xs text-slate-600">Nenhum lance aguardando habilitação neste lote.</p> : null}
+      {canManageParticipants && !loading && !error && items.length === 0 ? <p className="mt-4 text-xs text-slate-600">Nenhum lance aguardando habilitação.</p> : null}
 
+      {hasMore ? <p role="status" className="mt-3 text-xs">Exibindo as primeiras 100 pendências. Após as liberações, as próximas aparecem automaticamente.</p> : null}
       {items.length > 0 ? (
         <div className="mt-4 overflow-hidden rounded-lg border border-amber-200 bg-white">
           <div className="hidden grid-cols-[minmax(0,1fr)_8rem_9rem_minmax(0,auto)] gap-3 bg-amber-50 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.08em] text-amber-900/70 sm:grid">
@@ -139,7 +132,7 @@ export function AuctionPendingEligibilityBids({
                         <Clock3 className="size-3" aria-hidden="true" />Aguardando análise
                       </span>
                     </div>
-                    <p className="mt-1 text-xs text-slate-500">{formatEngineBrlCents(item.amountCents, currency)} · {participantReference}</p>
+                    <p className="mt-1 text-xs text-slate-500">Lote {item.lotNumber} · {formatEngineBrlCents(item.amountCents, currency)} · {participantReference}</p>
                     <span className="mt-2 inline-flex rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700 sm:hidden">{phaseLabel(item.phase)}</span>
                   </div>
                   <span className="hidden text-xs font-medium text-slate-600 sm:inline">{phaseLabel(item.phase)}</span>

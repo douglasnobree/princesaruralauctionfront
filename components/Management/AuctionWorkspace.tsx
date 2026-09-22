@@ -4,7 +4,6 @@ import {
   ArrowLeft,
   CheckCircle2,
   Circle,
-  ExternalLink,
   FileBarChart,
   Gavel,
   ListOrdered,
@@ -17,6 +16,7 @@ import {
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
@@ -30,19 +30,15 @@ import {
   formatCents,
 } from "@/lib/auctions/admin-utils";
 import type { EngineAuctionSnapshot } from "@/lib/auctions/engine-types";
-import type {
-  BroadcastClientInfo,
-  BroadcastConfig,
-  BroadcastState,
-} from "@/lib/broadcast/broadcast-types";
+const AuctionBroadcastPanel = dynamic(() => import("@/components/Management/AuctionBroadcastPanel").then((module) => module.AuctionBroadcastPanel), { loading: () => <div role="status" className="management-skeleton rounded-xl border p-6">Carregando seção…</div> });
 import type { AuctionAdmin, AuctionAdminLot } from "@/types/auction-admin";
 import type { AuctionCapabilities } from "@/components/Management/capabilities";
-import { AuctionForm } from "@/components/Management/AuctionForm";
-import { AuctionLotsPanel } from "@/components/Management/AuctionLotsPanel";
+const AuctionForm = dynamic(() => import("@/components/Management/AuctionForm").then((module) => module.AuctionForm), { loading: () => <div role="status" className="management-skeleton rounded-xl border p-6">Carregando seção…</div> });
+const AuctionLotsPanel = dynamic(() => import("@/components/Management/AuctionLotsPanel").then((module) => module.AuctionLotsPanel), { loading: () => <div role="status" className="management-skeleton rounded-xl border p-6">Carregando seção…</div> });
 import { AuctionPendingEligibilityBids } from "@/components/Management/AuctionPendingEligibilityBids";
-import { AuctionOperationPanel } from "@/components/Management/AuctionOperationPanel";
-import { AuctionParticipantsPanel } from "@/components/Management/AuctionParticipantsPanel";
-import { AuctionCommunicationPanel } from "@/components/Management/AuctionCommunicationPanel";
+const AuctionOperationPanel = dynamic(() => import("@/components/Management/AuctionOperationPanel").then((module) => module.AuctionOperationPanel), { loading: () => <div role="status" className="management-skeleton rounded-xl border p-6">Carregando seção…</div> });
+const AuctionParticipantsPanel = dynamic(() => import("@/components/Management/AuctionParticipantsPanel").then((module) => module.AuctionParticipantsPanel), { loading: () => <div role="status" className="management-skeleton rounded-xl border p-6">Carregando seção…</div> });
+const AuctionCommunicationPanel = dynamic(() => import("@/components/Management/AuctionCommunicationPanel").then((module) => module.AuctionCommunicationPanel), { loading: () => <div role="status" className="management-skeleton rounded-xl border p-6">Carregando seção…</div> });
 
 type Tab =
   | "resumo"
@@ -55,13 +51,13 @@ type Tab =
   | "transmissao";
 
 const tabs: Array<{ value: Tab; label: string; icon: typeof Gavel }> = [
+  { value: "operacao", label: "Operação", icon: MonitorPlay },
   { value: "resumo", label: "Resumo", icon: Gavel },
   { value: "dados", label: "Dados do leilão", icon: Settings2 },
   { value: "lotes", label: "Lotes", icon: ListOrdered },
   { value: "lances", label: "Lances e pré-lances", icon: Gavel },
   { value: "participantes", label: "Participantes", icon: ShieldCheck },
   { value: "comunicacao", label: "Comunicação", icon: MessageCircle },
-  { value: "operacao", label: "Operação", icon: MonitorPlay },
   { value: "transmissao", label: "Broadcast / OBS", icon: MonitorPlay },
 ];
 
@@ -85,26 +81,21 @@ export function AuctionWorkspace({
   capabilities,
   engineSnapshot,
   engineError,
-  broadcastState,
-  broadcastConfig,
-  broadcastClients,
 }: {
   auction: AuctionAdmin;
   lots: AuctionAdminLot[];
   capabilities: AuctionCapabilities;
   engineSnapshot: EngineAuctionSnapshot | null;
   engineError?: string;
-  broadcastState: BroadcastState | null;
-  broadcastConfig: BroadcastConfig | null;
-  broadcastClients: BroadcastClientInfo[];
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
-  const tab = getTab(params.get("aba"));
+  const tab = getTab(params.get("aba") ?? (auction.status === "OPEN" ? "operacao" : "resumo"));
 
   function changeTab(next: Tab) {
-    router.replace(`${pathname}?aba=${next}`, { scroll: false });
+    const query = new URLSearchParams(params.toString());
+    query.set("aba", next);
+    window.history.pushState(null, "", `${pathname}?${query.toString()}`);
   }
 
   const workspaceCapabilities = {
@@ -153,8 +144,8 @@ export function AuctionWorkspace({
           </div>
         </div>
         <div className="flex flex-wrap gap-2 lg:justify-end">
-          {workspaceCapabilities.canEdit ? <Link href={`/admin/leiloes/${auction.id}?aba=dados`} className="inline-flex min-h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><Pencil className="size-4" aria-hidden="true" />Editar dados</Link> : null}
-          {canEditLots ? <Link href={`/admin/leiloes/${auction.id}?aba=lotes`} className="inline-flex min-h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><ListOrdered className="size-4" aria-hidden="true" />{auction.availableActions?.canManageLots === false ? "Editar lotes" : "Gerenciar lotes"}</Link> : null}
+          {workspaceCapabilities.canEdit ? <Link href={`/admin/leiloes/${auction.id}?aba=dados`} onClick={(event) => { event.preventDefault(); changeTab("dados"); }} className="inline-flex min-h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><Pencil className="size-4" aria-hidden="true" />Editar dados</Link> : null}
+          {canEditLots ? <Link href={`/admin/leiloes/${auction.id}?aba=lotes`} onClick={(event) => { event.preventDefault(); changeTab("lotes"); }} className="inline-flex min-h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><ListOrdered className="size-4" aria-hidden="true" />{auction.availableActions?.canManageLots === false ? "Editar lotes" : "Gerenciar lotes"}</Link> : null}
           {capabilities.canViewReports ? <Link href={`/admin/leiloes/${auction.id}/relatorio`} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-secondary px-3 text-sm font-semibold text-secondary-foreground outline-none transition-[background-color,scale] duration-150 hover:bg-secondary/90 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><FileBarChart className="size-4" aria-hidden="true" />Ver relatório</Link> : null}
           {capabilities.canDelete && (auction.availableActions?.canDelete ?? true) ? <DeleteAuctionButton auction={auction} /> : null}
         </div>
@@ -162,7 +153,7 @@ export function AuctionWorkspace({
 
       <nav className="overflow-x-auto pb-1" aria-label="Seções do workspace">
         <div className="flex min-w-max gap-1 rounded-xl border bg-card p-1">
-          {tabs.filter((item) => item.value !== "comunicacao" || capabilities.canNotifyParticipants).map(({ value, label, icon: Icon }) => (
+          {tabs.filter((item) => (item.value !== "comunicacao" || capabilities.canNotifyParticipants) && (item.value !== "lances" || capabilities.canViewBids || capabilities.canManageStatus)).map(({ value, label, icon: Icon }) => (
             <button
               type="button"
               key={value}
@@ -177,6 +168,7 @@ export function AuctionWorkspace({
         </div>
       </nav>
 
+      <div key={tab} className="management-panel-enter">
       {tab === "resumo" ? (
         <div className="space-y-5">
           <section className="rounded-xl border bg-card p-5 shadow-sm" aria-labelledby="readiness-title">
@@ -221,31 +213,15 @@ export function AuctionWorkspace({
             </p>
           </header>
 
-          {engineSnapshot?.lots.length ? (
-            <div className="space-y-4" aria-label="Lances e pré-lances aguardando habilitação">
-              {engineSnapshot.lots.map((lot) => (
-                <AuctionPendingEligibilityBids
-                  key={lot.externalId}
-                  auctionId={auction.id}
-                  lotId={lot.externalId}
-                  lotNumber={lot.lotNumber}
-                  lotTitle={lot.title}
-                  currency={engineSnapshot.auction.currency ?? "BRL"}
-                  canManageParticipants={capabilities.canManageStatus}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed bg-card p-6 text-sm text-muted-foreground">
-              {engineError || "Os lances aparecerão aqui quando o leilão possuir lotes publicados no motor."}
-            </div>
-          )}
+          <AuctionPendingEligibilityBids auctionId={auction.id} canManageParticipants={capabilities.canManageStatus} />
         </section>
       ) : null}
       {tab === "participantes" ? <AuctionParticipantsPanel auctionId={auction.id} lots={lots} capabilities={capabilities} /> : null}
       {tab === "comunicacao" ? <AuctionCommunicationPanel auctionId={auction.id} canNotify={capabilities.canNotifyParticipants} /> : null}
-      {tab === "operacao" ? <AuctionOperationPanel auctionId={auction.id} initialSnapshot={engineSnapshot} capabilities={capabilities} /> : null}
-      {tab === "transmissao" ? <BroadcastSummary auctionId={auction.id} state={broadcastState} config={broadcastConfig} clients={broadcastClients} error={engineError} /> : null}
+      {tab === "operacao" ? <AuctionOperationPanel auctionId={auction.id} initialSnapshot={engineSnapshot} capabilities={capabilities} lots={lots} /> : null}
+      {engineError && tab === "resumo" ? <p role="status" className="text-sm text-amber-800">{engineError} A operação permite tentar novamente.</p> : null}
+      {tab === "transmissao" ? <AuctionBroadcastPanel auctionId={auction.id} canManage={capabilities.canManageStatus} /> : null}
+      </div>
     </div>
   );
 }
@@ -255,6 +231,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function AuctionStatusControls({ auction, capabilities }: { auction: AuctionAdmin; capabilities: AuctionCapabilities }) {
+  const router = useRouter();
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const canPublish = capabilities.canManageStatus && auction.availableActions?.canPublish !== false && auction.status !== "OPEN" && auction.status !== "CLOSED" && auction.status !== "CANCELLED";
@@ -263,7 +240,7 @@ function AuctionStatusControls({ auction, capabilities }: { auction: AuctionAdmi
     startTransition(async () => {
       const result = await publishAuctionAction(auction.id);
       setNotice(result.success ? "Leilão publicado." : result.error || "Não foi possível publicar.");
-      if (result.success) window.location.reload();
+      if (result.success) router.refresh();
     });
   }
 
@@ -272,11 +249,11 @@ function AuctionStatusControls({ auction, capabilities }: { auction: AuctionAdmi
     startTransition(async () => {
       const result = await cancelAuctionAction(auction.id);
       setNotice(result.success ? "Leilão cancelado." : result.error || "Não foi possível cancelar.");
-      if (result.success) window.location.reload();
+      if (result.success) router.refresh();
     });
   }
 
-  return <div className="mt-3 flex flex-wrap items-center gap-2">{canPublish ? <button type="button" onClick={publish} disabled={pending} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground outline-none transition-[background-color,scale] duration-150 hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96] disabled:opacity-50"><CheckCircle2 className="size-4" aria-hidden="true" />Publicar</button> : null}{capabilities.canManageStatus && auction.status !== "CANCELLED" && auction.status !== "CLOSED" ? <button type="button" onClick={cancel} disabled={pending} className="inline-flex min-h-9 items-center gap-2 rounded-md border border-destructive/30 px-3 text-sm font-semibold text-destructive outline-none transition-[background-color,scale] duration-150 hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-destructive/40 active:scale-[0.96] disabled:opacity-50"><XCircle className="size-4" aria-hidden="true" />Cancelar</button> : null}{notice ? <span role="status" className="text-xs font-semibold text-muted-foreground">{notice}</span> : null}</div>;
+  return <div className="mt-3 flex flex-wrap items-center gap-2">{canPublish ? <button type="button" onClick={publish} disabled={pending} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground outline-none transition-[background-color,scale] duration-150 hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96] disabled:opacity-50"><CheckCircle2 className="size-4" aria-hidden="true" />{pending ? "Publicando…" : "Publicar"}</button> : null}{capabilities.canManageStatus && auction.availableActions?.canCancel !== false && auction.status !== "CANCELLED" && auction.status !== "CLOSED" ? <button type="button" onClick={cancel} disabled={pending} className="inline-flex min-h-9 items-center gap-2 rounded-md border border-destructive/30 px-3 text-sm font-semibold text-destructive outline-none transition-[background-color,scale] duration-150 hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-destructive/40 active:scale-[0.96] disabled:opacity-50"><XCircle className="size-4" aria-hidden="true" />Cancelar</button> : null}{notice ? <span role="status" className="text-xs font-semibold text-muted-foreground">{notice}</span> : null}</div>;
 }
 
 function DeleteAuctionButton({ auction }: { auction: AuctionAdmin }) {
@@ -295,8 +272,4 @@ function DeleteAuctionButton({ auction }: { auction: AuctionAdmin }) {
     });
   }
   return <button type="button" onClick={remove} disabled={pending} className="inline-flex min-h-9 items-center gap-2 rounded-md border border-destructive/30 px-3 text-sm font-semibold text-destructive outline-none transition-[background-color,scale] duration-150 hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-destructive/40 active:scale-[0.96] disabled:opacity-50"><Trash2 className="size-4" aria-hidden="true" />Excluir</button>;
-}
-
-function BroadcastSummary({ auctionId, state, config, clients, error }: { auctionId: string; state: BroadcastState | null; config: BroadcastConfig | null; clients: BroadcastClientInfo[]; error?: string }) {
-  return <section className="space-y-5" aria-labelledby="broadcast-summary-title"><div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-secondary"><MonitorPlay className="size-4" aria-hidden="true" />Transmissão</div><h2 id="broadcast-summary-title" className="mt-2 text-xl font-bold">Broadcast / OBS</h2><p className="mt-1 text-sm text-muted-foreground">O overlay é somente leitura; os comandos continuam no Auction Engine.</p></div><Link href={`/admin/leiloes/${auctionId}/broadcast`} className="inline-flex min-h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground outline-none transition-[background-color,scale] duration-150 hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><ExternalLink className="size-4" aria-hidden="true" />Abrir control room</Link></div>{error ? <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900" role="status">{error}</p> : <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Metric label="Estado" value={state?.status ?? "Sem snapshot"} /><Metric label="Lote atual" value={state?.currentLot ? `Lote ${state.currentLot.number} · ${state.currentLot.title}` : "Nenhum"} /><Metric label="Versão" value={state ? String(state.version) : "—"} /><Metric label="Clientes / delay" value={`${clients.length} · ${config?.overlayDelayMs ?? 0} ms`} /></div>}</section>;
 }

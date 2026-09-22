@@ -132,7 +132,7 @@ export function AuctionLotsPanel({
 
   function startCreate() {
     setEditingId(null);
-    setDraft({ ...blank, number: String(sortedLots.length + 1) });
+    setDraft({ ...blank, number: String(Math.max(0, ...sortedLots.map((lot) => lot.number)) + 1) });
     setNotice(null);
   }
 
@@ -656,7 +656,7 @@ function LotRow({
           </div>
           <h3 className="mt-2 text-base font-bold text-slate-950">{lot.title}</h3>
           <p className="mt-1 text-xs text-slate-500">
-            Slug: {lot.slug} · {lot.bidCount ?? engineLot?.lotSequence ?? 0} lance(s)
+            Slug: {lot.slug} · {lot.bidCount ?? "—"} lance(s)
           </p>
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-3 xl:min-w-[330px]">

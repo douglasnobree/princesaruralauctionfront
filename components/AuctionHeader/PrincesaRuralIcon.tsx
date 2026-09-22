@@ -19,7 +19,7 @@ interface PrincesaRuralWordmarkProps extends SharedLogoImageProps {
 }
 
 const wordmarkSources: Record<LogoVariant, string> = {
-  color: "/logo.svg",
+  color: "/Logo.svg",
   white: "/logo-white.svg",
   black: "/logo-black.svg",
 };

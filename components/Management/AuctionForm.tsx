@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   createAuctionAction,
   updateAuctionAction,
@@ -136,6 +137,8 @@ export function AuctionForm({
   initialData?: AuctionAdmin;
   capabilities: AuctionCapabilities;
 }) {
+  const router = useRouter();
+  const savedId = useRef(initialData?.id);
   const isEditing = Boolean(initialData);
   const canSave = isEditing ? capabilities.canEdit : capabilities.canCreate;
   const lifecycleEditBlock = Boolean(
@@ -239,13 +242,14 @@ export function AuctionForm({
           ? Number(form.plannedLotCount)
           : undefined,
       };
-      const result = initialData
-        ? await updateAuctionAction(initialData.id, input)
+      const result = savedId.current
+        ? await updateAuctionAction(savedId.current, input)
         : await createAuctionAction(input);
       if (!result.success || !result.data) {
         setNotice(result.error || "Não foi possível salvar os dados.");
         return;
       }
+      savedId.current = result.data.id;
       if (cover) {
         const imageResult = await uploadAuctionCoverImageAction(
           result.data.id,
@@ -258,11 +262,12 @@ export function AuctionForm({
           return;
         }
       }
+      setCover(null);
       setNotice(initialData ? "Alterações salvas." : "Rascunho criado.");
       if (!initialData) {
-        window.location.assign(`/admin/leiloes/${result.data.id}?aba=lotes`);
+        router.replace(`/admin/leiloes/${result.data.id}?aba=lotes`);
       } else {
-        window.location.reload();
+        router.refresh();
       }
     });
   }

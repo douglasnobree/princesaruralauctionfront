@@ -7,7 +7,7 @@ import {
   LogOut,
   Menu,
   MonitorPlay,
-  X,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -18,10 +18,13 @@ import {
 } from "@/components/AuctionHeader/PrincesaRuralIcon";
 import { logoutAuctionAction } from "@/hooks/actions/auctionAuthActions";
 import type { RolePermission } from "@/types/role-permissions";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { permissionsToAuctionCapabilities } from "@/components/Management/capabilities";
 import type { User } from "@/types/auth/user";
 
 const navItems = [
   { href: "/admin/leiloes", label: "Catálogo de leilões", icon: Gavel },
+  { href: "/admin/habilitacoes", label: "Habilitações globais", icon: ShieldCheck },
   {
     href: "/admin/leiloes/sandbox",
     label: "Ambiente de teste",
@@ -43,7 +46,9 @@ function accountLabel(accountType: string) {
 function Navigation({
   onNavigate,
   compact = false,
+  canManage = false,
 }: {
+  canManage?: boolean;
   onNavigate?: () => void;
   compact?: boolean;
 }) {
@@ -58,8 +63,8 @@ function Navigation({
         Gestão de leilões
       </p>
       <div className="space-y-1">
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`);
+        {navItems.filter((item) => item.href !== "/admin/habilitacoes" || canManage).map(({ href, label, icon: Icon }) => {
+          const active = (pathname === href || pathname.startsWith(`${href}/`)) && !(href === "/admin/leiloes" && pathname.startsWith("/admin/leiloes/sandbox"));
           return (
             <Link
               key={href}
@@ -69,7 +74,7 @@ function Navigation({
               title={compact ? label : undefined}
               className={`flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium outline-none transition-[background-color,color,box-shadow] duration-150 focus-visible:ring-2 focus-visible:ring-ring ${
                 active
-                  ? "bg-primary/10 text-primary shadow-[inset_3px_0_0_var(--primary)]"
+                  ? "bg-secondary/10 text-secondary"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               } ${compact ? "justify-center px-2" : ""}`}
             >
@@ -149,11 +154,13 @@ function UserSummary({
 export function AuctionManagementShell({
   children,
   user,
+  permissions,
 }: {
   children: React.ReactNode;
   user: User;
   permissions?: RolePermission[] | null;
 }) {
+  const canManage = permissionsToAuctionCapabilities(permissions, user.accountType).canManageStatus;
   const pathname = usePathname();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -168,7 +175,7 @@ export function AuctionManagementShell({
     });
   }
 
-  const currentLabel = pathname.includes("/sandbox")
+  const currentLabel = pathname.includes("/habilitacoes") ? "Habilitações globais" : pathname.includes("/sandbox")
     ? "Ambiente de teste"
     : pathname.includes("/broadcast")
       ? "Broadcast / OBS"
@@ -176,7 +183,7 @@ export function AuctionManagementShell({
         ? "Novo leilão"
         : pathname === "/admin/leiloes"
           ? "Catálogo"
-          : "Workspace";
+          : "Gestão do leilão";
 
   return (
     <div className="auction-management-shell flex min-h-screen bg-gray-50/50 text-foreground dark:bg-gray-950/50">
@@ -199,6 +206,7 @@ export function AuctionManagementShell({
           <div
             className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}
           >
+            {collapsed ? <PrincesaLogoIcon className="size-9" /> : null}
             {!collapsed ? (
               <div className="min-w-0">
                 <PrincesaRuralWordmark
@@ -213,7 +221,7 @@ export function AuctionManagementShell({
             ) : null}
           </div>
         </Link>
-        <Navigation compact={collapsed} />
+        <Navigation compact={collapsed} canManage={canManage} />
         <UserSummary
           user={user}
           onLogout={logout}
@@ -230,47 +238,17 @@ export function AuctionManagementShell({
         </button>
       </aside>
 
-      {mobileOpen ? (
-        <div
-          className="fixed inset-0 z-[70] lg:hidden"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Menu de gestão"
-        >
-          <button
-            type="button"
-            className="absolute inset-0 bg-foreground/30"
-            onClick={() => setMobileOpen(false)}
-            aria-label="Fechar menu"
-          />
-          <aside className="relative flex h-full w-[min(20rem,88vw)] flex-col bg-background shadow-2xl">
-            <div className="flex items-center justify-between border-b px-4 py-5">
-              <Link
-                href="/admin/leiloes"
-                onClick={() => setMobileOpen(false)}
-                aria-label="Princesa Rural — Catálogo de leilões"
-                className="flex items-center"
-              >
-                <PrincesaRuralWordmark
-                  variant="color"
-                  alt=""
-                  className="h-8 w-auto"
-                />
-              </Link>
-              <button
-                type="button"
-                onClick={() => setMobileOpen(false)}
-                className="grid size-9 place-items-center rounded-lg text-muted-foreground outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
-                aria-label="Fechar menu"
-              >
-                <X className="size-5" />
-              </button>
-            </div>
-            <Navigation onNavigate={() => setMobileOpen(false)} />
+      <Dialog open={mobileOpen} onOpenChange={setMobileOpen}>
+        <DialogContent className="left-0 top-0 h-dvh max-h-dvh w-[min(20rem,88vw)] max-w-none translate-x-0 translate-y-0 gap-0 rounded-none p-0 sm:max-w-none">
+          <DialogTitle className="sr-only">Menu de gestão</DialogTitle>
+          <DialogDescription className="sr-only">Navegue entre leilões e habilitações globais.</DialogDescription>
+          <div className="flex h-full min-h-0 flex-col">
+            <div className="border-b px-4 py-6"><PrincesaRuralWordmark variant="color" alt="Princesa Rural" className="h-8 w-auto" /></div>
+            <Navigation canManage={canManage} onNavigate={() => setMobileOpen(false)} />
             <UserSummary user={user} onLogout={logout} isPending={isPending} />
-          </aside>
-        </div>
-      ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-50 flex min-h-14 items-center justify-between gap-3 border-b bg-background/95 px-3 backdrop-blur sm:min-h-16 sm:px-4 lg:px-6">

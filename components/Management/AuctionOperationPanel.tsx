@@ -3,6 +3,7 @@
 import {
   CheckCircle2,
   Gavel,
+  Loader2,
   Pause,
   Play,
   Radio,
@@ -11,16 +12,25 @@ import {
   Square,
   Undo2,
 } from "lucide-react";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import {
   createQuickParticipantAction,
-  getEngineSnapshotAction,
   managerAuctionCommandAction,
   managerFloorBidAction,
   managerLotCommandAction,
+  managerCurrentLotAction,
   managerStreamAction,
   searchAuctionParticipantsAction,
 } from "@/hooks/actions/auctionEngineActions";
+import { managerRead } from "@/lib/auctions/manager-read";
+import { parseManagementAmount } from "@/lib/auctions/management-input";
+import { useVisiblePoll } from "@/hooks/use-visible-poll";
+import { AuctionPendingEligibilityBids } from "@/components/Management/AuctionPendingEligibilityBids";
+import { AuctionParticipantsPanel } from "@/components/Management/AuctionParticipantsPanel";
+import { AuctionBroadcastPanel } from "@/components/Management/AuctionBroadcastPanel";
+import { AuctionBidHistory } from "@/components/Management/AuctionBidHistory";
+import { AuctionCommunicationPanel } from "@/components/Management/AuctionCommunicationPanel";
+import type { AuctionAdminLot } from "@/types/auction-admin";
 import type { AuctionCapabilities } from "@/components/Management/capabilities";
 import type {
   AuctionParticipantSearchResult,
@@ -102,10 +112,12 @@ export function AuctionOperationPanel({
   auctionId,
   initialSnapshot,
   capabilities,
+  lots = [],
 }: {
   auctionId: string;
   initialSnapshot: EngineAuctionSnapshot | null;
   capabilities: AuctionCapabilities;
+  lots?: AuctionAdminLot[];
 }) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [message, setMessage] = useState<string | null>(null);
@@ -120,57 +132,45 @@ export function AuctionOperationPanel({
   const [providerStreamId, setProviderStreamId] = useState(
     initialSnapshot?.stream?.providerStreamId || "",
   );
-  const statusRef = useRef(initialSnapshot?.auction.status);
+  const [tool, setTool] = useState<"bids" | "participants" | "broadcast" | "communication">("bids");
+  const [selectedLot, setSelectedLot] = useState("");
+  const [syncError, setSyncError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const streamDirty = useRef(false);
+  const requestVersion = useRef(0);
   const streamVersionRef = useRef(initialSnapshot?.stream?.version);
-  useEffect(() => {
-    if (!initialSnapshot) return;
-    let stopped = false;
-    const poll = async () => {
-      const result = await getEngineSnapshotAction(auctionId);
-      if (!stopped && result.success && result.data) {
-        const changed = statusRef.current !== result.data.auction.status;
-        const streamChanged =
-          streamVersionRef.current !== result.data.stream?.version;
-        statusRef.current = result.data.auction.status;
-        streamVersionRef.current = result.data.stream?.version;
-        if (streamChanged) {
-          setStreamProvider(result.data.stream?.provider || "youtube");
-          setStreamUrl(result.data.stream?.playbackUrl || "");
-          setProviderStreamId(result.data.stream?.providerStreamId || "");
-        }
-        setSnapshot(result.data);
-        if (changed)
-          window.dispatchEvent(new Event("auction-management-refresh"));
+  async function refresh(successMessage?: string, signal?: AbortSignal) {
+    const request = ++requestVersion.current;
+    try {
+      const data = await managerRead<EngineAuctionSnapshot>(`auctions/${encodeURIComponent(auctionId)}/snapshot`, signal);
+      if (signal?.aborted || request !== requestVersion.current) return;
+      if (!streamDirty.current && streamVersionRef.current !== data.stream?.version) {
+        setStreamProvider(data.stream?.provider || "youtube");
+        setStreamUrl(data.stream?.playbackUrl || "");
+        setProviderStreamId(data.stream?.providerStreamId || "");
       }
-    };
-    const timer = window.setInterval(() => void poll(), 2500);
-    return () => {
-      stopped = true;
-      window.clearInterval(timer);
-    };
-  }, [auctionId, initialSnapshot]);
-  async function refresh(successMessage = "Estado oficial atualizado.") {
-    const result = await getEngineSnapshotAction(auctionId);
-    if (result.success && result.data) {
-      streamVersionRef.current = result.data.stream?.version;
-      setStreamProvider(result.data.stream?.provider || "youtube");
-      setStreamUrl(result.data.stream?.playbackUrl || "");
-      setProviderStreamId(result.data.stream?.providerStreamId || "");
-      setSnapshot(result.data);
-      setError(null);
-      setMessage(successMessage);
-    } else setError(result.error || "Não foi possível atualizar o estado.");
+      streamVersionRef.current = data.stream?.version;
+      setSnapshot((current) => current && current.auction.version === data.auction.version && current.stream?.version === data.stream?.version && current.lots.length === data.lots.length && current.lots.every((lot, index) => lot.id === data.lots[index]?.id && lot.version === data.lots[index]?.version) ? current : data);
+      setSyncError(null);
+      if (successMessage) setMessage(successMessage);
+    } catch (cause) {
+      if (!signal?.aborted && request === requestVersion.current) setSyncError(cause instanceof Error ? cause.message : "Não foi possível atualizar o estado.");
+    } finally { if (!signal?.aborted) setRefreshing(false); }
   }
-  function run(action: () => Promise<{ success: boolean; error?: string }>) {
+  useVisiblePoll(async (signal) => { if (!isPending && !refreshing) await refresh(undefined, signal); }, 2500);
+  function run(action: () => Promise<{ success: boolean; error?: string }>, confirmation?: string) {
+    if (confirmation && !window.confirm(confirmation)) return;
     startTransition(async () => {
       setError(null);
       setMessage(null);
+      ++requestVersion.current;
       const result = await action();
       if (!result.success) {
         setError(result.error || "Comando não executado.");
+        await refresh();
         return;
       }
-      await refresh("Comando registrado e estado atualizado.");
+      await refresh("Comando registrado.");
     });
   }
   if (!snapshot)
@@ -178,13 +178,14 @@ export function AuctionOperationPanel({
       <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
         <h2 className="font-semibold">Operação ainda não disponível</h2>
         <p className="mt-1 leading-6">
-          {error ||
+          {syncError || error ||
             "Publique o leilão e aguarde o motor preparar o snapshot oficial."}
         </p>
+        <button type="button" disabled={refreshing} onClick={() => { setRefreshing(true); void refresh(); }} className="mt-3 min-h-11 underline">{refreshing ? "Atualizando…" : "Tentar novamente"}</button>
       </section>
     );
   const auction = snapshot.auction;
-  const canOperate = capabilities.canManageStatus;
+  const canOperate = capabilities.canManageStatus && !syncError;
   const canBid = capabilities.canManageBids;
   function setStream(status: "LIVE" | "ENDED") {
     const provider = streamProvider.trim().toLowerCase() || "custom";
@@ -199,8 +200,8 @@ export function AuctionOperationPanel({
       );
       return;
     }
-    run(() =>
-      managerStreamAction(auctionId, {
+    run(async () => {
+      const result = await managerStreamAction(auctionId, {
         provider,
         status,
         ...(playbackUrl ? { playbackUrl } : {}),
@@ -210,20 +211,17 @@ export function AuctionOperationPanel({
         ...(provider === "mock" && !playbackUrl
           ? { playbackUrl: `https://mock-stream.invalid/${auction.externalId}` }
           : {}),
-      }),
-    );
+      });
+      if (result.success) streamDirty.current = false;
+      return result;
+    });
   }
+  const historyLot = snapshot.lots.find((lot) => lot.externalId === selectedLot) ?? snapshot.lots.find((lot) => lot.status === "OPEN") ?? snapshot.lots[0];
   return (
-    <section className="space-y-5" aria-labelledby="operation-title">
+    <section className="space-y-5" aria-labelledby="operation-title" aria-busy={isPending}>
       <div className="flex flex-col gap-3 border-b border-[#e9efeb] pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex items-center gap-2 text-[#08734e]">
-            <Radio className="size-5" aria-hidden="true" />
-            <p className="text-xs font-bold uppercase tracking-[0.16em]">
-              Motor oficial
-            </p>
-          </div>
-          <h2 id="operation-title" className="mt-2 text-xl font-bold">
+          <h2 id="operation-title" className="text-xl font-bold">
             {auction.mode === "LIVE"
               ? "Operação ao vivo"
               : auction.mode === "SHOPPING"
@@ -231,8 +229,7 @@ export function AuctionOperationPanel({
                 : "Operação de pré-lance"}
           </h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-            Os comandos abaixo apenas encaminham ações ao Auction Engine. O
-            estado exibido é sempre o snapshot devolvido pelo backend.
+            Controle lotes, registre lances e acompanhe participantes nesta página.
           </p>
         </div>
         <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-3 py-2 text-sm font-semibold shadow-sm">
@@ -243,120 +240,6 @@ export function AuctionOperationPanel({
           {auctionLabels[auction.status] ?? auction.status}
         </span>
       </div>
-      {auction.mode === "LIVE" ? (
-        <section className="rounded-2xl border border-[#dfe8e2] bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <Radio className="size-4 text-[#08734e]" aria-hidden="true" />
-                <h3 className="font-semibold">Fonte da transmissão</h3>
-              </div>
-              <p className="mt-1 text-sm text-slate-600">
-                Conecte uma live do YouTube, uma playlist HLS ou uma URL pública
-                de vídeo. O OBS e a tela pública usam esta mesma fonte.
-              </p>
-              <div className="mt-4 grid gap-3 md:grid-cols-[12rem_minmax(0,1fr)_14rem]">
-                <label className="text-xs font-semibold text-slate-700">
-                  Serviço
-                  <select
-                    value={streamProvider}
-                    onChange={(event) => {
-                      const next = event.target.value;
-                      setStreamProvider(next);
-                      setStreamUrl("");
-                      setProviderStreamId("");
-                    }}
-                    disabled={!canOperate || isPending}
-                    className="mt-1 h-10 w-full rounded-lg border border-[#dfe8e2] bg-white px-3 text-sm font-medium text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24]"
-                  >
-                    <option value="youtube">YouTube Live</option>
-                    <option value="hls">HLS (.m3u8)</option>
-                    <option value="direct">Stream direto</option>
-                    <option value="custom">Outro serviço</option>
-                    <option value="mock">Mock (somente ensaio)</option>
-                  </select>
-                </label>
-                <label className="text-xs font-semibold text-slate-700">
-                  URL pública da transmissão
-                  <input
-                    value={streamUrl}
-                    onChange={(event) => setStreamUrl(event.target.value)}
-                    disabled={!canOperate || isPending}
-                    placeholder={
-                      streamProvider === "youtube"
-                        ? "https://www.youtube.com/live/..."
-                        : "https://cdn.exemplo.com/live.m3u8"
-                    }
-                    className="mt-1 h-10 w-full rounded-lg border border-[#dfe8e2] bg-white px-3 text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#f08a24]"
-                    inputMode="url"
-                    type="url"
-                  />
-                </label>
-                <label className="text-xs font-semibold text-slate-700">
-                  ID no serviço
-                  <input
-                    value={providerStreamId}
-                    onChange={(event) =>
-                      setProviderStreamId(event.target.value)
-                    }
-                    disabled={!canOperate || isPending}
-                    placeholder="Opcional"
-                    className="mt-1 h-10 w-full rounded-lg border border-[#dfe8e2] bg-white px-3 text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#f08a24]"
-                  />
-                </label>
-              </div>
-              <p className="mt-2 text-xs text-slate-500">
-                Em produção, use HTTPS. Para YouTube, informe a URL da live;
-                para outras plataformas, informe a URL de reprodução compatível.
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-col gap-3 lg:min-w-44">
-              <p className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700">
-                <span
-                  className={`size-2.5 rounded-full ${snapshot.stream?.status === "LIVE" ? "bg-emerald-500" : "bg-slate-300"}`}
-                  aria-hidden="true"
-                />
-                {snapshot.stream?.status === "LIVE"
-                  ? "Ao vivo"
-                  : snapshot.stream?.status === "ENDED"
-                    ? "Encerrado"
-                    : "Aguardando"}
-              </p>
-              <p className="text-xs text-slate-500">
-                {streamProviderLabel(streamProvider)}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setStream("LIVE")}
-                  disabled={
-                    !canOperate ||
-                    isPending ||
-                    snapshot.stream?.status === "LIVE"
-                  }
-                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#08734e] px-3 text-sm font-semibold text-white hover:bg-[#075b3e] disabled:opacity-50"
-                >
-                  <Play className="size-4" aria-hidden="true" />
-                  Colocar ao vivo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setStream("ENDED")}
-                  disabled={
-                    !canOperate ||
-                    isPending ||
-                    snapshot.stream?.status !== "LIVE"
-                  }
-                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#dfe8e2] px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-                >
-                  <Square className="size-4" aria-hidden="true" />
-                  Encerrar sinal
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
-      ) : null}
       <section className="rounded-2xl border border-[#dfe8e2] bg-white p-4 shadow-sm sm:p-5">
         <div className="flex flex-wrap gap-2" aria-label="Comandos do leilão">
           <CommandButton
@@ -429,24 +312,26 @@ export function AuctionOperationPanel({
                   "finish",
                   auction.version,
                 ),
+                "Encerrar este leilão? Confira os lotes e lances antes de confirmar.",
               )
             }
           />
           <button
             type="button"
-            onClick={() => void refresh()}
-            disabled={isPending}
+            onClick={() => { setRefreshing(true); void refresh("Estado atualizado."); }}
+            disabled={isPending || refreshing}
             className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#dfe8e2] px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
           >
-            <RefreshCw className="size-4" aria-hidden="true" />
+            <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden="true" />
             Atualizar estado
           </button>
         </div>
         <p className="mt-3 text-xs text-slate-500">
-          Versão oficial {auction.version}. Ações inválidas para o estado atual
-          ficam desabilitadas também no backend.
+          Os controles ficam disponíveis conforme o estado atual do leilão.
         </p>
       </section>
+      {isPending ? <p role="status" className="flex items-center gap-2 text-sm font-semibold text-secondary"><Loader2 className="size-4 animate-spin" />Executando comando…</p> : null}
+      {syncError ? <p role="alert" className="rounded-lg bg-amber-50 p-4 text-sm text-amber-900">Atualização interrompida. {syncError} Os valores exibidos podem estar desatualizados.</p> : null}
       {message ? (
         <p
           role="status"
@@ -470,40 +355,165 @@ export function AuctionOperationPanel({
       >
         <div className="border-b border-[#e9efeb] px-4 py-4 sm:px-5">
           <h3 id="engine-lots-title" className="font-semibold">
-            Lotes no motor
+            Controle dos lotes
           </h3>
           <p className="mt-1 text-xs text-slate-500">
-            Acompanhe preço, liderança e versão de cada lote em tempo real.
+            Acompanhe o valor e a liderança de cada lote. Selecione um lote para consultar seus lances.
           </p>
         </div>
-        <div className="divide-y divide-[#e9efeb]">
-          {snapshot.lots.map((lot) => (
-            <EngineLotRow
-              key={lot.id}
-              auctionId={auctionId}
-              currency={auction.currency}
-              lot={lot}
-              canOperate={canOperate}
-              isPending={isPending}
-              run={run}
-            />
-          ))}
+        <div className="flex flex-wrap items-end gap-3 border-b px-4 py-3 sm:px-5">
+          <label className="min-w-0 flex-1 basis-full text-xs font-semibold sm:basis-64" htmlFor="operation-lot">Selecionar lote
+            <select id="operation-lot" className="admin-field" value={historyLot?.externalId ?? ""} onChange={(event) => setSelectedLot(event.target.value)}>
+              {[...snapshot.lots].sort((a, b) => a.lotNumber - b.lotNumber).map((lot) => <option key={lot.externalId} value={lot.externalId}>Lote {lot.lotNumber} — {lot.title} · {lotLabels[lot.status] ?? lot.status}</option>)}
+            </select>
+          </label>
+          {historyLot && capabilities.canManageLots && auction.mode === "LIVE" ? <button type="button" disabled={isPending || Boolean(syncError)} onClick={() => run(() => managerCurrentLotAction(auctionId, historyLot.externalId, auction.version))} className="min-h-11 rounded-lg border px-3 text-xs font-semibold disabled:opacity-40">Destacar na transmissão</button> : null}
+          <span className="pb-3 text-xs text-muted-foreground">{snapshot.lots.filter((lot) => lot.status === "SOLD").length} vendido(s) · {snapshot.lots.length} lote(s)</span>
         </div>
+        {historyLot ? <EngineLotRow key={historyLot.id} auctionId={auctionId} currency={auction.currency} lot={historyLot}
+          canOperate={canOperate} onSelect={() => { setTool("bids"); document.getElementById("operation-tools")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} selected
+          isPending={isPending} run={run} /> : <p className="p-5 text-sm text-muted-foreground">Nenhum lote disponível. Cadastre e publique os lotes para começar.</p>}
+
       </section>
-      {canBid ? (
+      {canBid && auction.mode !== "SHOPPING" ? (
         <FloorBidPanel
           auctionId={auctionId}
           snapshot={snapshot}
+          disabled={isPending || Boolean(syncError)}
           onDone={() =>
             void refresh("Lance assistido registrado e placar atualizado.")
           }
         />
-      ) : (
+      ) : auction.mode !== "SHOPPING" ? (
         <p className="rounded-xl border border-[#dfe8e2] bg-white px-4 py-3 text-sm text-slate-600">
           Seu perfil pode acompanhar a operação, mas não possui permissão para
           registrar lances assistidos.
         </p>
-      )}
+      ) : null}
+      <section id="operation-tools" className="scroll-mt-24 space-y-4">
+        <nav aria-label="Ferramentas da operação" className="flex flex-wrap gap-2 border-b pb-3">
+          {([{ value: "bids", label: "Lances e habilitações", visible: capabilities.canViewBids || canOperate }, { value: "participants", label: "Participantes", visible: canOperate }, { value: "broadcast", label: "Transmissão / OBS", visible: auction.mode === "LIVE" }, { value: "communication", label: "Comunicação", visible: capabilities.canNotifyParticipants }] as const).filter((item) => item.visible).map((item) => <button type="button" key={item.value} aria-pressed={tool === item.value} onClick={() => setTool(item.value)} className={`min-h-11 rounded-lg px-4 text-sm font-semibold ${tool === item.value ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground"}`}>{item.label}</button>)}
+        </nav>
+        <div key={tool} className="management-panel-enter">
+          {tool === "bids" ? <div className="space-y-4">{historyLot && capabilities.canViewBids ? <AuctionBidHistory key={historyLot.externalId} auctionId={auctionId} lot={historyLot} canManage={canBid && !syncError} onChanged={() => void refresh()} /> : null}{canOperate ? <AuctionPendingEligibilityBids auctionId={auctionId} canManageParticipants={canOperate} /> : null}</div> : null}
+          {tool === "participants" && canOperate ? <AuctionParticipantsPanel auctionId={auctionId} lots={lots} capabilities={capabilities} /> : null}
+          {tool === "broadcast" ? <div className="space-y-4">      {auction.mode === "LIVE" ? (
+        <details className="rounded-2xl border border-[#dfe8e2] bg-white p-4 shadow-sm sm:p-5">
+          <summary className="min-h-11 cursor-pointer font-semibold">Fonte da transmissão · {snapshot.stream?.status === "LIVE" ? "Ao vivo" : "Configurar"}</summary>
+          <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <Radio className="size-4 text-[#08734e]" aria-hidden="true" />
+                <h3 className="font-semibold">Fonte da transmissão</h3>
+              </div>
+              <p className="mt-1 text-sm text-slate-600">
+                Conecte uma live do YouTube, uma playlist HLS ou uma URL pública
+                de vídeo. O OBS e a tela pública usam esta mesma fonte.
+              </p>
+              <div className="mt-4 grid gap-3 md:grid-cols-[12rem_minmax(0,1fr)_14rem]">
+                <label className="text-xs font-semibold text-slate-700">
+                  Serviço
+                  <select
+                    value={streamProvider}
+                    onChange={(event) => {
+                      streamDirty.current = true;
+                      const next = event.target.value;
+                      setStreamProvider(next);
+                      setStreamUrl("");
+                      setProviderStreamId("");
+                    }}
+                    disabled={!canOperate || isPending}
+                    className="mt-1 h-10 w-full rounded-lg border border-[#dfe8e2] bg-white px-3 text-sm font-medium text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24]"
+                  >
+                    <option value="youtube">YouTube Live</option>
+                    <option value="hls">HLS (.m3u8)</option>
+                    <option value="direct">Stream direto</option>
+                    <option value="custom">Outro serviço</option>
+                    <option value="mock">Mock (somente ensaio)</option>
+                  </select>
+                </label>
+                <label className="text-xs font-semibold text-slate-700">
+                  URL pública da transmissão
+                  <input
+                    value={streamUrl}
+                    onChange={(event) => { streamDirty.current = true; setStreamUrl(event.target.value); }}
+                    disabled={!canOperate || isPending}
+                    placeholder={
+                      streamProvider === "youtube"
+                        ? "https://www.youtube.com/live/..."
+                        : "https://cdn.exemplo.com/live.m3u8"
+                    }
+                    className="mt-1 h-10 w-full rounded-lg border border-[#dfe8e2] bg-white px-3 text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#f08a24]"
+                    inputMode="url"
+                    type="url"
+                  />
+                </label>
+                <label className="text-xs font-semibold text-slate-700">
+                  ID no serviço
+                  <input
+                    value={providerStreamId}
+                    onChange={(event) => { streamDirty.current = true; setProviderStreamId(event.target.value); }}
+                    disabled={!canOperate || isPending}
+                    placeholder="Opcional"
+                    className="mt-1 h-10 w-full rounded-lg border border-[#dfe8e2] bg-white px-3 text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#f08a24]"
+                  />
+                </label>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                Em produção, use HTTPS. Para YouTube, informe a URL da live;
+                para outras plataformas, informe a URL de reprodução compatível.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col gap-3 lg:min-w-44">
+              <p className="inline-flex items-center gap-2 text-xs font-semibold text-slate-700">
+                <span
+                  className={`size-2.5 rounded-full ${snapshot.stream?.status === "LIVE" ? "bg-emerald-500" : "bg-slate-300"}`}
+                  aria-hidden="true"
+                />
+                {snapshot.stream?.status === "LIVE"
+                  ? "Ao vivo"
+                  : snapshot.stream?.status === "ENDED"
+                    ? "Encerrado"
+                    : "Aguardando"}
+              </p>
+              <p className="text-xs text-slate-500">
+                {streamProviderLabel(streamProvider)}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStream("LIVE")}
+                  disabled={
+                    !canOperate ||
+                    isPending
+                  }
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#08734e] px-3 text-sm font-semibold text-white hover:bg-[#075b3e] disabled:opacity-50"
+                >
+                  <Play className="size-4" aria-hidden="true" />
+                  {snapshot.stream?.status === "LIVE" ? "Atualizar transmissão" : "Colocar ao vivo"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStream("ENDED")}
+                  disabled={
+                    !canOperate ||
+                    isPending ||
+                    snapshot.stream?.status !== "LIVE"
+                  }
+                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#dfe8e2] px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  <Square className="size-4" aria-hidden="true" />
+                  Encerrar sinal
+                </button>
+              </div>
+            </div>
+          </div>
+        </details>
+      ) : null}
+<AuctionBroadcastPanel auctionId={auctionId} canManage={canOperate} /></div> : null}
+          {tool === "communication" && capabilities.canNotifyParticipants ? <AuctionCommunicationPanel auctionId={auctionId} canNotify /> : null}
+        </div>
+      </section>
     </section>
   );
 }
@@ -538,6 +548,8 @@ function EngineLotRow({
   currency,
   lot,
   canOperate,
+  onSelect,
+  selected,
   isPending,
   run,
 }: {
@@ -545,12 +557,14 @@ function EngineLotRow({
   currency: string;
   lot: EngineLot;
   canOperate: boolean;
+  onSelect: () => void;
+  selected: boolean;
   isPending: boolean;
-  run: (action: () => Promise<{ success: boolean; error?: string }>) => void;
+  run: (action: () => Promise<{ success: boolean; error?: string }>, confirmation?: string) => void;
 }) {
   return (
-    <article className="p-4 sm:p-5">
-      <div className="grid gap-4 lg:grid-cols-[minmax(14rem,1fr)_10rem_10rem_auto] lg:items-center">
+    <article className={`p-4 transition-colors duration-200 sm:p-5 ${selected ? "bg-secondary/5" : ""}`}>
+      <div className="grid gap-4 sm:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-bold text-slate-500">
@@ -564,12 +578,12 @@ function EngineLotRow({
           </div>
           <h4 className="mt-2 truncate font-bold">{lot.title}</h4>
           <p className="mt-1 truncate text-xs text-slate-500">
-            Versão {lot.version} · sequência {lot.lotSequence}
+            Próximo lance: {money(lot.nextBidCents, currency)}
           </p>
         </div>
         <div>
           <p className="text-xs text-slate-500">Preço oficial</p>
-          <p className="mt-1 text-lg font-bold tabular-nums">
+          <p key={lot.currentPriceCents} className="management-value-change mt-1 text-lg font-bold tabular-nums">
             {money(lot.currentPriceCents, currency)}
           </p>
         </div>
@@ -579,7 +593,10 @@ function EngineLotRow({
             {lot.currentBidderName || lot.currentBidderAlias || "Sem lances"}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 lg:justify-end">
+        <div className="flex flex-wrap gap-2 sm:col-span-3">
+          <button type="button" onClick={onSelect} aria-pressed={selected} className="min-h-11 rounded-lg border px-3 text-xs font-semibold">Ver lances</button>
+          <button type="button" disabled={!canOperate || isPending || ["SOLD", "UNSOLD", "CANCELLED"].includes(lot.status)} onClick={() => run(() => managerLotCommandAction(auctionId, lot.externalId, "announce", lot.version))} className="min-h-11 rounded-lg border px-3 text-xs font-semibold disabled:opacity-40">Anunciar lote</button>
+          <button type="button" disabled={!canOperate || isPending || !["DRAFT", "QUEUED", "OPEN", "PAUSED"].includes(lot.status)} onClick={() => run(() => managerLotCommandAction(auctionId, lot.externalId, "withdraw", lot.version), `Retirar o lote ${lot.lotNumber} deste leilão?`)} className="min-h-11 rounded-lg border px-3 text-xs font-semibold text-red-700 disabled:opacity-40">Retirar lote</button>
           <button
             type="button"
             onClick={() =>
@@ -649,6 +666,7 @@ function EngineLotRow({
                   "sell",
                   lot.version,
                 ),
+                `Encerrar o lote ${lot.lotNumber} por ${money(lot.currentPriceCents, currency)}?`,
               )
             }
             disabled={
@@ -656,7 +674,7 @@ function EngineLotRow({
             }
             className="inline-flex min-h-9 items-center rounded-lg bg-red-700 px-3 text-xs font-semibold text-white hover:bg-red-800 disabled:opacity-40"
           >
-            Vender
+            {lot.currentPriceCents ? "Vender" : "Encerrar sem venda"}
           </button>
         </div>
       </div>
@@ -667,10 +685,12 @@ function EngineLotRow({
 function FloorBidPanel({
   auctionId,
   snapshot,
+  disabled,
   onDone,
 }: {
   auctionId: string;
   snapshot: EngineAuctionSnapshot;
+  disabled: boolean;
   onDone: () => void;
 }) {
   const [query, setQuery] = useState("");
@@ -683,6 +703,7 @@ function FloorBidPanel({
   const [lotId, setLotId] = useState(
     snapshot.lots.find((lot) => lot.status === "OPEN")?.externalId ?? "",
   );
+  const activeLotId = snapshot.lots.some((lot) => lot.externalId === lotId && lot.status === "OPEN") ? lotId : snapshot.lots.find((lot) => lot.status === "OPEN")?.externalId ?? "";
   const [amount, setAmount] = useState("");
   const [origin, setOrigin] = useState<"FLOOR" | "PHONE">("FLOOR");
   const [acquisitionSource, setAcquisitionSource] = useState<AcquisitionSource>("UNKNOWN");
@@ -698,6 +719,7 @@ function FloorBidPanel({
     startTransition(async () => {
       const result = await searchAuctionParticipantsAction(query);
       setParticipants(result.data ?? []);
+      if (result.success) setNotice(result.data?.length ? null : "Nenhum participante encontrado. Tente outro nome ou documento.");
       if (!result.success)
         setNotice(result.error || "Não foi possível pesquisar.");
     });
@@ -729,20 +751,20 @@ function FloorBidPanel({
   }
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const lot = snapshot.lots.find((item) => item.externalId === lotId);
-    if (!lot || !selected) {
+    const lot = snapshot.lots.find((item) => item.externalId === activeLotId);
+    if (disabled || !lot || lot.status !== "OPEN" || !selected) {
       setNotice("Escolha um lote aberto e um participante.");
       return;
     }
-    const normalized = amount.trim().replace(/\./g, "").replace(",", ".");
-    if (!/^\d+(\.\d{1,2})?$/.test(normalized)) {
-      setNotice("Informe um valor válido.");
+    const amountCents = parseManagementAmount(amount);
+    if (!amountCents || BigInt(amountCents) < BigInt(lot.nextBidCents)) {
+      setNotice(`Informe um valor válido a partir de ${money(lot.nextBidCents, snapshot.auction.currency)}.`);
       return;
     }
     startTransition(async () => {
       const result = await managerFloorBidAction(auctionId, lot.externalId, {
         participantId: selected.id,
-        amountCents: String(Math.round(Number(normalized) * 100)),
+        amountCents,
         origin,
         acquisitionSource,
         expectedVersion: lot.version,
@@ -763,18 +785,18 @@ function FloorBidPanel({
         <div>
           <h3 className="font-semibold">Lance de piso ou telefone</h3>
           <p className="mt-1 text-xs text-slate-500">
-            A ação é registrada no Auction Engine com origem e versão esperada.
+            Selecione o participante e confira o valor antes de registrar o lance.
           </p>
         </div>
       </div>
       <form
         onSubmit={submit}
-        className="mt-5 grid gap-4 lg:grid-cols-[1fr_1fr_10rem_10rem_auto] lg:items-end"
+        className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3 lg:items-end"
       >
         <Field label="Lote" id="floor-lot">
           <select
             id="floor-lot"
-            value={lotId}
+            value={activeLotId}
             onChange={(e) => setLotId(e.target.value)}
             className="admin-field"
           >
@@ -819,7 +841,7 @@ function FloorBidPanel({
                   key={participant.id}
                   onClick={() => {
                     const displayName =
-                      query.trim() || participant.displayName.trim();
+                      participant.displayName.trim();
                     setSelected(participant);
                     setSelectedLabel(displayName);
                     setQuery(displayName);
@@ -953,8 +975,8 @@ function FloorBidPanel({
         </Field>
         <button
           type="submit"
-          disabled={pending}
-          className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#08734e] px-4 text-sm font-semibold text-white hover:bg-[#075b3e] disabled:opacity-50 lg:col-start-5"
+          disabled={pending || disabled || !selected || !activeLotId || !amount.trim()}
+          className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#08734e] px-4 text-sm font-semibold text-white hover:bg-[#075b3e] disabled:opacity-50 "
         >
           {pending ? "Enviando…" : "Registrar lance"}
         </button>
@@ -977,9 +999,9 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label htmlFor={id} className="block text-xs font-semibold text-slate-700">
-      {label}
+    <div className="text-xs font-semibold text-slate-700">
+      <label htmlFor={id}>{label}</label>
       {children}
-    </label>
+    </div>
   );
 }

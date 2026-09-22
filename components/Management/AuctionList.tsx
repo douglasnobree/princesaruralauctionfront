@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { deleteAuctionAction } from "@/hooks/actions/auctionActions";
 import {
@@ -61,6 +62,7 @@ export function AuctionList({
   capabilities: AuctionCapabilities;
   error?: string;
 }) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | AuctionAdminStatus>("");
   const [category, setCategory] = useState("");
@@ -146,7 +148,7 @@ export function AuctionList({
           ? "Leilão excluído."
           : result.error || "Não foi possível excluir o leilão.",
       );
-      if (result.success) window.location.reload();
+      if (result.success) router.refresh();
     });
   }
 
@@ -286,7 +288,7 @@ export function AuctionList({
                     {visibleAuctions.map((auction) => (
                       <tr key={auction.id} className="align-middle transition-colors hover:bg-muted/30">
                         <td className="px-4 py-4">
-                          <Link href={`/admin/leiloes/${auction.id}?aba=resumo`} className="flex min-w-0 items-center gap-3 outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                          <Link href={`/admin/leiloes/${auction.id}?aba=${auction.status === "OPEN" ? "operacao" : "resumo"}`} className="flex min-w-0 items-center gap-3 outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-md bg-muted outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10">
                               <Image src={getAuctionAssetUrl(auction.coverImageUrl || auction.coverImage)} alt="" fill className="object-cover" unoptimized />
                             </div>
@@ -300,7 +302,7 @@ export function AuctionList({
                         <td className="whitespace-nowrap px-4 py-4 text-muted-foreground"><span className="inline-flex items-center gap-1.5"><CalendarClock className="size-3.5" aria-hidden="true" />{formatAuctionDate(auction.startsAt)}</span></td>
                         <td className="px-4 py-4">{auction.lotCount}{auction.plannedLotCount > 0 ? `/${auction.plannedLotCount}` : ""}</td>
                         <td className="max-w-[18rem] px-4 py-4 text-xs text-muted-foreground">{needsAttention(auction) ? auction.availableActions?.reasons.publish?.message || "Complete os dados e os lotes" : "Pronto para acompanhar"}</td>
-                        <td className="px-4 py-4 text-right"><Link href={`/admin/leiloes/${auction.id}?aba=resumo`} className="inline-flex min-h-9 items-center rounded-md border bg-background px-3 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]">Abrir</Link></td>
+                        <td className="px-4 py-4 text-right"><Link href={`/admin/leiloes/${auction.id}?aba=${auction.status === "OPEN" ? "operacao" : "resumo"}`} className="inline-flex min-h-9 items-center rounded-md border bg-background px-3 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]">Abrir</Link></td>
                       </tr>
                     ))}
                   </tbody>
@@ -315,7 +317,7 @@ export function AuctionList({
                     </div>
                     <p className="mt-3 text-xs text-muted-foreground">Próxima data: {formatAuctionDate(auction.startsAt)}</p>
                     {needsAttention(auction) ? <p className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">{auction.availableActions?.reasons.publish?.message || "Complete os dados e os lotes."}</p> : null}
-                    <div className="mt-3 flex justify-end gap-2"><Link href={`/admin/leiloes/${auction.id}?aba=resumo`} className="inline-flex min-h-9 items-center rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring">Abrir workspace</Link>{capabilities.canDelete && auction.availableActions?.canDelete !== false ? <button type="button" onClick={() => removeAuction(auction)} disabled={isPending} className="inline-flex min-h-9 items-center rounded-md border border-destructive/30 px-3 text-sm font-semibold text-destructive outline-none hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-destructive/40 disabled:opacity-50">Excluir</button> : null}</div>
+                    <div className="mt-3 flex justify-end gap-2"><Link href={`/admin/leiloes/${auction.id}?aba=${auction.status === "OPEN" ? "operacao" : "resumo"}`} className="inline-flex min-h-9 items-center rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring">Abrir workspace</Link>{capabilities.canDelete && auction.availableActions?.canDelete !== false ? <button type="button" onClick={() => removeAuction(auction)} disabled={isPending} className="inline-flex min-h-9 items-center rounded-md border border-destructive/30 px-3 text-sm font-semibold text-destructive outline-none hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-destructive/40 disabled:opacity-50">Excluir</button> : null}</div>
                   </article>
                 ))}
               </div>

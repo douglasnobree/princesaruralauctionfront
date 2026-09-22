@@ -10,8 +10,12 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
   const contentType = request.headers.get("content-type");
   if (contentType) headers.set("content-type", contentType);
   for (const name of ["idempotency-key", "x-correlation-id"]) { const value = request.headers.get(name); if (value) headers.set(name, value); }
-  const response = await authenticatedFetch(`${API_URL}/auction-engine/${path.map(encodeURIComponent).join("/")}${request.nextUrl.search}`, { method: request.method, headers, body: ["GET", "HEAD"].includes(request.method) ? undefined : await request.arrayBuffer(), cache: "no-store" }, { auth: "optional" });
-  return new NextResponse(response.body, { status: response.status, headers: { "content-type": response.headers.get("content-type") || "application/json" } });
+  try {
+  const response = await authenticatedFetch(`${API_URL}/auction-engine/${path.map(encodeURIComponent).join("/")}${request.nextUrl.search}`, { method: request.method, headers, body: ["GET", "HEAD"].includes(request.method) ? undefined : await request.arrayBuffer(), cache: "no-store", signal: AbortSignal.timeout(15000) }, { auth: "optional" });
+  return new NextResponse(response.body, { status: response.status, headers: { "content-type": response.headers.get("content-type") || "application/json", "cache-control": "no-store" } });
+  } catch {
+    return NextResponse.json({ message: "Não foi possível conectar ao serviço de leilões." }, { status: 503, headers: { "cache-control": "no-store" } });
+  }
 }
 
 export const GET = proxy;

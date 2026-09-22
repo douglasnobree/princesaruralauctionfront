@@ -32,7 +32,7 @@ async function parse<T>(response: Response, fallback: string): Promise<ActionRes
 
 export async function getEngineSnapshotAction(auctionId: string): Promise<ActionResult<EngineAuctionSnapshot>> {
   try {
-    const response = await fetch(`${API_URL}/auction-engine/auctions/${encodeURIComponent(auctionId)}/snapshot`, { cache: "no-store" });
+    const response = await fetch(`${API_URL}/auction-engine/auctions/${encodeURIComponent(auctionId)}/snapshot`, { cache: "no-store", signal: AbortSignal.timeout(10000) });
     return parse(response, "Não foi possível carregar o estado do leilão.");
   } catch { return { success: false, error: "O motor de leilão está indisponível." }; }
 }
@@ -203,6 +203,16 @@ export async function managerLotCommandAction(auctionId: string, lotId: string, 
     const response = await engineRequest(`/auction-engine/manager/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/${action}`, { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": randomUUID() }, body: JSON.stringify(expectedVersion ? { expectedVersion } : {}), cache: "no-store" });
     return parse(response, "Não foi possível alterar o estado do lote.");
   } catch { return { success: false, error: "Não foi possível conectar ao control room." }; }
+}
+
+export async function managerCurrentLotAction(auctionId: string, lotId: string, expectedVersion: string): Promise<ActionResult<Record<string, unknown>>> {
+  try {
+    const response = await engineRequest(`/auction-engine/manager/auctions/${encodeURIComponent(auctionId)}/current-lot`, {
+      method: "PUT", headers: { "Content-Type": "application/json", "Idempotency-Key": randomUUID() },
+      body: JSON.stringify({ lotId, expectedVersion }), cache: "no-store",
+    });
+    return parse(response, "Não foi possível colocar este lote em destaque.");
+  } catch { return { success: false, error: "Não foi possível atualizar o lote em destaque." }; }
 }
 
 export async function searchAuctionParticipantsAction(query: string): Promise<ActionResult<AuctionParticipantSearchResult[]>> {
