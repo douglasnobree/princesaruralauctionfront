@@ -58,6 +58,7 @@ function validate(values: FormValues): FieldErrors {
   if (!/^\S+@\S+\.\S+$/.test(values.email.trim())) errors.email = "Informe um e-mail válido.";
   if (values.password.length < 6) errors.password = "A senha deve ter no mínimo 6 caracteres.";
   if (values.password !== values.confirmation) errors.confirmation = "As senhas precisam ser iguais.";
+  if (!/^\d{10,11}$/.test(values.phone.replace(/\D/g, ""))) errors.phone = "Informe um telefone com DDD válido.";
 
   const documentLength = values.document.replace(/\D/g, "").length;
   if (documentLength !== (values.accountType === "PERSON" ? 11 : 14)) {
@@ -111,19 +112,23 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
     }
 
     setIsSubmitting(true);
-    const result = await registerAuctionAccountAction(values);
-    setIsSubmitting(false);
-
-    if (!result.success) {
-      const nextErrors: FieldErrors = {};
-      for (const [key, messages] of Object.entries(result.errors)) {
-        nextErrors[key as keyof FieldErrors] = messages[0];
+    try {
+      const result = await registerAuctionAccountAction(values);
+      if (!result.success) {
+        const nextErrors: FieldErrors = {};
+        for (const [key, messages] of Object.entries(result.errors)) {
+          nextErrors[key as keyof FieldErrors] = messages[0];
+        }
+        setErrors(nextErrors);
+        return;
       }
-      setErrors(nextErrors);
-      return;
-    }
 
-    setSubmitted(true);
+      setSubmitted(true);
+    } catch {
+      setErrors({ _form: "Não foi possível confirmar o cadastro. Aguarde um momento e tente entrar na sua conta." });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   if (submitted) {
@@ -237,9 +242,12 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
                 inputMode="tel"
                 autoComplete="tel"
                 placeholder="(00) 00000-0000"
+                aria-invalid={Boolean(errors.phone)}
+                aria-describedby={errors.phone ? "register-phone-error" : undefined}
                 className="register-input register-input-with-icon"
               />
             </div>
+            <FieldMessage id="register-phone-error" message={errors.phone} />
           </div>
 
           <div>

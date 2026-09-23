@@ -31,6 +31,7 @@ export async function registerAuctionAccountAction(
   if (!name) errors.name = ["Informe seu nome completo."];
   if (!/^\S+@\S+\.\S+$/.test(email)) errors.email = ["Informe um e-mail válido."];
   if (input.password.length < 6) errors.password = ["A senha deve ter no mínimo 6 caracteres."];
+  if (!/^\d{10,11}$/.test(phone)) errors.phone = ["Informe um telefone com DDD válido."];
 
   const expectedDocumentLength = input.accountType === "PERSON" ? 11 : 14;
   if (document.length !== expectedDocumentLength) {
@@ -50,7 +51,7 @@ export async function registerAuctionAccountAction(
     name,
     email,
     password: input.password,
-    ...(phone ? { phone } : {}),
+    phone,
     ...(input.accountType === "PERSON" ? { cpf: document } : { cnpj: document }),
   };
 
@@ -60,6 +61,7 @@ export async function registerAuctionAccountAction(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
       cache: "no-store",
+      signal: AbortSignal.timeout(15000),
     });
 
     if (!response.ok) {
@@ -76,7 +78,7 @@ export async function registerAuctionAccountAction(
   } catch {
     return {
       success: false,
-      errors: { _form: ["Não foi possível conectar ao servidor. Tente novamente."] },
+      errors: { _form: ["Não foi possível confirmar o cadastro. Aguarde um momento e tente entrar na sua conta."] },
     };
   }
 }
