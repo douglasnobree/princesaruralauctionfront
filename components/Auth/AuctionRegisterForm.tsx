@@ -2,7 +2,7 @@
 
 import { Eye, EyeOff, FileText, Gavel, LoaderCircle, Mail, Phone, UserRound } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   registerAuctionAccountAction,
   type AuctionRegistrationInput,
@@ -89,10 +89,6 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
   const [submitted, setSubmitted] = useState(false);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (Object.keys(errors).length > 0) errorSummaryRef.current?.focus();
-  }, [errors]);
-
   function update<K extends keyof FormValues>(field: K, value: FormValues[K]) {
     setValues((current) => ({ ...current, [field]: value }));
     setErrors((current) => ({ ...current, [field]: undefined, _form: undefined }));
@@ -108,6 +104,7 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
     const clientErrors = validate(values);
     if (Object.keys(clientErrors).length > 0) {
       setErrors(clientErrors);
+      errorSummaryRef.current?.focus();
       return;
     }
 
@@ -120,12 +117,14 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
           nextErrors[key as keyof FieldErrors] = messages[0];
         }
         setErrors(nextErrors);
+        errorSummaryRef.current?.focus();
         return;
       }
 
       setSubmitted(true);
     } catch {
       setErrors({ _form: "Não foi possível confirmar o cadastro. Aguarde um momento e tente entrar na sua conta." });
+      errorSummaryRef.current?.focus();
     } finally {
       setIsSubmitting(false);
     }

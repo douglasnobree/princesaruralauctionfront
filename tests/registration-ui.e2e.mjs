@@ -45,6 +45,16 @@ try {
   browser = await chromium.launch({ headless: true, executablePath: "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" });
   const page = await browser.newPage();
   await page.goto(`${origin}/cadastro`);
+  const nameInput = page.getByLabel("Nome completo");
+  await nameInput.click();
+  await page.keyboard.type("P");
+  assert.equal(await nameInput.evaluate((input) => input === document.activeElement), true, "O nome deve continuar focado após o primeiro caractere.");
+  await page.keyboard.type("e");
+  assert.equal(await nameInput.inputValue(), "Pe", "A digitação deve continuar no mesmo campo.");
+  await page.getByRole("button", { name: "Concluir cadastro" }).click();
+  await nameInput.click();
+  await page.keyboard.type("s");
+  assert.equal(await nameInput.evaluate((input) => input === document.activeElement), true, "O campo deve manter o foco também após um envio inválido.");
   await page.getByLabel("Nome completo").fill("Pessoa de Teste");
   await page.getByLabel("CPF", { exact: true }).fill("12345678901");
   await page.getByLabel("Telefone/WhatsApp").fill("85999991234");
