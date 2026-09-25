@@ -2,7 +2,9 @@
 
 import { Eye, EyeOff, FileText, Gavel, LoaderCircle, Mail, Phone, UserRound } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { loginAuctionAction } from "@/hooks/actions/auctionLoginActions";
 import {
   registerAuctionAccountAction,
   type AuctionRegistrationInput,
@@ -80,13 +82,21 @@ function FieldMessage({ id, message }: { id: string; message?: string }) {
   );
 }
 
-export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string }) {
+export function AuctionRegisterForm({
+  marketplaceUrl,
+  returnTo = "/leiloes",
+}: {
+  marketplaceUrl: string;
+  returnTo?: string;
+}) {
+  const router = useRouter();
   const [values, setValues] = useState(initialValues);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [accountCreated, setAccountCreated] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const errorSummaryRef = useRef<HTMLDivElement>(null);
 
   function update<K extends keyof FormValues>(field: K, value: FormValues[K]) {
@@ -121,7 +131,21 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
         return;
       }
 
-      setSubmitted(true);
+      const loginResult = await loginAuctionAction({
+        login: values.email,
+        loginType: "email",
+        password: values.password,
+      });
+
+      if (!loginResult.success) {
+        setAccountCreated(true);
+        setLoginError(loginResult.error);
+        return;
+      }
+
+      const safeReturnTo = returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/leiloes";
+      router.replace(safeReturnTo);
+      router.refresh();
     } catch {
       setErrors({ _form: "Não foi possível confirmar o cadastro. Aguarde um momento e tente entrar na sua conta." });
       errorSummaryRef.current?.focus();
@@ -130,7 +154,7 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
     }
   }
 
-  if (submitted) {
+  if (accountCreated) {
     return (
       <div className="py-8 text-center" role="status" aria-live="polite">
         <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-[#e7f4eb] text-[#28834c]">
@@ -138,10 +162,11 @@ export function AuctionRegisterForm({ marketplaceUrl }: { marketplaceUrl: string
         </div>
         <h2 className="mt-5 text-2xl font-semibold tracking-[-0.02em] text-slate-950">Conta criada com sucesso</h2>
         <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">
-          Agora entre com seus dados para acompanhar leilões e solicitar sua habilitação para participar.
+          Sua conta foi criada, mas não foi possível iniciar sua sessão agora. Entre para continuar.
         </p>
+        {loginError ? <p className="mx-auto mt-2 max-w-md text-xs leading-5 text-slate-500">{loginError}</p> : null}
         <Link
-          href="/login"
+          href={`/login?returnTo=${encodeURIComponent(returnTo)}`}
           className="mt-7 inline-flex min-h-11 items-center justify-center rounded-md bg-[#28834c] px-6 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(40,131,76,0.18)] transition-[background-color,transform] hover:bg-[#062518] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#fbaa34] focus-visible:ring-offset-2"
         >
           Entrar na conta

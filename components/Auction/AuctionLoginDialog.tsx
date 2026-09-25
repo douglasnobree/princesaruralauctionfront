@@ -1,7 +1,7 @@
 "use client";
 
 import { LogIn, UserPlus } from "lucide-react";
-import Link from "next/link";
+import { AuctionReturnToLink } from "@/components/Auth/AuctionReturnToLink";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -37,16 +37,16 @@ export function AuctionLoginDialog({
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" asChild>
-            <Link href="/cadastro">
+            <AuctionReturnToLink href="/cadastro" className="inline-flex items-center justify-center gap-2">
               <UserPlus className="size-4" aria-hidden="true" />
               Criar cadastro
-            </Link>
+            </AuctionReturnToLink>
           </Button>
           <Button asChild>
-            <Link href="/login">
+            <AuctionReturnToLink href="/login" className="inline-flex items-center justify-center gap-2">
               <LogIn className="size-4" aria-hidden="true" />
               Entrar
-            </Link>
+            </AuctionReturnToLink>
           </Button>
         </DialogFooter>
       </DialogContent>

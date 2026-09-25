@@ -5,6 +5,7 @@ import { getUser } from "@/lib/auth/server/session";
 import { getMarketplaceUrl } from "@/lib/config/urls";
 import { AUCTION_MANAGEMENT_ROLES } from "@/types/role-permissions";
 import { MarketplaceHandoffLink } from "@/components/AuctionHeader/MarketplaceHandoffLink";
+import { AuctionReturnToLink } from "@/components/Auth/AuctionReturnToLink";
 
 const navigation = [
   { label: "Agenda", href: "/leiloes#agenda", icon: CalendarDays },
@@ -95,13 +96,13 @@ export async function AuctionHeader() {
             ) : (
               <div className="order-2 inline-flex min-h-11 md:min-h-8 items-center gap-1.5 rounded-full border border-white/75 px-3 text-xs font-medium md:order-3">
                 <UserRound className="size-3.5" aria-hidden="true" />
-                <Link href="/login" className="inline-flex min-h-11 items-center md:min-h-8 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80">
+                <AuctionReturnToLink href="/login" className="inline-flex min-h-11 items-center md:min-h-8 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80">
                   Entrar
-                </Link>
+                </AuctionReturnToLink>
                 <span className="text-white/55">ou</span>
-                <Link href="/cadastro" className="inline-flex min-h-11 items-center md:min-h-8 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80">
+                <AuctionReturnToLink href="/cadastro" className="inline-flex min-h-11 items-center md:min-h-8 underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80">
                   cadastre-se
-                </Link>
+                </AuctionReturnToLink>
               </div>
             )}
           </div>
