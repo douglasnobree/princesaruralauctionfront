@@ -23,13 +23,23 @@ import {
   searchAuctionParticipantsAction,
 } from "@/hooks/actions/auctionEngineActions";
 import { managerRead } from "@/lib/auctions/manager-read";
-import { parseManagementAmount } from "@/lib/auctions/management-input";
+import { getEngineQuickBidOptions } from "@/lib/auctions/engine-formatters";
 import { useVisiblePoll } from "@/hooks/use-visible-poll";
 import { AuctionPendingEligibilityBids } from "@/components/Management/AuctionPendingEligibilityBids";
 import { AuctionParticipantsPanel } from "@/components/Management/AuctionParticipantsPanel";
 import { AuctionBroadcastPanel } from "@/components/Management/AuctionBroadcastPanel";
 import { AuctionBidHistory } from "@/components/Management/AuctionBidHistory";
 import { AuctionCommunicationPanel } from "@/components/Management/AuctionCommunicationPanel";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import type { AuctionAdminLot } from "@/types/auction-admin";
 import type { AuctionCapabilities } from "@/components/Management/capabilities";
 import type {
@@ -90,15 +100,6 @@ function money(value: string | null, currency: string) {
     : new Intl.NumberFormat("pt-BR", { style: "currency", currency }).format(
         Number(value) / 100,
       );
-}
-function centsToInput(value: string | null | undefined) {
-  if (!value || !/^\d+$/.test(value)) return "";
-  try {
-    const cents = BigInt(value);
-    return `${cents / BigInt(100)},${(cents % BigInt(100)).toString().padStart(2, "0")}`;
-  } catch {
-    return "";
-  }
 }
 function isValidStreamUrl(value: string) {
   try {
@@ -762,7 +763,12 @@ function FloorBidPanel({
   const [searchState, setSearchState] = useState<"idle" | "loading" | "results" | "empty" | "error">("idle");
   const [searchError, setSearchError] = useState("");
   const [activeParticipantIndex, setActiveParticipantIndex] = useState(-1);
-  const [amountDraft, setAmountDraft] = useState<{ lotExternalId: string; value: string } | null>(null);
+  const [bidValueDraft, setBidValueDraft] = useState<{
+    lotExternalId: string;
+    nextBidCents: string;
+    incrementCents: string;
+    value: string;
+  } | null>(null);
   const [origin, setOrigin] = useState<"FLOOR" | "PHONE">("FLOOR");
   const [acquisitionSource, setAcquisitionSource] = useState<AcquisitionSource>("UNKNOWN");
   const [feedback, setFeedback] = useState<FloorBidFeedback | null>(null);
@@ -776,10 +782,21 @@ function FloorBidPanel({
   const [pending, startTransition] = useTransition();
   const searchVersion = useRef(0);
   const submissionInFlight = useRef(false);
-  const suggestedAmount = centsToInput(selectedLot?.nextBidCents);
-  const amount = amountDraft && amountDraft.lotExternalId === selectedLot?.externalId
-    ? amountDraft.value
-    : suggestedAmount;
+  const quickBidOptions = selectedLot ? getEngineQuickBidOptions(selectedLot) : [];
+  const quickBidValues = quickBidOptions.map((option) => option.value);
+  const currentIncrementCents = selectedLot
+    ? selectedLot.currentIncrementCents ?? selectedLot.incrementCents
+    : null;
+  const draftMatchesCurrentLot = Boolean(
+    selectedLot &&
+    bidValueDraft?.lotExternalId === selectedLot.externalId &&
+    bidValueDraft.nextBidCents === selectedLot.nextBidCents &&
+    bidValueDraft.incrementCents === currentIncrementCents &&
+    quickBidValues.includes(bidValueDraft.value),
+  );
+  const amountCents = draftMatchesCurrentLot
+    ? bidValueDraft!.value
+    : quickBidOptions[0]?.value ?? "";
   const formLocked = disabled || pending || Boolean(unknownAttempt);
   const dropdownOpen = !selected && query.trim().length >= 2 && searchState !== "idle";
 
@@ -904,7 +921,7 @@ function FloorBidPanel({
 
     setUnknownAttempt(null);
     onRecoveryPendingChange(false);
-    setAmountDraft(null);
+    setBidValueDraft(null);
     onResult(attempt.lotExternalId, result.data);
 
     if (result.data.status === "ACCEPTED") {
@@ -956,8 +973,7 @@ function FloorBidPanel({
       });
       return;
     }
-    const amountCents = parseManagementAmount(amount);
-    if (!amountCents || BigInt(amountCents) < BigInt(lot.nextBidCents)) {
+    if (!/^\d+$/.test(amountCents) || BigInt(amountCents) < BigInt(lot.nextBidCents)) {
       setFeedback({
         lotExternalId: lot.externalId,
         kind: "error",
@@ -1162,109 +1178,153 @@ function FloorBidPanel({
               Participante selecionado: {selected.displayName}
             </p>
           ) : null}
-          <button
-            type="button"
-            onClick={() => {
-              setQuickOpen((current) => !current);
-              setQuickNotice(null);
+          {quickNotice && (!quickOpen || quickNotice.type === "success") ? (
+            <p
+              role={quickNotice.type === "error" ? "alert" : "status"}
+              className={"mt-2 text-xs " + (quickNotice.type === "error" ? "text-red-700" : "text-[#075b3e]")}
+            >
+              {quickNotice.message}
+            </p>
+          ) : null}
+          <Dialog
+            open={quickOpen}
+            onOpenChange={(open) => {
+              setQuickOpen(open);
+              if (open) setQuickNotice(null);
             }}
-            disabled={formLocked}
-            className="mt-2 inline-flex min-h-9 items-center rounded-lg border border-dashed border-[#08734e]/50 px-3 text-xs font-semibold text-[#075b3e] hover:bg-[#e8f4ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24] disabled:opacity-50"
           >
-            {quickOpen ? "Fechar cadastro rápido" : "Cadastrar participante rápido"}
-          </button>
-          {quickOpen ? (
-            <div className="mt-3 space-y-3 rounded-lg border border-dashed border-[#08734e]/40 bg-[#f3f9f5] p-3">
-              <div>
-                <p className="text-xs font-bold text-[#075b3e]">Cadastro rápido</p>
-                <p className="mt-1 text-[11px] leading-5 text-slate-600">
-                  Esse cadastro não cria conta. O telefone é opcional; marque a
-                  autorização somente quando o participante tiver consentido com
-                  o contato.
-                </p>
-              </div>
-              <label className="block text-xs font-semibold text-slate-700" htmlFor="quick-participant-name">
-                Nome
-                <input
-                  id="quick-participant-name"
-                  value={quickName}
-                  onChange={(event) => setQuickName(event.target.value)}
-                  maxLength={120}
-                  autoComplete="off"
-                  disabled={formLocked}
-                  className="admin-field mt-1"
-                />
-              </label>
-              <label className="block text-xs font-semibold text-slate-700" htmlFor="quick-participant-phone">
-                WhatsApp (opcional)
-                <input
-                  id="quick-participant-phone"
-                  value={quickPhone}
-                  onChange={(event) => setQuickPhone(event.target.value)}
-                  inputMode="tel"
-                  maxLength={30}
-                  autoComplete="tel"
-                  placeholder="(11) 99999-9999"
-                  disabled={formLocked}
-                  className="admin-field mt-1"
-                />
-              </label>
-              <label className="flex items-start gap-2 text-xs leading-5 text-slate-700">
-                <input
-                  type="checkbox"
-                  className="mt-1"
-                  checked={quickWhatsappOptIn}
-                  onChange={(event) => setQuickWhatsappOptIn(event.target.checked)}
-                  disabled={formLocked || !quickPhone.trim()}
-                />
-                O participante autorizou receber mensagens deste leilão pelo WhatsApp.
-              </label>
-              <label className="block text-xs font-semibold text-slate-700" htmlFor="quick-participant-document">
-                CPF ou CNPJ
-                <input
-                  id="quick-participant-document"
-                  value={quickDocument}
-                  onChange={(event) => setQuickDocument(event.target.value)}
-                  inputMode="numeric"
-                  maxLength={18}
-                  autoComplete="off"
-                  disabled={formLocked}
-                  className="admin-field mt-1"
-                />
-              </label>
-              {quickNotice ? (
-                <p role={quickNotice.type === "error" ? "alert" : "status"} className={"text-xs " + (quickNotice.type === "error" ? "text-red-700" : "text-[#075b3e]")}>
-                  {quickNotice.message}
-                </p>
-              ) : null}
+            <DialogTrigger asChild>
               <button
                 type="button"
-                onClick={createQuickParticipant}
-                disabled={formLocked || quickName.trim().length < 2 || ![11, 14].includes(quickDocument.replace(/\D/g, "").length)}
-                className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#08734e] px-3 text-xs font-semibold text-white hover:bg-[#075b3e] disabled:opacity-50"
+                disabled={formLocked}
+                className="mt-2 inline-flex min-h-10 items-center rounded-lg border border-dashed border-[#08734e]/50 px-3 text-xs font-semibold text-[#075b3e] hover:bg-[#e8f4ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24] disabled:opacity-50"
               >
-                {pending ? "Salvando…" : "Criar e selecionar"}
+                Cadastrar participante rápido
               </button>
-            </div>
-          ) : null}
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Cadastrar participante rápido</DialogTitle>
+                <DialogDescription>
+                  O cadastro não cria uma conta. O telefone é opcional; autorize mensagens somente com o consentimento do participante.
+                </DialogDescription>
+              </DialogHeader>
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  createQuickParticipant();
+                }}
+                className="space-y-4"
+              >
+                <label className="block text-sm font-medium text-slate-700" htmlFor="quick-participant-name">
+                  Nome
+                  <input
+                    id="quick-participant-name"
+                    value={quickName}
+                    onChange={(event) => setQuickName(event.target.value)}
+                    minLength={2}
+                    maxLength={120}
+                    autoComplete="name"
+                    required
+                    disabled={formLocked}
+                    className="admin-field mt-1"
+                  />
+                </label>
+                <label className="block text-sm font-medium text-slate-700" htmlFor="quick-participant-document">
+                  CPF ou CNPJ
+                  <input
+                    id="quick-participant-document"
+                    value={quickDocument}
+                    onChange={(event) => setQuickDocument(event.target.value)}
+                    inputMode="numeric"
+                    minLength={11}
+                    maxLength={18}
+                    autoComplete="off"
+                    required
+                    disabled={formLocked}
+                    className="admin-field mt-1"
+                  />
+                </label>
+                <label className="block text-sm font-medium text-slate-700" htmlFor="quick-participant-phone">
+                  WhatsApp (opcional)
+                  <input
+                    id="quick-participant-phone"
+                    value={quickPhone}
+                    onChange={(event) => setQuickPhone(event.target.value)}
+                    inputMode="tel"
+                    maxLength={30}
+                    autoComplete="tel"
+                    placeholder="(11) 99999-9999"
+                    disabled={formLocked}
+                    className="admin-field mt-1"
+                  />
+                </label>
+                <label className="flex items-start gap-2 text-sm leading-5 text-slate-700">
+                  <input
+                    id="quick-participant-whatsapp-opt-in"
+                    type="checkbox"
+                    className="mt-1"
+                    checked={quickWhatsappOptIn}
+                    onChange={(event) => setQuickWhatsappOptIn(event.target.checked)}
+                    disabled={formLocked || !quickPhone.trim()}
+                  />
+                  <span>O participante autorizou receber mensagens deste leilão pelo WhatsApp.</span>
+                </label>
+                {quickNotice?.type === "error" ? (
+                  <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+                    {quickNotice.message}
+                  </p>
+                ) : null}
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <button
+                      type="button"
+                      disabled={pending}
+                      className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[#dfe8e2] px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      Cancelar
+                    </button>
+                  </DialogClose>
+                  <button
+                    type="submit"
+                    disabled={formLocked || quickName.trim().length < 2 || ![11, 14].includes(quickDocument.replace(/\D/g, "").length)}
+                    className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[#08734e] px-4 text-sm font-semibold text-white hover:bg-[#075b3e] disabled:opacity-50"
+                  >
+                    {pending ? "Salvando…" : "Criar e selecionar"}
+                  </button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </Field>
 
-        <Field label="Valor (R$)" id="floor-amount">
-          <input
+        <Field label="Valor do próximo lance" id="floor-amount">
+          <select
             id="floor-amount"
-            value={amount}
+            value={amountCents}
             onChange={(event) => {
-              if (selectedLot) setAmountDraft({ lotExternalId: selectedLot.externalId, value: event.target.value });
+              if (selectedLot && currentIncrementCents !== null) {
+                setBidValueDraft({
+                  lotExternalId: selectedLot.externalId,
+                  nextBidCents: selectedLot.nextBidCents,
+                  incrementCents: currentIncrementCents,
+                  value: event.target.value,
+                });
+              }
               setFeedback(null);
             }}
-            inputMode="decimal"
-            placeholder="0,00"
             aria-describedby="floor-amount-hint"
             disabled={formLocked || !selectedLot || selectedLot.status !== "OPEN"}
             className="admin-field"
-          />
+          >
+            {quickBidOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {money(option.value, snapshot.auction.currency)}
+              </option>
+            ))}
+          </select>
           <p id="floor-amount-hint" className="mt-1 text-xs font-normal text-slate-500">
-            Próximo valor sugerido pelo motor: {selectedLot ? money(selectedLot.nextBidCents, snapshot.auction.currency) : "selecione um lote"}.
+            Valores calculados pelo incremento vigente do motor. A primeira opção é o próximo lance mínimo.
           </p>
         </Field>
         <Field label="Origem" id="floor-origin">
@@ -1294,7 +1354,7 @@ function FloorBidPanel({
         </Field>
         <button
           type="submit"
-          disabled={formLocked || !selected || selectedLot?.status !== "OPEN" || !amount.trim()}
+          disabled={formLocked || !selected || selectedLot?.status !== "OPEN" || !amountCents}
           className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#08734e] px-4 text-sm font-semibold text-white hover:bg-[#075b3e] disabled:opacity-50"
         >
           {pending ? "Enviando…" : "Registrar lance"}

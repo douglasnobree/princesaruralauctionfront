@@ -5,6 +5,7 @@ import { getUser } from "@/lib/auth/server/session";
 import { getMarketplaceUrl } from "@/lib/config/urls";
 import { AUCTION_MANAGEMENT_ROLES } from "@/types/role-permissions";
 import { MarketplaceHandoffLink } from "@/components/AuctionHeader/MarketplaceHandoffLink";
+import { AuctionProfileMenu } from "@/components/AuctionHeader/AuctionProfileMenu";
 import { AuctionReturnToLink } from "@/components/Auth/AuctionReturnToLink";
 
 const navigation = [
@@ -85,14 +86,7 @@ export async function AuctionHeader() {
             ) : null}
 
             {user ? (
-              <MarketplaceHandoffLink
-                pathname="/perfil"
-                baseUrl={marketplaceUrl}
-                className="order-2 inline-flex min-h-11 md:min-h-8 max-w-[12rem] items-center gap-2 rounded-full border border-white/75 px-3 text-xs font-medium outline-none transition-colors hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-white/80 md:order-3"
-              >
-                <UserRound className="size-3.5 shrink-0" aria-hidden="true" />
-                <span className="truncate">{user.email}</span>
-              </MarketplaceHandoffLink>
+              <AuctionProfileMenu email={user.email} />
             ) : (
               <div className="order-2 inline-flex min-h-11 md:min-h-8 items-center gap-1.5 rounded-full border border-white/75 px-3 text-xs font-medium md:order-3">
                 <UserRound className="size-3.5" aria-hidden="true" />

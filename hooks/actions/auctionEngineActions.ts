@@ -37,6 +37,16 @@ export async function getEngineSnapshotAction(auctionId: string): Promise<Action
   } catch { return { success: false, error: "O motor de leilão está indisponível." }; }
 }
 
+export async function listAuctionLotBidsAction(auctionId: string, lotId: string, query: EngineBidHistoryQuery = {}): Promise<ActionResult<EngineBidHistoryPage>> {
+  try {
+    const params = new URLSearchParams();
+    if (query.limit) params.set("limit", query.limit);
+    if (query.beforeSequence) params.set("beforeSequence", query.beforeSequence);
+    const response = await fetch(`${API_URL}/auction-engine/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/bids${params.size ? `?${params.toString()}` : ""}`, { cache: "no-store", signal: AbortSignal.timeout(10000) });
+    return parse(response, "Não foi possível carregar o histórico de lances.");
+  } catch { return { success: false, error: "Não foi possível consultar o histórico de lances agora." }; }
+}
+
 export async function registerAuctionAction(auctionId: string, termsVersion: string, acquisitionSource: AcquisitionSource = "UNKNOWN", whatsappOptIn = false): Promise<ActionResult<EngineAuctionRegistration>> {
   try {
     const response = await engineRequest(`/auction-engine/auctions/${encodeURIComponent(auctionId)}/registration`, { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": randomUUID() }, body: JSON.stringify({ termsVersion, acquisitionSource, whatsappOptIn }), cache: "no-store" });
