@@ -16,7 +16,7 @@ const API_BASE_URL = normalizeApiBaseUrl(
 const API_ORIGIN = getApiOrigin(API_BASE_URL);
 const PLACEHOLDER_IMAGE = "/placeholder-image.svg";
 
-export type AuctionListingFilter = "all" | "mercado" | "shopping";
+export type AuctionListingFilter = "all" | "live" | "shopping" | "pre-lances" | "mercado";
 
 const PUBLIC_AUCTION_STATUSES: ReadonlySet<AuctionStatus> = new Set([
 	"PRE_LAUNCH",
@@ -30,21 +30,25 @@ export function isPublicAuction(auction: Pick<Auction, "status">) {
 }
 
 export function parseAuctionListingFilter(value?: string): AuctionListingFilter {
-	if (value === "mercado" || value === "shopping") return value;
+	if (value === "live" || value === "shopping" || value === "pre-lances" || value === "mercado") return value;
 	return "all";
+}
+
+export function isAuctionInPreBidWindow(auction: Pick<Auction, "status" | "preBidStartsAt" | "preBidEndsAt">, now = Date.now()) {
+	if (auction.status !== "PRE_LAUNCH" || !auction.preBidStartsAt || !auction.preBidEndsAt) return false;
+	const start = new Date(auction.preBidStartsAt).getTime();
+	const end = new Date(auction.preBidEndsAt).getTime();
+	return Number.isFinite(start) && Number.isFinite(end) && now >= start && now < end;
 }
 
 export function filterAuctionsByListingFilter(
 	auctions: Auction[],
 	filter: AuctionListingFilter,
 ) {
-	if (filter === "shopping") {
-		return auctions.filter((auction) => auction.mode === "SHOPPING");
-	}
-
-	if (filter === "mercado") {
-		return auctions.filter((auction) => auction.mode !== "SHOPPING");
-	}
+	if (filter === "pre-lances") return auctions.filter((auction) => isAuctionInPreBidWindow(auction));
+	if (filter === "live") return auctions.filter((auction) => auction.mode === "LIVE" && auction.status !== "PRE_LAUNCH");
+	if (filter === "shopping") return auctions.filter((auction) => auction.mode === "TIMED" && auction.status !== "PRE_LAUNCH");
+	if (filter === "mercado") return auctions.filter((auction) => auction.mode === "SHOPPING");
 
 	return auctions;
 }
@@ -71,6 +75,7 @@ type ApiAuctionLot = {
 	deliveryDescription?: string | null;
 	details?: unknown;
 	closesAt?: string | null;
+	preBidEndsAt?: string | null;
 	documentText?: string | null;
 	youtubeUrl?: string | null;
 	genealogyUrl?: string | null;
@@ -86,6 +91,8 @@ type ApiAuction = {
 	paymentText?: string | null;
 	deliveryText?: string | null;
 	mode?: "SHOPPING" | "LIVE" | "TIMED";
+	preBidStartsAt?: string | null;
+	preBidEndsAt?: string | null;
 	coverImage?: string | null;
 	coverImageUrl?: string | null;
 	desktopBannerUrl?: string | null;
@@ -227,7 +234,7 @@ function getClosingLabel(status: AuctionLotStatus, closesAt?: string | null) {
 	return closesAt ? formatDateTime(closesAt) : "Data não informada";
 }
 
-function mapLot(lot: ApiAuctionLot, auctionSlug?: string): AuctionLot {
+function mapLot(lot: ApiAuctionLot, auctionSlug?: string, mode?: Auction["mode"], preBidEndsAt?: string | null): AuctionLot {
 	const images = mapImages(lot.images);
 
 	return {
@@ -239,9 +246,11 @@ function mapLot(lot: ApiAuctionLot, auctionSlug?: string): AuctionLot {
 		category: lot.category,
 		status: lot.status,
 		startingBidCents: lot.startingBidCents ?? null,
+		mode,
 		image: images[0]?.url ?? PLACEHOLDER_IMAGE,
 		images,
 		closesAt: lot.closesAt,
+		preBidEndsAt: lot.preBidEndsAt ?? preBidEndsAt,
 		closesAtLabel: getClosingLabel(lot.status, lot.closesAt),
 		payment: lot.paymentDescription?.trim() || null,
 		deliveryDescription: lot.deliveryDescription?.trim() || null,
@@ -255,7 +264,7 @@ function mapLot(lot: ApiAuctionLot, auctionSlug?: string): AuctionLot {
 }
 
 function mapAuction(auction: ApiAuction): Auction {
-	const lots = (auction.lots ?? []).map((lot) => mapLot(lot, auction.slug));
+	const lots = (auction.lots ?? []).map((lot) => mapLot(lot, auction.slug, auction.mode, auction.preBidEndsAt));
 	const coverImage = [auction.coverImageUrl, auction.coverImage].find(
 		(value) =>
 			value &&
@@ -275,6 +284,8 @@ function mapAuction(auction: ApiAuction): Auction {
 		deliveryText: auction.deliveryText?.trim() || null,
 		startsAt: auction.startsAt,
 		endsAt: auction.endsAt,
+		preBidStartsAt: auction.preBidStartsAt,
+		preBidEndsAt: auction.preBidEndsAt,
 		date: formatDate(auction.startsAt),
 		time: formatTime(auction.startsAt),
 		lotCount: auction.lotCount,

@@ -36,6 +36,7 @@ export type AuctionLot = {
 	image: string;
 	images: AuctionImage[];
 	closesAt?: string | null;
+	preBidEndsAt?: string | null;
 	closesAtLabel: string;
 	payment?: string | null;
 	deliveryDescription?: string | null;
@@ -56,6 +57,8 @@ export type Auction = {
 	deliveryText?: string | null;
 	startsAt: string;
 	endsAt?: string | null;
+	preBidStartsAt?: string | null;
+	preBidEndsAt?: string | null;
 	date: string;
 	time: string;
 	lotCount: number;

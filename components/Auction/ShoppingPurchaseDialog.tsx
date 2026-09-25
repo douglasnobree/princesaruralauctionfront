@@ -36,7 +36,7 @@ export function ShoppingPurchaseDialog({
 					</div>
 					<DialogTitle>Confirmar compra do lote?</DialogTitle>
 					<DialogDescription>
-						Você está prestes a comprar <strong className="text-foreground">{lotTitle}</strong> por <strong className="text-foreground">{priceLabel}</strong>. A compra é imediata e definitiva: o primeiro usuário habilitado que confirmar ficará com o lote.
+						Ao confirmar, <strong className="text-foreground">{lotTitle}</strong> por <strong className="text-foreground">{priceLabel}</strong> será vendido para seu cadastro habilitado. A equipe entrará em contato para combinar o pagamento.
 					</DialogDescription>
 				</DialogHeader>
 				<DialogFooter>
@@ -44,7 +44,7 @@ export function ShoppingPurchaseDialog({
 						<Button type="button" variant="outline" disabled={isSubmitting}>Cancelar</Button>
 					</DialogClose>
 					<Button type="button" onClick={onConfirm} disabled={isSubmitting}>
-						{isSubmitting ? <><Loader2 className="size-4 animate-spin" aria-hidden="true" />Confirmando…</> : `Comprar por ${priceLabel}`}
+						{isSubmitting ? <><Loader2 className="size-4 animate-spin" aria-hidden="true" />Registrando…</> : `Confirmar compra por ${priceLabel}`}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

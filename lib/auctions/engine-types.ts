@@ -78,6 +78,42 @@ export type EngineBidResult = {
   closedAt?: string;
 };
 
+export type EngineMarketPurchaseResult = {
+	status: "SOLD";
+	reservationId: string;
+	lotId: string;
+	lotStatus: "SOLD";
+	sold: true;
+	winnerName: string | null;
+	fixedPriceCents: string;
+	winningAmountCents: string;
+	winnerAwardId: string;
+	settlementId: string;
+	lotSequence: string;
+	version: string;
+	expiresAt: string;
+	closedAt: string;
+	serverTime: string;
+};
+
+export type EngineMarketSale = {
+	saleId: string;
+	lotId: string;
+	externalLotId: string;
+	lotNumber: number;
+	lotTitle: string;
+	participantId: string;
+	displayName: string | null;
+	amountCents: string | null;
+	currency: string;
+	createdAt: string;
+	status: "SOLD";
+	contactEmail: string | null;
+	contactPhone: string | null;
+};
+
+export type EngineMarketSalesPage = { items: EngineMarketSale[] };
+
 export type EngineOwnProxyBid = {
   lotId: string;
   active: boolean;

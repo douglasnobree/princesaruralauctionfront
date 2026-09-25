@@ -9,6 +9,7 @@ import { AuctionLotInformationSections } from "@/components/Auction/AuctionLotIn
 import { AuctionLotMediaGallery } from "@/components/Auction/AuctionLotMediaGallery";
 import type { EngineAuctionSnapshot } from "@/lib/auctions/engine-types";
 import type { Auction, AuctionLot } from "@/lib/auctions/types";
+import { isPreBidOpen } from "@/lib/auctions/bid-window";
 
 interface AuctionLotDetailProps {
 	auction: Auction;
@@ -18,7 +19,10 @@ interface AuctionLotDetailProps {
 	engineSnapshot?: EngineAuctionSnapshot;
 }
 
-function getLotStatusLabel(status: string) {
+function getLotStatusLabel(status: string, mode?: Auction["mode"], live = false, preBid = false) {
+	if (status === "SOLD") return "VENDIDO";
+	if (status === "OPEN" && preBid) return "PRÉ-LANCE";
+	if (status === "OPEN" && mode === "LIVE" && live) return "AO VIVO";
 	return {
 		OPEN: "ABERTO",
 		PAUSED: "PAUSADO",
@@ -46,6 +50,9 @@ export function AuctionLotDetail({
 	);
 	const displayedLotStatus = engineLot?.status ?? lot.status;
 	const isShopping = auction.mode === "SHOPPING";
+	const engineNow = engineSnapshot ? Date.parse(engineSnapshot.serverTime) : Date.now();
+	const isLive = engineSnapshot?.auction.status === "RUNNING";
+	const isPreBid = engineSnapshot ? isPreBidOpen(engineSnapshot.auction, engineNow) : false;
 
 	return (
 		<div className="bg-muted/40 py-6 sm:py-10">
@@ -99,7 +106,7 @@ export function AuctionLotDetail({
 
 					<aside className="overflow-hidden rounded-lg border bg-card shadow-xs lg:col-start-2 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-28">
 						<div className="flex items-center justify-center bg-secondary px-4 py-3 text-sm font-bold uppercase tracking-wide text-secondary-foreground">
-							<span>LOTE {String(lot.number).padStart(2, "0")} - {getLotStatusLabel(displayedLotStatus)}</span>
+							<span>LOTE {String(lot.number).padStart(2, "0")} - {getLotStatusLabel(displayedLotStatus, auction.mode, isLive, isPreBid)}</span>
 						</div>
 						<div className="space-y-5 p-4 sm:p-6">
 							<h1 className="text-2xl font-bold leading-[1.2]">{lot.title}</h1>

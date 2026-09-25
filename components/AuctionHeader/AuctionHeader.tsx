@@ -9,11 +9,12 @@ import { AuctionProfileMenu } from "@/components/AuctionHeader/AuctionProfileMen
 import { AuctionReturnToLink } from "@/components/Auth/AuctionReturnToLink";
 
 const navigation = [
+  { label: "Início", href: "/leiloes", icon: Home },
   { label: "Agenda", href: "/leiloes#agenda", icon: CalendarDays },
   { label: "Leilões", href: "/leiloes", icon: Gavel, active: true },
   { label: "Mercado", href: "/leiloes?tipo=mercado#agenda", icon: ShoppingCart },
   { label: "Shopping", href: "/leiloes?tipo=shopping#agenda", icon: ShoppingBag },
-  { label: "PrincesaRural", href: "/", icon: Home, handoff: true },
+  { label: "Princesa Rural", href: "/", icon: Home, handoff: true },
 ];
 
 export async function AuctionHeader() {

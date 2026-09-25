@@ -25,7 +25,7 @@ import {
 	issueRealtimeTicketAction,
 	placeBidAction,
 	registerAuctionAction,
-	buyShoppingLotAction,
+	buyMarketLotAction,
 	setProxyBidAction,
 } from "@/hooks/actions/auctionEngineActions";
 import { ShoppingPurchaseDialog } from "@/components/Auction/ShoppingPurchaseDialog";
@@ -41,11 +41,12 @@ import type {
 	EngineAuctionSnapshot,
 	EngineBidHistoryItem,
 	EngineBidResult,
+	EngineMarketPurchaseResult,
 } from "@/lib/auctions/engine-types";
 import {
 	getEngineQuickBidOptions,
 } from "@/lib/auctions/engine-formatters";
-import { auctionAcceptsBids, isPreBidClosed, isShoppingPurchaseOpen as isShoppingPurchaseWindowOpen } from "@/lib/auctions/bid-window";
+import { auctionAcceptsBids, isPreBidClosed, isPreBidOpen, isShoppingPurchaseOpen as isShoppingPurchaseWindowOpen } from "@/lib/auctions/bid-window";
 import { isAuctionAuthenticationError } from "@/lib/auctions/auth";
 import { getBidderDisplayName, getWinnerDisplayName, mergeKnownBidderNames } from "@/lib/auctions/bidder-display";
 
@@ -133,6 +134,26 @@ function formatBidMessage(result: EngineBidResult, currency: string) {
 	return "Lance aceito e atualizado no placar oficial.";
 }
 
+function updateLotFromMarketPurchase(snapshot: EngineAuctionSnapshot, result: EngineMarketPurchaseResult): EngineAuctionSnapshot {
+	return {
+		...snapshot,
+		lots: snapshot.lots.map((lot) => lot.id !== result.lotId && lot.externalId !== result.lotId
+			? lot
+			: {
+				...lot,
+				status: "SOLD",
+				fixedPriceCents: result.fixedPriceCents,
+				winnerName: result.winnerName,
+				winningAmountCents: result.winningAmountCents,
+				endsAt: result.closedAt,
+				closedAt: result.closedAt,
+				lotSequence: result.lotSequence,
+				version: result.version,
+			}),
+		serverTime: result.serverTime,
+	};
+}
+
 type PanelFeedback = { type: "success" | "error"; message: string };
 type RegistrationState = "checking" | "available" | "pending" | "approved" | "suspended";
 
@@ -179,6 +200,8 @@ export function AuctionLotBidPanel({
 	const [bidHistoryLoaded, setBidHistoryLoaded] = useState(false);
 	const [bidHistoryError, setBidHistoryError] = useState<string | null>(null);
 	const bidHistoryRequestId = useRef(0);
+	const marketPurchaseIdempotencyKey = useRef<string | null>(null);
+	const marketPurchaseStorageKey = "pr-auction-market-purchase:" + snapshot.auction.externalId + ":" + lotExternalId;
 	const [loginDialogOpen, setLoginDialogOpen] = useState(false);
 	const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
 	const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
@@ -236,7 +259,10 @@ export function AuctionLotBidPanel({
 	const quickBids = quickBidOptions.map((option) => option.value);
 	const effectiveSelectedBidValue = selectedBidValue !== "custom" && !quickBids.includes(selectedBidValue) ? quickBids[0] ?? "custom" : selectedBidValue;
 
-	useEffect(() => () => { bidHistoryRequestId.current += 1; }, [snapshot.auction.externalId, lot?.externalId]);
+	useEffect(() => {
+		marketPurchaseIdempotencyKey.current = window.sessionStorage.getItem(marketPurchaseStorageKey);
+		return () => { bidHistoryRequestId.current += 1; };
+	}, [marketPurchaseStorageKey]);
 
 	useEffect(() => {
 		let active = true;
@@ -457,14 +483,19 @@ export function AuctionLotBidPanel({
 		if (!shoppingPurchaseOpen) return;
 		setBusy(true);
 		setPending("reserve");
-		const result = await buyShoppingLotAction(snapshot.auction.externalId, lot.externalId);
+		const idempotencyKey = marketPurchaseIdempotencyKey.current ?? window.sessionStorage.getItem(marketPurchaseStorageKey) ?? crypto.randomUUID();
+		marketPurchaseIdempotencyKey.current = idempotencyKey;
+		window.sessionStorage.setItem(marketPurchaseStorageKey, idempotencyKey);
+		const result = await buyMarketLotAction(snapshot.auction.externalId, lot.externalId, idempotencyKey);
 		if (!result.success && isAuctionAuthenticationError(result.errorCode)) {
 			setFeedback(null);
 			setLoginDialogOpen(true);
 		} else if (result.success && result.data) {
-			applySnapshot(updateLotFromBid(snapshotRef.current, result.data));
+			applySnapshot(updateLotFromMarketPurchase(snapshotRef.current, result.data));
+			marketPurchaseIdempotencyKey.current = null;
+			window.sessionStorage.removeItem(marketPurchaseStorageKey);
 			setPurchaseDialogOpen(false);
-			setFeedback({ type: "success", message: formatBidMessage(result.data, snapshot.auction.currency) });
+			setFeedback({ type: "success", message: "Compra confirmada por " + formatCents(result.data.fixedPriceCents, snapshot.auction.currency) + ". O lote foi vendido para você e a equipe entrará em contato para combinar o pagamento." });
 		} else {
 			setFeedback({ type: "error", message: result.error || "Não foi possível concluir a compra deste lote." });
 		}
@@ -488,12 +519,17 @@ export function AuctionLotBidPanel({
 
 	const registrationBlocksCommands = registration === "checking" || registration === "suspended";
 	const selectedFixedBidIsBlocked = effectiveSelectedBidValue !== "custom" && proxyMaxBidCents !== null && BigInt(effectiveSelectedBidValue) <= BigInt(proxyMaxBidCents);
-	const countdownAt = isShopping ? snapshot.auction.endsAt : lot.endsAt ?? catalogClosesAt;
+	const isAuctionPreBidOpen = !isShopping && isPreBidOpen(snapshot.auction, nowMs);
+	const countdownAt = isShopping ? snapshot.auction.endsAt : isAuctionPreBidOpen ? snapshot.auction.preBidEndsAt : lot.endsAt ?? catalogClosesAt;
 	const remainingSeconds = countdownAt && Number.isFinite(new Date(countdownAt).getTime())
 		? Math.max(0, Math.floor((new Date(countdownAt).getTime() - nowMs) / 1000))
 		: null;
 	const closingText = isOpeningPause
 		? "Aguardando abertura da etapa principal"
+		: isAuctionPreBidOpen
+		? remainingSeconds !== null && remainingSeconds > 0
+			? `Pré-lance termina em ${formatCountdown(remainingSeconds)}`
+			: "Pré-lance encerrado"
 		: isShopping
 		? remainingSeconds !== null
 			? remainingSeconds > 0
@@ -594,11 +630,11 @@ export function AuctionLotBidPanel({
 				<p className="mt-1">Os pré-lances foram encerrados. Os lances serão liberados no início da etapa principal.</p>
 			</div> : isShopping ? <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
 				<p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Compra imediata</p>
-				<p className="text-sm text-muted-foreground">O primeiro usuário habilitado que confirmar compra fica com este lote.</p>
+				<p className="text-sm text-muted-foreground">Seu cadastro habilitado pode comprar este lote. Ao confirmar, ele será marcado como vendido e a equipe entrará em contato para combinar o pagamento.</p>
 				<Button type="button" className="h-11 w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={!shoppingPurchaseOpen || busy} onClick={() => setPurchaseDialogOpen(true)}>
 					{pending === "reserve" ? <Loader2 className="size-4 animate-spin" /> : `Comprar agora por ${formatCents(fixedPriceCents, snapshot.auction.currency)}`}
 				</Button>
-				{registration === "pending" ? <p className="inline-flex items-center gap-2 text-xs font-semibold text-amber-700"><Clock3 className="size-4 shrink-0" />Aguardando validação manual. Você poderá comprar assim que for habilitado.</p> : registration === "suspended" ? <p className="inline-flex items-center gap-2 text-xs font-semibold text-red-700"><CircleAlert className="size-4 shrink-0" />Sua participação não está habilitada para este leilão. Entre em contato com a equipe PR Leilões.</p> : registration === "approved" && shoppingPurchaseOpen ? <p className="text-xs font-semibold text-emerald-700">Você está habilitado. A compra será confirmada para o primeiro usuário aprovado.</p> : registration === "approved" ? <p className="inline-flex items-center gap-2 text-xs text-amber-700"><CircleAlert className="size-4 shrink-0" />Este lote não está disponível para compra agora.</p> : <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs leading-5 text-muted-foreground">Solicite a habilitação do seu cadastro para ficar apto a confirmar a compra.</p><Button type="button" size="sm" variant="outline" onClick={() => void requireRegistration()} disabled={registration === "checking" || busy}>{registration === "checking" ? "Verificando…" : "Solicitar habilitação"}</Button></div>}
+				{registration === "pending" ? <p className="inline-flex items-center gap-2 text-xs font-semibold text-amber-700"><Clock3 className="size-4 shrink-0" />Aguardando validação manual. Você poderá comprar assim que for habilitado.</p> : registration === "suspended" ? <p className="inline-flex items-center gap-2 text-xs font-semibold text-red-700"><CircleAlert className="size-4 shrink-0" />Sua participação não está habilitada para este leilão. Entre em contato com a equipe PR Leilões.</p> : registration === "approved" && shoppingPurchaseOpen ? <p className="text-xs font-semibold text-emerald-700">Seu cadastro está habilitado. A confirmação marca este lote como vendido; a equipe combinará o pagamento.</p> : registration === "approved" ? <p className="inline-flex items-center gap-2 text-xs text-amber-700"><CircleAlert className="size-4 shrink-0" />Este lote não está disponível para compra agora.</p> : <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs leading-5 text-muted-foreground">Solicite a habilitação do seu cadastro para ficar apto a confirmar a compra.</p><Button type="button" size="sm" variant="outline" onClick={() => void requireRegistration()} disabled={registration === "checking" || busy}>{registration === "checking" ? "Verificando…" : "Solicitar habilitação"}</Button></div>}
 			</div> : <>
 			<div className="flex gap-2">
 				<Button type="button" className="h-11 flex-1 bg-primary text-primary-foreground hover:bg-primary/90" disabled={!bidWindowOpen || busy || registrationBlocksCommands || selectedFixedBidIsBlocked} onClick={handlePrimaryBid}>

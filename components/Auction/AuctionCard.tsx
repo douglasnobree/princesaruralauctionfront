@@ -2,6 +2,7 @@ import { CalendarDays, ChevronRight, Clock3 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { AuctionStatusBadge } from "@/components/Auction/AuctionStatusBadge";
+import { AuctionStartCountdown } from "@/components/Auction/AuctionStartCountdown";
 import type { Auction } from "@/lib/auctions/types";
 
 interface AuctionCardProps {
@@ -9,10 +10,14 @@ interface AuctionCardProps {
 }
 
 function AuctionCardAction({ auction }: AuctionCardProps) {
+	const startTime = new Date(auction.startsAt).getTime();
+	const daysUntilStart = (startTime - Date.now()) / (24 * 60 * 60 * 1000);
+	const withinLotRevealWindow = Number.isFinite(startTime) && daysUntilStart <= 10 && (daysUntilStart >= 0 || auction.status === "OPEN");
+	const canViewLots = auction.lots.length > 0 && withinLotRevealWindow;
 	return (
 		<div className="flex min-h-9 items-center gap-3 text-base font-semibold text-secondary">
 			<span className="h-8 w-0.5 bg-secondary" aria-hidden />
-			<span>{auction.lots.length > 0 ? "Ver lotes" : "Ver detalhes"}</span>
+			<span>{canViewLots ? "Ver lotes" : "Em Breve"}</span>
 			<ChevronRight className="ml-auto size-5" />
 		</div>
 	);
@@ -33,11 +38,12 @@ function AuctionCardContent({ auction }: AuctionCardProps) {
 
 			<div className="flex min-w-0 flex-col p-3 sm:p-5">
 				<div className="flex flex-wrap gap-2">
-					<AuctionStatusBadge status={auction.status} />
+					<AuctionStatusBadge status={auction.status} mode={auction.mode} />
 					<span className="rounded-full bg-muted px-2.5 py-1 text-xs font-semibold">
 						{auction.lotCount} {auction.lotCount === 1 ? "lote" : "lotes"}
 					</span>
 				</div>
+				<AuctionStartCountdown startsAt={auction.startsAt} />
 
 				<h2 className="mt-3 line-clamp-3 text-base sm:text-xl font-bold leading-6">
 					{auction.title}

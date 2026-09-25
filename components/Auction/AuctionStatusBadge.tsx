@@ -1,4 +1,4 @@
-import type { AuctionLotStatus, AuctionStatus } from "@/lib/auctions/types";
+import type { AuctionLotStatus, AuctionMode, AuctionStatus } from "@/lib/auctions/types";
 
 const auctionLabels: Record<AuctionStatus, string> = {
 	PRE_LAUNCH: "Pré-lance",
@@ -34,26 +34,48 @@ const lotStyles: Record<AuctionLotStatus, string> = {
 	CANCELLED: "bg-primary text-primary-foreground",
 };
 
-export function AuctionStatusBadge({ status }: { status: AuctionStatus }) {
+function auctionLabel(status: AuctionStatus, mode?: AuctionMode) {
+	if (status === "PRE_LAUNCH") return "Pré-lance";
+	if (status === "COMING_SOON" || status === "WAITING_OPENING") return "Em breve";
+	if (status === "OPEN") {
+		if (mode === "LIVE") return "Ao vivo";
+		if (mode === "TIMED") return "Shopping no ar";
+		if (mode === "SHOPPING") return "Mercado no ar";
+	}
+	return auctionLabels[status];
+}
+
+export function AuctionStatusBadge({ status, mode }: { status: AuctionStatus; mode?: AuctionMode }) {
 	return (
 		<span
 			className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${auctionStyles[status]}`}
 		>
-			{auctionLabels[status]}
+			{auctionLabel(status, mode)}
 		</span>
 	);
 }
 
 export function AuctionLotStatusBadge({
 	status,
+	mode,
+	preBidActive = false,
 }: {
 	status: AuctionLotStatus;
+	mode?: AuctionMode;
+	preBidActive?: boolean;
 }) {
+	const label = status === "SOLD"
+		? "VENDIDO"
+		: status === "OPEN" && preBidActive
+			? "Pré-lance"
+			: status === "OPEN" && mode === "LIVE"
+				? "AO VIVO"
+					: lotLabels[status];
 	return (
 		<span
 			className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${lotStyles[status]}`}
 		>
-			{lotLabels[status]}
+			{label}
 		</span>
 	);
 }

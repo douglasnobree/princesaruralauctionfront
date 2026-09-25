@@ -28,6 +28,12 @@ export function AuctionLotInformationSections({
 				auction.paymentText ||
 				"Consulte as condições de pagamento deste lote com nossa equipe.",
 		},
+		...(lot.details.filter((detail) => /parcela|parcelamento/i.test(detail.label)).length
+			? [{
+				title: "Parcelas disponíveis",
+				text: lot.details.filter((detail) => /parcela|parcelamento/i.test(detail.label)).map((detail) => detail.value).join("\n"),
+			}]
+			: []),
 		{
 			title: "Frete e entrega",
 			text:
@@ -73,9 +79,10 @@ export function AuctionLotInformationSections({
 			<div className="mt-8 border-t pt-8">
 				<div className="space-y-7">
 					{information.map((item) => (
-						<details
+		<details
 							key={item.title}
 							className="group rounded-lg border bg-background [&_summary::-webkit-details-marker]:hidden"
+							open
 						>
 							<summary className="flex min-h-16 cursor-pointer list-none items-center justify-between gap-4 px-4 py-3 text-base font-semibold outline-none focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring sm:px-5">
 								{item.title}

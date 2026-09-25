@@ -182,15 +182,23 @@ export async function createSandboxAuctionAction(input: { label?: string; lotCou
   } catch { return { success: false, error: "Não foi possível conectar ao ambiente de teste." }; }
 }
 
-export async function buyShoppingLotAction(auctionId: string, lotId: string): Promise<ActionResult<EngineBidResult>> {
+export async function buyMarketLotAction(auctionId: string, lotId: string, idempotencyKey: string): Promise<ActionResult<import("@/lib/auctions/engine-types").EngineMarketPurchaseResult>> {
   try {
-    const response = await engineRequest(`/auction-engine/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/reservation`, { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": randomUUID() }, body: JSON.stringify({ quantity: 1 }), cache: "no-store" });
+    const response = await engineRequest(`/auction-engine/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/reservation`, { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey }, body: JSON.stringify({ quantity: 1 }), cache: "no-store" });
     return parse(response, "Não foi possível concluir a compra deste lote.");
-  } catch { return { success: false, error: "Não foi possível concluir a compra agora." }; }
+  } catch { return { success: false, error: "O motor não confirmou o resultado desta tentativa. Tente novamente; a mesma chave será reutilizada e não criará uma segunda venda." }; }
 }
 
-/** Compatibilidade para consumidores antigos: o shopping não cria mais reservas. */
-export const reserveShoppingLotAction = buyShoppingLotAction;
+/** Compatibilidade de nome enquanto o catálogo migra para a modalidade Mercado. */
+export const buyShoppingLotAction = buyMarketLotAction;
+export const reserveShoppingLotAction = buyMarketLotAction;
+
+export async function listMarketSalesAction(auctionId: string): Promise<ActionResult<import("@/lib/auctions/engine-types").EngineMarketSalesPage>> {
+	try {
+		const response = await engineRequest(`/auction-engine/manager/auctions/${encodeURIComponent(auctionId)}/shopping-sales`, { cache: "no-store" });
+		return parse(response, "Não foi possível carregar as vendas do Mercado.");
+	} catch { return { success: false, error: "Não foi possível carregar as vendas do Mercado agora." }; }
+}
 
 export async function issueRealtimeTicketAction(auctionId: string): Promise<ActionResult<EngineRealtimeTicket>> {
   try {

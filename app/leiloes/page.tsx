@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { AuctionCard } from "@/components/Auction/AuctionCard";
 import { AuctionEmptyState } from "@/components/Auction/AuctionEmptyState";
 import { AuctionHeroBanner } from "@/components/Auction/AuctionHeroBanner";
+import Link from "next/link";
 import {
 	filterAuctionsByListingFilter,
 	getAuctions,
@@ -38,17 +39,24 @@ export default async function LeiloesPage({
 		: filteredAuctions;
 	const featuredAuction = visibleAuctions[0];
 	const listingTitle =
-		filter === "shopping"
-			? "Shopping"
-			: filter === "mercado"
-				? "Leilões de Mercado"
-				: "Leilões agendados";
+		filter === "live" ? "Leilões ao vivo"
+			: filter === "shopping" ? "Shopping"
+				: filter === "pre-lances" ? "Pré-lances"
+					: filter === "mercado" ? "Mercado"
+						: "Agenda de leilões";
 	const emptyTitle =
-		filter === "shopping"
-			? "Nenhum Shopping disponível"
-			: filter === "mercado"
-				? "Nenhum leilão de Mercado disponível"
-				: "Nenhum leilão agendado";
+		filter === "live" ? "Nenhum leilão ao vivo disponível"
+			: filter === "shopping" ? "Nenhum Shopping disponível"
+				: filter === "pre-lances" ? "Nenhum pré-lance aberto"
+					: filter === "mercado" ? "Nenhum Mercado disponível"
+						: "Nenhum leilão agendado";
+	const filters = [
+		{ value: "all", label: "Todos" },
+		{ value: "live", label: "Ao vivo" },
+		{ value: "shopping", label: "Shopping" },
+		{ value: "mercado", label: "Mercado" },
+		{ value: "pre-lances", label: "Pré-lances" },
+	] as const;
 
 	return (
 		<div className="bg-muted/35 pb-10 pt-4 sm:pt-5">
@@ -72,12 +80,19 @@ export default async function LeiloesPage({
 					<p className="mt-2 text-lg text-muted-foreground">
 						{query
 							? `Resultados para “${query}”`
-							: filter === "shopping"
-								? "Compre lotes com preço fixo, enquanto estiverem disponíveis"
-								: filter === "mercado"
-									? "Acompanhe os leilões ao vivo e por pré-lance"
-									: "Confira os próximos leilões e participe"}
+							: filter === "live" ? "Acompanhe a disputa ao vivo e veja os pré-lances no filtro próprio."
+								: filter === "shopping" ? "Disputas por lance com encerramento programado por lote."
+									: filter === "pre-lances" ? "Leilões dentro da janela oficial de pré-lance."
+										: filter === "mercado" ? "Compre lotes de preço fixo enquanto estiverem disponíveis."
+											: "Confira os próximos leilões e participe."}
 					</p>
+					<nav className="mt-5 flex flex-wrap gap-2" aria-label="Filtrar leilões">
+						{filters.map((option) => {
+							const selected = filter === option.value;
+							const href = option.value === "all" ? "/leiloes" : `/leiloes?tipo=${option.value}`;
+							return <Link key={option.value} href={href} aria-current={selected ? "page" : undefined} className={`inline-flex min-h-10 items-center rounded-full border px-4 text-sm font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring ${selected ? "border-secondary bg-secondary text-secondary-foreground" : "bg-card text-muted-foreground hover:border-secondary/50 hover:text-foreground"}`}>{option.label}</Link>;
+						})}
+					</nav>
 				</header>
 
 				{visibleAuctions.length > 0 ? (

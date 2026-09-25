@@ -26,9 +26,9 @@ function statusLabel(
   preBidClosed = false,
 ) {
   if (mode === 'SHOPPING' && ['SCHEDULED', 'RUNNING', 'OPEN'].includes(status))
-    return status === 'SCHEDULED' ? 'Compra programada' : 'Compras abertas';
+    return status === 'SCHEDULED' ? 'Em breve' : 'Mercado no ar';
   if (mode === 'SHOPPING' && ['FINISHED', 'CLOSED'].includes(status))
-    return 'Compras encerradas';
+    return 'Encerrado';
   if (
     mode === 'TIMED' &&
     status === 'SCHEDULED' &&
@@ -40,23 +40,25 @@ function statusLabel(
     status === 'SCHEDULED' &&
     preBidClosed
   )
-    return 'Aguardando abertura';
+    return 'Em breve';
   if (
     mode === 'TIMED' &&
     status === 'SCHEDULED'
   )
     return 'Em breve';
   if (mode === 'LIVE' && status === 'SCHEDULED' && preBidClosed)
-    return 'Aguardando ao vivo';
+    return 'Em breve';
   if (mode === 'LIVE' && status === 'SCHEDULED' && preBidOpen)
-    return 'Pré-lance · ao vivo em breve';
-  if (mode === 'LIVE' && status === 'SCHEDULED') return 'Aguardando ao vivo';
-  if (mode === 'LIVE' && status === 'RUNNING') return 'Ao vivo';
+    return 'Pré-lance';
+  if (mode === 'LIVE' && status === 'SCHEDULED') return 'Em breve';
+  if (mode === 'LIVE' && ['RUNNING', 'OPEN'].includes(status)) return 'AO VIVO';
   if (
     mode === 'TIMED' &&
-    status === 'RUNNING'
+    ['RUNNING', 'OPEN'].includes(status)
   )
-    return 'Aberto';
+    return 'Shopping no ar';
+  if (mode === 'SHOPPING' && ['OPEN', 'RUNNING'].includes(status))
+    return 'Mercado no ar';
   return (
     (
       {
@@ -176,11 +178,7 @@ export function AuctionLiveExperience({
               </span>
               {mode ? (
                 <span className='rounded-full border px-2.5 py-1 text-xs font-semibold text-muted-foreground'>
-                  {mode === 'LIVE'
-                    ? 'Ao vivo'
-                    : mode === 'SHOPPING'
-                      ? 'Shopping · compra imediata'
-                      : 'Pré-lance'}
+                  {mode === 'LIVE' ? 'Ao vivo' : mode === 'SHOPPING' ? 'Mercado' : 'Shopping'}
                 </span>
               ) : null}
             </div>
@@ -239,6 +237,9 @@ export function AuctionLiveExperience({
                     )}
                     currency={initialSnapshot?.auction.currency}
                     mode={mode}
+                    preBidActive={preBidOpen}
+                    preBidEndsAt={initialSnapshot?.auction.preBidEndsAt}
+                    serverTime={initialSnapshot?.serverTime}
                   />
                 ))}
               </div>

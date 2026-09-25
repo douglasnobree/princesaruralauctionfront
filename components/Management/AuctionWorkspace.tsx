@@ -12,6 +12,7 @@ import {
   Pencil,
   Settings2,
   ShieldCheck,
+  ShoppingCart,
   Trash2,
   XCircle,
 } from "lucide-react";
@@ -39,6 +40,7 @@ import { AuctionPendingEligibilityBids } from "@/components/Management/AuctionPe
 const AuctionOperationPanel = dynamic(() => import("@/components/Management/AuctionOperationPanel").then((module) => module.AuctionOperationPanel), { loading: () => <div role="status" className="management-skeleton rounded-xl border p-6">Carregando seção…</div> });
 const AuctionParticipantsPanel = dynamic(() => import("@/components/Management/AuctionParticipantsPanel").then((module) => module.AuctionParticipantsPanel), { loading: () => <div role="status" className="management-skeleton rounded-xl border p-6">Carregando seção…</div> });
 const AuctionCommunicationPanel = dynamic(() => import("@/components/Management/AuctionCommunicationPanel").then((module) => module.AuctionCommunicationPanel), { loading: () => <div role="status" className="management-skeleton rounded-xl border p-6">Carregando seção…</div> });
+const AuctionMarketSalesPanel = dynamic(() => import("@/components/Management/AuctionMarketSalesPanel").then((module) => module.AuctionMarketSalesPanel), { loading: () => <div role="status" className="management-skeleton rounded-xl border p-6">Carregando seção…</div> });
 
 type Tab =
   | "resumo"
@@ -46,6 +48,7 @@ type Tab =
   | "lotes"
   | "lances"
   | "participantes"
+  | "vendas"
   | "comunicacao"
   | "operacao"
   | "transmissao";
@@ -57,6 +60,7 @@ const tabs: Array<{ value: Tab; label: string; icon: typeof Gavel }> = [
   { value: "lotes", label: "Lotes", icon: ListOrdered },
   { value: "lances", label: "Lances e pré-lances", icon: Gavel },
   { value: "participantes", label: "Participantes", icon: ShieldCheck },
+  { value: "vendas", label: "Vendas", icon: ShoppingCart },
   { value: "comunicacao", label: "Comunicação", icon: MessageCircle },
   { value: "transmissao", label: "Broadcast / OBS", icon: MonitorPlay },
 ];
@@ -108,13 +112,19 @@ export function AuctionWorkspace({
   const canEditLots =
     capabilities.canManageLots &&
     (auction.availableActions?.canEditLots ?? true);
+  const publicLots = lots.filter((lot) => ["OPEN", "SOLD", "CLOSED"].includes(lot.status));
+  const hasPreBidSchedule = Boolean(auction.preBidStartsAt || auction.preBidEndsAt);
+  const auctionStartMs = auction.startsAt ? new Date(auction.startsAt).getTime() : Number.NaN;
+  const agendaReady = auction.mode === "SHOPPING"
+    ? Boolean(auction.startsAt && auction.endsAt && new Date(auction.endsAt).getTime() > new Date(auction.startsAt).getTime())
+    : auction.mode === "TIMED"
+      ? Boolean(auction.startsAt && publicLots.length > 0 && publicLots.every((lot) => lot.closesAt && new Date(lot.closesAt).getTime() > auctionStartMs))
+      : Boolean(auction.startsAt && (!hasPreBidSchedule || (auction.preBidStartsAt && auction.preBidEndsAt && auction.pauseHours)));
   const readiness = [
     Boolean(auction.title && auction.category && auction.startsAt),
-    auction.mode === "SHOPPING"
-      ? Boolean(auction.startsAt && auction.endsAt)
-      : Boolean(auction.startsAt && auction.preBidStartsAt && auction.pauseHours),
-    Boolean(auction.coverImage || auction.coverImageUrl),
-    lots.some((lot) => ["OPEN", "SOLD", "CLOSED"].includes(lot.status)),
+    agendaReady,
+    Boolean(auction.desktopBannerUrl || auction.mobileBannerUrl),
+    publicLots.length > 0,
   ];
   const completed = readiness.filter(Boolean).length;
 
@@ -134,11 +144,11 @@ export function AuctionWorkspace({
               <span className={`inline-flex rounded-md border px-2 py-1 text-xs font-semibold ${statusClasses[auction.status]}`}>
                 {formatAuctionStatus(auction.status)}
               </span>
-              <span className="text-xs text-muted-foreground">{auction.mode} · /{auction.slug}</span>
+              <span className="text-xs text-muted-foreground">{auction.mode === "LIVE" ? "Ao vivo" : auction.mode === "SHOPPING" ? "Mercado" : "Shopping"} · /{auction.slug}</span>
             </div>
             <h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">{auction.title}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Início {formatAuctionDate(auction.startsAt)} · {auction.lotCount} lote(s) · {auction.mode === "SHOPPING" ? "compra imediata" : `incremento ${formatCents(auction.incrementCents)}`}
+              Início {formatAuctionDate(auction.startsAt)} · {auction.lotCount} lote(s) · {auction.mode === "SHOPPING" ? "preço fixo" : `incremento ${formatCents(auction.incrementCents)}`}
             </p>
             <AuctionStatusControls auction={auction} capabilities={capabilities} />
           </div>
@@ -153,7 +163,7 @@ export function AuctionWorkspace({
 
       <nav className="overflow-x-auto pb-1" aria-label="Seções do workspace">
         <div className="flex min-w-max gap-1 rounded-xl border bg-card p-1">
-          {tabs.filter((item) => (item.value !== "comunicacao" || capabilities.canNotifyParticipants) && (item.value !== "lances" || capabilities.canViewBids || capabilities.canManageStatus)).map(({ value, label, icon: Icon }) => (
+          {tabs.filter((item) => (item.value !== "comunicacao" || capabilities.canNotifyParticipants) && (item.value !== "lances" || capabilities.canViewBids || capabilities.canManageStatus) && (item.value !== "vendas" || (auction.mode === "SHOPPING" && capabilities.canManageStatus))).map(({ value, label, icon: Icon }) => (
             <button
               type="button"
               key={value}
@@ -181,7 +191,7 @@ export function AuctionWorkspace({
             </div>
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted" aria-hidden="true"><div className="h-full rounded-full bg-secondary transition-[width] duration-300" style={{ width: `${(completed / readiness.length) * 100}%` }} /></div>
             <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-              {["Dados básicos", "Agenda configurada", "Capa adicionada", "Lote visível"].map((label, index) => (
+              {["Nome e início", "Agenda configurada", "Banner adicionado", "Lote visível"].map((label, index) => (
                 <li key={label} className="flex items-center justify-between gap-3 rounded-lg bg-muted/30 px-3 py-2.5 text-sm">
                   <span className="flex items-center gap-2">{readiness[index] ? <CheckCircle2 className="size-4 text-secondary" aria-hidden="true" /> : <Circle className="size-4 text-muted-foreground" aria-hidden="true" />}{label}</span>
                   {!readiness[index] ? <button type="button" onClick={() => changeTab(index === 3 ? "lotes" : "dados")} className="text-xs font-medium text-primary underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring">Corrigir</button> : null}
@@ -190,9 +200,9 @@ export function AuctionWorkspace({
             </ul>
           </section>
           <div className="grid overflow-hidden rounded-xl border bg-card sm:grid-cols-2 xl:grid-cols-4">
-            <Metric label="Formato" value={auction.mode === "LIVE" ? "Leilão ao vivo" : auction.mode === "SHOPPING" ? "Shopping / compra imediata" : "Pré-lance"} />
+            <Metric label="Formato" value={auction.mode === "LIVE" ? "Leilão ao vivo" : auction.mode === "SHOPPING" ? "Mercado · preço fixo" : "Shopping · tempo determinado"} />
             <Metric label="Início" value={formatAuctionDate(auction.startsAt)} />
-            <Metric label={auction.mode === "SHOPPING" ? "Fim das compras" : "Encerramento"} value={formatAuctionDate(auction.endsAt)} />
+            <Metric label={auction.mode === "SHOPPING" ? "Fim do Mercado" : auction.mode === "TIMED" ? "Encerramento" : "Fim da etapa"} value={auction.mode === "TIMED" ? "Configurado por lote" : formatAuctionDate(auction.endsAt)} />
             <Metric label={auction.mode === "SHOPPING" ? "Lotes" : "Lotes e incremento"} value={auction.mode === "SHOPPING" ? String(auction.lotCount) : `${auction.lotCount} · ${formatCents(auction.incrementCents)}`} />
           </div>
           {auction.availableActions?.reasons.publish ? <div className="space-y-2"><div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"><p className="font-semibold">Publicação pendente</p><p className="mt-1">{auction.availableActions.reasons.publish.message}</p></div><button type="button" onClick={() => changeTab("dados")} className="text-sm font-medium text-primary underline underline-offset-2">Abrir correção</button></div> : null}
@@ -217,6 +227,7 @@ export function AuctionWorkspace({
         </section>
       ) : null}
       {tab === "participantes" ? <AuctionParticipantsPanel auctionId={auction.id} lots={lots} capabilities={capabilities} /> : null}
+      {tab === "vendas" && auction.mode === "SHOPPING" && capabilities.canManageStatus ? <AuctionMarketSalesPanel auctionId={auction.id} /> : null}
       {tab === "comunicacao" ? <AuctionCommunicationPanel auctionId={auction.id} canNotify={capabilities.canNotifyParticipants} /> : null}
       {tab === "operacao" ? <AuctionOperationPanel auctionId={auction.id} initialSnapshot={engineSnapshot} capabilities={capabilities} lots={lots} /> : null}
       {engineError && tab === "resumo" ? <p role="status" className="text-sm text-amber-800">{engineError} A operação permite tentar novamente.</p> : null}

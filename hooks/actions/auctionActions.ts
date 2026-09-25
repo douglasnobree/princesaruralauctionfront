@@ -43,6 +43,7 @@ function revalidateAuctions() {
   revalidatePath("/admin/leiloes/[id]/lotes", "page");
   revalidatePath("/leiloes");
   revalidatePath("/leiloes/[auctionSlug]", "page");
+  revalidatePath("/leiloes/[auctionSlug]/lotes/[lotSlug]", "page");
 }
 
 export async function getAdminAuctionsAction(status?: AuctionAdminStatus): Promise<ActionResult<AuctionAdmin[]>> {
@@ -114,6 +115,10 @@ export async function updateAuctionLotStatusAction(auctionId: string, lotId: str
 export async function uploadAuctionLotImagesAction(auctionId: string, lotId: string, files: File[], changeReason?: string): Promise<ActionResult<AuctionAdminLot>> {
   try { const form = new FormData(); files.forEach((file) => form.append("images", file)); if (changeReason?.trim()) form.append("changeReason", changeReason.trim()); const result = await parseResponse<AuctionAdminLot>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/images`, { method:"POST", body:form }), "Não foi possível enviar as imagens."); if (result.success) revalidateAuctions(); return result; }
   catch { return { success:false, error:"Não foi possível enviar as imagens." }; }
+}
+export async function setAuctionLotCoverAction(auctionId: string, lotId: string, imageId: string, changeReason?: string): Promise<ActionResult<AuctionAdminLot>> {
+  try { const result = await parseResponse<AuctionAdminLot>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/images/cover`, { method:"PATCH", body:JSON.stringify({ imageId, changeReason:changeReason?.trim() || undefined }) }), "Não foi possível alterar a imagem principal."); if (result.success) revalidateAuctions(); return result; }
+  catch { return { success:false, error:"Não foi possível alterar a imagem principal." }; }
 }
 export async function uploadAuctionLotGenealogyAction(auctionId: string, lotId: string, file: File, changeReason?: string): Promise<ActionResult<AuctionAdminLot>> {
   try { const form = new FormData(); form.append("genealogy", file); if (changeReason?.trim()) form.append("changeReason", changeReason.trim()); const result = await parseResponse<AuctionAdminLot>(await auctionFetch(`/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/genealogy`, { method:"POST", body:form }), "Não foi possível enviar a genealogia."); if (result.success) revalidateAuctions(); return result; }

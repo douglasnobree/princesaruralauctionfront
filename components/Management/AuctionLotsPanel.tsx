@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   ArrowDown,
   ArrowUp,
@@ -16,7 +17,9 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   createAuctionLotAction,
   deleteAuctionLotAction,
+  deleteAuctionLotImageAction,
   reorderAuctionLotsAction,
+  setAuctionLotCoverAction,
   updateAuctionLotAction,
   updateAuctionLotStatusAction,
   uploadAuctionLotGenealogyAction,
@@ -26,12 +29,14 @@ import { listManagerLotBidsAction } from "@/hooks/actions/auctionEngineActions";
 import {
   formatCents,
   formatLotStatus,
+  getAuctionAssetUrl,
   toDateTimeLocalBrt,
   fromDateTimeLocalBrt,
 } from "@/lib/auctions/admin-utils";
 import { slugifyAuction } from "@/lib/auctions/form-mappers";
 import type {
   AuctionAdminLot,
+  AuctionAdminImage,
   AuctionAdminMode,
   AuctionLotAdminStatus,
   AuctionLotInput,
@@ -271,25 +276,100 @@ export function AuctionLotsPanel({
 
   function uploadImages(lot: AuctionAdminLot, files: FileList | null) {
     if (!files?.length || !canEdit) return;
+    const selected = Array.from(files);
+    if (selected.some((file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 10 * 1024 * 1024)) {
+      setNotice("Use imagens JPG, PNG ou WebP de até 10 MB cada.");
+      return;
+    }
     const changeReason = requestChangeReason("enviar imagens ao lote");
     if (changeReason === null) return;
     startTransition(async () => {
-      const result = await uploadAuctionLotImagesAction(
-        auctionId,
-        lot.id,
-        Array.from(files),
-        changeReason || undefined,
-      );
-      setNotice(
-        result.success
-          ? "Imagens enviadas."
-          : result.error || "Não foi possível enviar as imagens.",
-      );
-      if (result.success && result.data) {
-        setLots((current) =>
-          current.map((item) => (item.id === lot.id ? result.data! : item)),
-        );
+      let uploaded = 0;
+      for (const file of selected) {
+        const result = await uploadAuctionLotImagesAction(auctionId, lot.id, [file], changeReason || undefined);
+        if (!result.success || !result.data) {
+          setNotice(`${uploaded} de ${selected.length} imagem(ns) enviada(s). ${result.error || "Não foi possível enviar a próxima imagem."}`);
+          return;
+        }
+        uploaded += 1;
+        setLots((current) => current.map((item) => (item.id === lot.id ? result.data! : item)));
       }
+      setNotice(`${uploaded} imagem(ns) enviada(s) ao lote ${lot.number}.`);
+    });
+  }
+
+  function deleteImage(lot: AuctionAdminLot, image: AuctionAdminImage) {
+    if (!canEdit || !window.confirm(`Excluir esta imagem do lote ${lot.number}?`)) return;
+    const changeReason = requestChangeReason("excluir uma imagem do lote");
+    if (changeReason === null) return;
+    startTransition(async () => {
+      const result = await deleteAuctionLotImageAction(auctionId, lot.id, image.id, changeReason || undefined);
+      if (!result.success) {
+        setNotice(result.error || "Não foi possível excluir a imagem.");
+        return;
+      }
+      setLots((current) => current.map((item) => item.id === lot.id
+        ? { ...item, images: item.images.filter((existing) => existing.id !== image.id) }
+        : item));
+      setNotice("Imagem excluída.");
+    });
+  }
+
+  function replaceImage(lot: AuctionAdminLot, image: AuctionAdminImage, file: File | null) {
+    if (!file || !canEdit) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 10 * 1024 * 1024) {
+      setNotice("Use uma imagem JPG, PNG ou WebP de até 10 MB.");
+      return;
+    }
+    const changeReason = requestChangeReason("substituir uma imagem do lote");
+    if (changeReason === null) return;
+    startTransition(async () => {
+      const uploaded = await uploadAuctionLotImagesAction(auctionId, lot.id, [file], changeReason || undefined);
+      if (!uploaded.success || !uploaded.data) {
+        setNotice(uploaded.error || "Não foi possível enviar a nova imagem.");
+        return;
+      }
+      const newImage = uploaded.data.images.find((candidate) => !lot.images.some((existing) => existing.id === candidate.id));
+      setLots((current) => current.map((item) => item.id === lot.id ? uploaded.data! : item));
+      if (!newImage) {
+        setNotice("A nova imagem foi enviada, mas não foi possível concluir a substituição. Confira a galeria.");
+        return;
+      }
+      let updatedLot = uploaded.data;
+      const firstImage = [...lot.images].sort((a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id))[0];
+      if (firstImage?.id === image.id) {
+        const cover = await setAuctionLotCoverAction(auctionId, lot.id, newImage.id, changeReason || undefined);
+        if (!cover.success || !cover.data) {
+          setNotice("A nova imagem foi enviada, mas não foi possível defini-la como capa. Confira a galeria.");
+          return;
+        }
+        updatedLot = cover.data;
+        setLots((current) => current.map((item) => item.id === lot.id ? updatedLot : item));
+      }
+      const removed = await deleteAuctionLotImageAction(auctionId, lot.id, image.id, changeReason || undefined);
+      if (!removed.success) {
+        setNotice("A nova imagem foi enviada, mas a antiga não foi excluída. Confira a galeria.");
+        return;
+      }
+      setLots((current) => current.map((item) => item.id === lot.id
+        ? { ...updatedLot, images: updatedLot.images.filter((candidate) => candidate.id !== image.id) }
+        : item));
+      setNotice("Imagem substituída.");
+    });
+  }
+
+  function setCover(lot: AuctionAdminLot, image: AuctionAdminImage) {
+    if (!canEdit) return;
+    const changeReason = requestChangeReason("alterar a imagem principal do lote");
+    if (changeReason === null) return;
+    startTransition(async () => {
+      const result = await setAuctionLotCoverAction(auctionId, lot.id, image.id, changeReason || undefined);
+      if (!result.success || !result.data) {
+        setNotice(result.error || "Não foi possível alterar a imagem principal.");
+        return;
+      }
+      setLots((current) => current.map((item) => item.id === lot.id ? result.data! : item));
+      setNotice("Imagem principal atualizada.");
     });
   }
 
@@ -399,6 +479,9 @@ export function AuctionLotsPanel({
                   setHistoryLotId(historyLotId === lot.id ? null : lot.id)
                 }
                 onImages={(files) => uploadImages(lot, files)}
+                onDeleteImage={(image) => deleteImage(lot, image)}
+                onReplaceImage={(image, file) => replaceImage(lot, image, file)}
+                onSetCover={(image) => setCover(lot, image)}
                 onGenealogy={(file) => uploadGenealogy(lot, file)}
                 mode={mode}
               />
@@ -620,6 +703,9 @@ function LotRow({
   onMove,
   onHistory,
   onImages,
+  onDeleteImage,
+  onReplaceImage,
+  onSetCover,
   onGenealogy,
   mode,
 }: {
@@ -638,6 +724,9 @@ function LotRow({
   onMove: (direction: -1 | 1) => void;
   onHistory: () => void;
   onImages: (files: FileList | null) => void;
+  onDeleteImage: (image: AuctionAdminImage) => void;
+  onReplaceImage: (image: AuctionAdminImage, file: File | null) => void;
+  onSetCover: (image: AuctionAdminImage) => void;
   onGenealogy: (file: File | null) => void;
   mode: AuctionAdminMode;
 }) {
@@ -707,21 +796,6 @@ function LotRow({
         ) : null}
         <label className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-[#dfe8e2] px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50">
           <FileUp className="size-3.5" aria-hidden="true" />
-          Imagens
-          <input
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={(event) => {
-              onImages(event.target.files);
-              event.currentTarget.value = "";
-            }}
-            disabled={!canEdit || isPending}
-            className="sr-only"
-          />
-        </label>
-        <label className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-[#dfe8e2] px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50">
-          <FileUp className="size-3.5" aria-hidden="true" />
           Genealogia
           <input
             type="file"
@@ -779,6 +853,62 @@ function LotRow({
             </button>
           ) : null}
         </div>
+      </div>
+      <div className="mt-5 border-t border-[#e9efeb] pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h4 className="text-sm font-semibold text-slate-900">Imagens do lote</h4>
+            <p className="mt-0.5 text-xs text-slate-600">A primeira imagem aparece como capa no catálogo. JPG, PNG ou WebP, até 10 MB por arquivo.</p>
+          </div>
+          {canEdit ? (
+            <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg bg-[#08734e] px-3.5 text-sm font-semibold text-white hover:bg-[#075b3e] focus-within:ring-2 focus-within:ring-[#f08a24] focus-within:ring-offset-2 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50">
+              <FileUp className="size-4" aria-hidden="true" />
+              Adicionar imagens
+              <input
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/webp"
+                aria-label={`Adicionar imagens ao lote ${lot.number}`}
+                onChange={(event) => {
+                  onImages(event.target.files);
+                  event.currentTarget.value = "";
+                }}
+                disabled={isPending}
+                className="sr-only"
+              />
+            </label>
+          ) : null}
+        </div>
+        {lot.images.length === 0 ? (
+          <p className="mt-4 rounded-lg bg-slate-50 px-4 py-5 text-sm text-slate-600">Este lote ainda não tem imagens.</p>
+        ) : (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {[...lot.images].sort((a, b) => a.sortOrder - b.sortOrder || a.id.localeCompare(b.id)).map((image, imageIndex) => (
+              <div key={image.id} className="overflow-hidden rounded-xl border border-[#dfe8e2] bg-white">
+                <div className="relative aspect-[3/2] bg-slate-100">
+                  <Image src={getAuctionAssetUrl(image.url || image.filename)} alt={image.altText || `Imagem ${imageIndex + 1} do lote ${lot.number}`} fill sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw" className="object-cover" />
+                  {imageIndex === 0 ? <span className="absolute left-2 top-2 rounded-md bg-[#075b3e] px-2 py-1 text-xs font-semibold text-white">Capa</span> : null}
+                </div>
+                {canEdit ? (
+                  <div className="flex flex-wrap gap-1.5 p-2">
+                    <label className="inline-flex min-h-9 flex-1 cursor-pointer items-center justify-center rounded-md border border-[#dfe8e2] px-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus-within:ring-2 focus-within:ring-[#f08a24] has-[:disabled]:opacity-50">
+                      Substituir
+                      <input type="file" accept="image/jpeg,image/png,image/webp" aria-label={`Substituir imagem ${imageIndex + 1} do lote ${lot.number}`} disabled={isPending} className="sr-only" onChange={(event) => { onReplaceImage(image, event.target.files?.[0] ?? null); event.currentTarget.value = ""; }} />
+                    </label>
+                    {imageIndex > 0 ? (
+                      <button type="button" onClick={() => onSetCover(image)} disabled={isPending} className="min-h-9 flex-1 rounded-md border border-[#dfe8e2] px-2 text-xs font-semibold text-[#075b3e] hover:bg-[#f3f9f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24] disabled:opacity-50">
+                        Tornar capa
+                      </button>
+                    ) : null}
+                    <button type="button" onClick={() => onDeleteImage(image)} disabled={isPending} className="inline-flex min-h-9 items-center justify-center gap-1 rounded-md border border-red-200 px-2 text-xs font-semibold text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24] disabled:opacity-50" aria-label={`Excluir imagem ${imageIndex + 1} do lote ${lot.number}`}>
+                      <Trash2 className="size-3.5" aria-hidden="true" /> Excluir
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       {lot.genealogyFilename ? (
         <p className="mt-3 text-xs text-slate-500">Genealogia: {lot.genealogyFilename}</p>

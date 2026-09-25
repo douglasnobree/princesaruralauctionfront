@@ -74,10 +74,10 @@ const emptyState: FormState = {
 
 const modeDetails = {
   TIMED: {
-    shortTitle: "Pré-lance / fechamento",
-    description: "Lances na janela definida. Fechamento pelo operador.",
+    shortTitle: "Shopping",
+    description: "Disputa por lances com encerramento programado em cada lote.",
     icon: TimerReset,
-    badge: "Sem transmissão",
+    badge: "Tempo determinado",
   },
   LIVE: {
     shortTitle: "Ao vivo",
@@ -86,10 +86,10 @@ const modeDetails = {
     badge: "Transmissão obrigatória",
   },
   SHOPPING: {
-    shortTitle: "Shopping / compra imediata",
-    description: "O primeiro usuário habilitado que confirmar compra fica com o lote.",
+    shortTitle: "Mercado",
+    description: "Preço fixo; a primeira compra de usuário habilitado marca o lote como vendido.",
     icon: ShoppingBasket,
-    badge: "Compra imediata sem transmissão",
+    badge: "Equipe combina o pagamento",
   },
 } as const;
 
@@ -143,6 +143,11 @@ export function AuctionForm({
   const router = useRouter();
   const savedId = useRef(initialData?.id);
   const isEditing = Boolean(initialData);
+  const hasSavedPreBidSchedule = Boolean(
+    isEditing &&
+    initialData?.mode !== "SHOPPING" &&
+    (initialData?.preBidStartsAt || initialData?.preBidEndsAt),
+  );
   const canSave = isEditing ? capabilities.canEdit : capabilities.canCreate;
   const lifecycleEditBlock = Boolean(
     isEditing && initialData?.availableActions?.reasons.edit,
@@ -200,16 +205,17 @@ export function AuctionForm({
     const startsAt = fromDateTimeLocalBrt(form.startsAt) ?? "";
     const startInstant = new Date(startsAt);
     const endsAt = fromDateTimeLocalBrt(form.endsAt);
+    const hasPreBidSchedule = form.mode === "LIVE" || hasSavedPreBidSchedule;
     if (form.mode === "SHOPPING") {
       if (!endsAt || new Date(endsAt) <= startInstant) {
-        setNotice("No Shopping, informe um encerramento posterior ao início.");
+        setNotice("No Mercado, informe um encerramento posterior ao início.");
         return;
       }
-    } else {
+    } else if (hasPreBidSchedule && (form.preBidStartsAt || form.pauseHours || form.preBidEndsAt)) {
       const pauseHours = Number(form.pauseHours);
       const preBidStartsAt = fromDateTimeLocalBrt(form.preBidStartsAt);
       if (!preBidStartsAt || !Number.isInteger(pauseHours) || pauseHours < 1) {
-        setNotice("Informe o início dos pré-lances e uma pausa inteira de pelo menos 1 hora.");
+        setNotice("Para configurar pré-lances, informe o início da janela e a pausa inteira.");
         return;
       }
       const preBidEndsAt = new Date(startInstant.getTime() - pauseHours * 3600000);
@@ -233,8 +239,12 @@ export function AuctionForm({
         ...(form.mode === "SHOPPING"
           ? { endsAt }
           : {
+              ...(hasPreBidSchedule && (form.preBidStartsAt || form.pauseHours || form.preBidEndsAt)
+                ? {
               preBidStartsAt: fromDateTimeLocalBrt(form.preBidStartsAt) ?? undefined,
               pauseHours: Number(form.pauseHours),
+                  }
+                : {}),
               incrementCents: parseCents(form.incrementReais),
               secondaryIncrementCents: form.secondaryIncrementReais
                 ? parseCents(form.secondaryIncrementReais) ?? null
@@ -337,26 +347,38 @@ export function AuctionForm({
               <div className="grid gap-5 p-5 md:grid-cols-2 lg:grid-cols-3">
                 {form.mode === "SHOPPING" ? (
                   <>
-                    <Field label="Início das compras" id="auction-starts-shopping" required>
+                    <Field label="Início do Mercado" id="auction-starts-shopping" required>
                       <input id="auction-starts-shopping" type="datetime-local" value={form.startsAt} onChange={(event) => update("startsAt", event.target.value)} required disabled={fieldDisabled} className="management-field" />
                     </Field>
-                    <Field label="Fim das compras" id="auction-ends" required>
+                    <Field label="Fim do Mercado" id="auction-ends" required>
                       <input id="auction-ends" type="datetime-local" value={form.endsAt} onChange={(event) => update("endsAt", event.target.value)} required disabled={fieldDisabled} className="management-field" />
                     </Field>
-                    <p className="rounded-lg bg-muted/50 p-3 text-xs font-normal leading-5 text-muted-foreground lg:col-span-3">O Shopping fica disponível somente entre o início e o fim. Cada lote usa o seu valor de compra e não possui incremento ou encerramento próprio.</p>
+                    <p className="rounded-lg bg-muted/50 p-3 text-xs font-normal leading-5 text-muted-foreground lg:col-span-3">O lote é marcado como vendido quando um participante habilitado compra. A equipe entra em contato para combinar o pagamento.</p>
+                  </>
+                ) : form.mode === "TIMED" && !hasSavedPreBidSchedule ? (
+                  <>
+                    <Field label="Abertura do Shopping" id="auction-starts-shopping" required>
+                      <input id="auction-starts-shopping" type="datetime-local" value={form.startsAt} onChange={(event) => update("startsAt", event.target.value)} required disabled={fieldDisabled} className="management-field" />
+                    </Field>
+                    <p className="rounded-lg bg-muted/50 p-3 text-xs font-normal leading-5 text-muted-foreground lg:col-span-2">Configure o encerramento de cada lote na lista de lotes. Os lances e o fechamento seguem os horários cadastrados no motor.</p>
                   </>
                 ) : (
                   <>
-                    <Field label="Início dos pré-lances" id="auction-pre-start" required>
-                      <input id="auction-pre-start" type="datetime-local" value={form.preBidStartsAt} onChange={(event) => update("preBidStartsAt", event.target.value)} required disabled={fieldDisabled} className="management-field" />
+                    <Field label="Início dos pré-lances (opcional)" id="auction-pre-start" required={form.mode === "TIMED" && hasSavedPreBidSchedule}>
+                      <input id="auction-pre-start" type="datetime-local" value={form.preBidStartsAt} onChange={(event) => update("preBidStartsAt", event.target.value)} required={form.mode === "TIMED" && hasSavedPreBidSchedule} disabled={fieldDisabled} className="management-field" />
                     </Field>
-                    <Field label="Início da etapa principal" id="auction-starts-main" required>
+                    <Field label="Abertura do leilão" id="auction-starts-main" required>
                       <input id="auction-starts-main" type="datetime-local" value={form.startsAt} onChange={(event) => update("startsAt", event.target.value)} required disabled={fieldDisabled} className="management-field" />
                     </Field>
-                    <Field label="Horas de pausa" id="auction-pause-hours" required>
-                      <input id="auction-pause-hours" type="number" min="1" step="1" value={form.pauseHours} onChange={(event) => update("pauseHours", event.target.value)} required disabled={fieldDisabled} className="management-field" />
-                      <span className="mt-1 block text-xs font-normal text-muted-foreground">Entre o fim dos pré-lances e a etapa principal. O fim é calculado automaticamente.</span>
+                    <Field label="Pausa após os pré-lances (horas)" id="auction-pause-hours" required={form.mode === "TIMED" && hasSavedPreBidSchedule}>
+                      <input id="auction-pause-hours" type="number" min="1" step="1" value={form.pauseHours} onChange={(event) => update("pauseHours", event.target.value)} required={form.mode === "TIMED" && hasSavedPreBidSchedule} disabled={fieldDisabled} className="management-field" />
+                      <span className="mt-1 block text-xs font-normal text-muted-foreground">Opcional. O fim da janela é calculado pelo backend a partir da abertura.</span>
                     </Field>
+                    {form.mode === "TIMED" && hasSavedPreBidSchedule ? <p className="rounded-lg bg-muted/50 p-3 text-xs font-normal leading-5 text-muted-foreground lg:col-span-3">Este leilão já possui uma janela antiga de pré-lance. Ela será preservada para não alterar o calendário existente.</p> : null}
+                  </>
+                )}
+                {form.mode !== "SHOPPING" ? (
+                  <>
                     <Field label="Incremento padrão" id="auction-increment">
                       <input id="auction-increment" value={form.incrementReais} onChange={(event) => update("incrementReais", event.target.value)} inputMode="decimal" placeholder="1.000,00" disabled={fieldDisabled} className="management-field" />
                     </Field>
@@ -368,7 +390,7 @@ export function AuctionForm({
                       <input id="auction-extension" value={form.extensionMinutes} onChange={(event) => update("extensionMinutes", event.target.value)} type="number" min="0" max="120" disabled={fieldDisabled} className="management-field" />
                     </Field>
                   </>
-                )}
+                ) : null}
                 <Field label="Lotes planejados" id="auction-planned-lots">
                   <input id="auction-planned-lots" value={form.plannedLotCount} onChange={(event) => update("plannedLotCount", event.target.value)} type="number" min="0" disabled={fieldDisabled} className="management-field" />
                 </Field>
