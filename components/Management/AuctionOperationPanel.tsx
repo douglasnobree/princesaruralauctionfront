@@ -2,17 +2,17 @@
 
 import {
   CheckCircle2,
+  Clock3,
   Gavel,
   Loader2,
   Pause,
   Play,
   Radio,
   RefreshCw,
-  Search,
   Square,
   Undo2,
 } from "lucide-react";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   createQuickParticipantAction,
   managerAuctionCommandAction,
@@ -35,6 +35,7 @@ import type { AuctionCapabilities } from "@/components/Management/capabilities";
 import type {
   AuctionParticipantSearchResult,
   EngineAuctionSnapshot,
+  EngineBidResult,
   EngineLot,
 } from "@/lib/auctions/engine-types";
 import { acquisitionSourceOptions, type AcquisitionSource } from "@/lib/auctions/acquisition-sources";
@@ -90,6 +91,15 @@ function money(value: string | null, currency: string) {
         Number(value) / 100,
       );
 }
+function centsToInput(value: string | null | undefined) {
+  if (!value || !/^\d+$/.test(value)) return "";
+  try {
+    const cents = BigInt(value);
+    return `${cents / BigInt(100)},${(cents % BigInt(100)).toString().padStart(2, "0")}`;
+  } catch {
+    return "";
+  }
+}
 function isValidStreamUrl(value: string) {
   try {
     const url = new URL(value);
@@ -134,6 +144,7 @@ export function AuctionOperationPanel({
   );
   const [tool, setTool] = useState<"bids" | "participants" | "broadcast" | "communication">("bids");
   const [selectedLot, setSelectedLot] = useState("");
+  const [pendingBidRecovery, setPendingBidRecovery] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const streamDirty = useRef(false);
@@ -157,7 +168,7 @@ export function AuctionOperationPanel({
       if (!signal?.aborted && request === requestVersion.current) setSyncError(cause instanceof Error ? cause.message : "Não foi possível atualizar o estado.");
     } finally { if (!signal?.aborted) setRefreshing(false); }
   }
-  useVisiblePoll(async (signal) => { if (!isPending && !refreshing) await refresh(undefined, signal); }, 2500);
+  useVisiblePoll(async (signal) => { if (!isPending && !refreshing && !pendingBidRecovery) await refresh(undefined, signal); }, 2500);
   function run(action: () => Promise<{ success: boolean; error?: string }>, confirmation?: string) {
     if (confirmation && !window.confirm(confirmation)) return;
     startTransition(async () => {
@@ -217,6 +228,27 @@ export function AuctionOperationPanel({
     });
   }
   const historyLot = snapshot.lots.find((lot) => lot.externalId === selectedLot) ?? snapshot.lots.find((lot) => lot.status === "OPEN") ?? snapshot.lots[0];
+  function applyFloorBidResult(lotExternalId: string, result: EngineBidResult) {
+    setSnapshot((current) => {
+      if (!current) return current;
+      return {
+        ...current,
+        lots: current.lots.map((lot) => lot.externalId !== lotExternalId ? lot : {
+          ...lot,
+          currentPriceCents: result.currentPriceCents,
+          currentIncrementCents: result.currentIncrementCents ?? lot.currentIncrementCents,
+          nextBidCents: result.nextBidCents,
+          currentBidderAlias: result.currentBidderAlias,
+          currentBidderName: result.currentBidderName === undefined ? lot.currentBidderName : result.currentBidderName,
+          lotSequence: result.lotSequence,
+          version: result.version,
+          endsAt: result.endsAt,
+          status: result.lotStatus ?? (result.sold ? "SOLD" : lot.status),
+        }),
+      };
+    });
+    void refresh();
+  }
   return (
     <section className="space-y-5" aria-labelledby="operation-title" aria-busy={isPending}>
       <div className="flex flex-col gap-3 border-b border-[#e9efeb] pb-5 sm:flex-row sm:items-end sm:justify-between">
@@ -248,6 +280,7 @@ export function AuctionOperationPanel({
             disabled={
               !canOperate ||
               isPending ||
+              pendingBidRecovery ||
               !auctionActionAllowed(auction.status, "start", auction.mode)
             }
             onClick={() =>
@@ -266,6 +299,7 @@ export function AuctionOperationPanel({
             disabled={
               !canOperate ||
               isPending ||
+              pendingBidRecovery ||
               !auctionActionAllowed(auction.status, "pause", auction.mode)
             }
             onClick={() =>
@@ -284,6 +318,7 @@ export function AuctionOperationPanel({
             disabled={
               !canOperate ||
               isPending ||
+              pendingBidRecovery ||
               !auctionActionAllowed(auction.status, "resume", auction.mode)
             }
             onClick={() =>
@@ -303,6 +338,7 @@ export function AuctionOperationPanel({
             disabled={
               !canOperate ||
               isPending ||
+              pendingBidRecovery ||
               !auctionActionAllowed(auction.status, "finish", auction.mode)
             }
             onClick={() =>
@@ -319,7 +355,7 @@ export function AuctionOperationPanel({
           <button
             type="button"
             onClick={() => { setRefreshing(true); void refresh("Estado atualizado."); }}
-            disabled={isPending || refreshing}
+            disabled={isPending || refreshing || pendingBidRecovery}
             className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#dfe8e2] px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
           >
             <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden="true" />
@@ -363,26 +399,27 @@ export function AuctionOperationPanel({
         </div>
         <div className="flex flex-wrap items-end gap-3 border-b px-4 py-3 sm:px-5">
           <label className="min-w-0 flex-1 basis-full text-xs font-semibold sm:basis-64" htmlFor="operation-lot">Selecionar lote
-            <select id="operation-lot" className="admin-field" value={historyLot?.externalId ?? ""} onChange={(event) => setSelectedLot(event.target.value)}>
+            <select id="operation-lot" className="admin-field" value={historyLot?.externalId ?? ""} onChange={(event) => setSelectedLot(event.target.value)} disabled={pendingBidRecovery}>
               {[...snapshot.lots].sort((a, b) => a.lotNumber - b.lotNumber).map((lot) => <option key={lot.externalId} value={lot.externalId}>Lote {lot.lotNumber} — {lot.title} · {lotLabels[lot.status] ?? lot.status}</option>)}
             </select>
           </label>
-          {historyLot && capabilities.canManageLots && auction.mode === "LIVE" ? <button type="button" disabled={isPending || Boolean(syncError)} onClick={() => run(() => managerCurrentLotAction(auctionId, historyLot.externalId, auction.version))} className="min-h-11 rounded-lg border px-3 text-xs font-semibold disabled:opacity-40">Destacar na transmissão</button> : null}
+          {historyLot && capabilities.canManageLots && auction.mode === "LIVE" ? <button type="button" disabled={isPending || Boolean(syncError) || pendingBidRecovery} onClick={() => run(() => managerCurrentLotAction(auctionId, historyLot.externalId, auction.version))} className="min-h-11 rounded-lg border px-3 text-xs font-semibold disabled:opacity-40">Destacar na transmissão</button> : null}
           <span className="pb-3 text-xs text-muted-foreground">{snapshot.lots.filter((lot) => lot.status === "SOLD").length} vendido(s) · {snapshot.lots.length} lote(s)</span>
         </div>
         {historyLot ? <EngineLotRow key={historyLot.id} auctionId={auctionId} currency={auction.currency} lot={historyLot}
-          canOperate={canOperate} onSelect={() => { setTool("bids"); document.getElementById("operation-tools")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} selected
-          isPending={isPending} run={run} /> : <p className="p-5 text-sm text-muted-foreground">Nenhum lote disponível. Cadastre e publique os lotes para começar.</p>}
+          canOperate={canOperate} onSelect={() => { setSelectedLot(historyLot.externalId); setTool("bids"); document.getElementById("operation-tools")?.scrollIntoView({ behavior: "smooth", block: "start" }); }} selected
+          isPending={isPending || pendingBidRecovery} run={run} /> : <p className="p-5 text-sm text-muted-foreground">Nenhum lote disponível. Cadastre e publique os lotes para começar.</p>}
 
       </section>
       {canBid && auction.mode !== "SHOPPING" ? (
         <FloorBidPanel
           auctionId={auctionId}
           snapshot={snapshot}
+          selectedLot={historyLot}
           disabled={isPending || Boolean(syncError)}
-          onDone={() =>
-            void refresh("Lance assistido registrado e placar atualizado.")
-          }
+          onResult={applyFloorBidResult}
+          onRefresh={() => void refresh()}
+          onRecoveryPendingChange={setPendingBidRecovery}
         />
       ) : auction.mode !== "SHOPPING" ? (
         <p className="rounded-xl border border-[#dfe8e2] bg-white px-4 py-3 text-sm text-slate-600">
@@ -395,7 +432,7 @@ export function AuctionOperationPanel({
           {([{ value: "bids", label: "Lances e habilitações", visible: capabilities.canViewBids || canOperate }, { value: "participants", label: "Participantes", visible: canOperate }, { value: "broadcast", label: "Transmissão / OBS", visible: auction.mode === "LIVE" }, { value: "communication", label: "Comunicação", visible: capabilities.canNotifyParticipants }] as const).filter((item) => item.visible).map((item) => <button type="button" key={item.value} aria-pressed={tool === item.value} onClick={() => setTool(item.value)} className={`min-h-11 rounded-lg px-4 text-sm font-semibold ${tool === item.value ? "bg-secondary text-secondary-foreground" : "bg-muted text-muted-foreground"}`}>{item.label}</button>)}
         </nav>
         <div key={tool} className="management-panel-enter">
-          {tool === "bids" ? <div className="space-y-4">{historyLot && capabilities.canViewBids ? <AuctionBidHistory key={historyLot.externalId} auctionId={auctionId} lot={historyLot} canManage={canBid && !syncError} onChanged={() => void refresh()} /> : null}{canOperate ? <AuctionPendingEligibilityBids auctionId={auctionId} canManageParticipants={canOperate} /> : null}</div> : null}
+          {tool === "bids" ? <div className="space-y-4">{historyLot && capabilities.canViewBids ? <AuctionBidHistory key={historyLot.externalId} auctionId={auctionId} lot={historyLot} canManage={canBid && !syncError && !pendingBidRecovery} onChanged={() => void refresh()} /> : null}{canOperate ? <AuctionPendingEligibilityBids auctionId={auctionId} canManageParticipants={canOperate && !pendingBidRecovery} /> : null}</div> : null}
           {tool === "participants" && canOperate ? <AuctionParticipantsPanel auctionId={auctionId} lots={lots} capabilities={capabilities} /> : null}
           {tool === "broadcast" ? <div className="space-y-4">      {auction.mode === "LIVE" ? (
         <details className="rounded-2xl border border-[#dfe8e2] bg-white p-4 shadow-sm sm:p-5">
@@ -682,32 +719,54 @@ function EngineLotRow({
   );
 }
 
+type FloorBidAttempt = {
+  idempotencyKey: string;
+  lotExternalId: string;
+  lotNumber: number;
+  lotTitle: string;
+  input: {
+    participantId: string;
+    amountCents: string;
+    origin: "FLOOR" | "PHONE";
+    acquisitionSource: AcquisitionSource;
+    expectedVersion: string;
+  };
+};
+type FloorBidFeedback = {
+  lotExternalId: string;
+  kind: "accepted" | "pending" | "error" | "unconfirmed";
+  title: string;
+  detail: string;
+};
+
 function FloorBidPanel({
   auctionId,
   snapshot,
+  selectedLot,
   disabled,
-  onDone,
+  onResult,
+  onRefresh,
+  onRecoveryPendingChange,
 }: {
   auctionId: string;
   snapshot: EngineAuctionSnapshot;
+  selectedLot?: EngineLot;
   disabled: boolean;
-  onDone: () => void;
+  onResult: (lotExternalId: string, result: EngineBidResult) => void;
+  onRefresh: () => void;
+  onRecoveryPendingChange: (pending: boolean) => void;
 }) {
   const [query, setQuery] = useState("");
-  const [participants, setParticipants] = useState<
-    AuctionParticipantSearchResult[]
-  >([]);
-  const [selected, setSelected] =
-    useState<AuctionParticipantSearchResult | null>(null);
-  const [selectedLabel, setSelectedLabel] = useState("");
-  const [lotId, setLotId] = useState(
-    snapshot.lots.find((lot) => lot.status === "OPEN")?.externalId ?? "",
-  );
-  const activeLotId = snapshot.lots.some((lot) => lot.externalId === lotId && lot.status === "OPEN") ? lotId : snapshot.lots.find((lot) => lot.status === "OPEN")?.externalId ?? "";
-  const [amount, setAmount] = useState("");
+  const [participants, setParticipants] = useState<AuctionParticipantSearchResult[]>([]);
+  const [selected, setSelected] = useState<AuctionParticipantSearchResult | null>(null);
+  const [searchState, setSearchState] = useState<"idle" | "loading" | "results" | "empty" | "error">("idle");
+  const [searchError, setSearchError] = useState("");
+  const [activeParticipantIndex, setActiveParticipantIndex] = useState(-1);
+  const [amountDraft, setAmountDraft] = useState<{ lotExternalId: string; value: string } | null>(null);
   const [origin, setOrigin] = useState<"FLOOR" | "PHONE">("FLOOR");
   const [acquisitionSource, setAcquisitionSource] = useState<AcquisitionSource>("UNKNOWN");
-  const [notice, setNotice] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<FloorBidFeedback | null>(null);
+  const [unknownAttempt, setUnknownAttempt] = useState<FloorBidAttempt | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const [quickName, setQuickName] = useState("");
   const [quickDocument, setQuickDocument] = useState("");
@@ -715,69 +774,245 @@ function FloorBidPanel({
   const [quickWhatsappOptIn, setQuickWhatsappOptIn] = useState(false);
   const [quickNotice, setQuickNotice] = useState<{ type: "error" | "success"; message: string } | null>(null);
   const [pending, startTransition] = useTransition();
-  function search() {
-    startTransition(async () => {
-      const result = await searchAuctionParticipantsAction(query);
-      setParticipants(result.data ?? []);
-      if (result.success) setNotice(result.data?.length ? null : "Nenhum participante encontrado. Tente outro nome ou documento.");
-      if (!result.success)
-        setNotice(result.error || "Não foi possível pesquisar.");
-    });
+  const searchVersion = useRef(0);
+  const submissionInFlight = useRef(false);
+  const suggestedAmount = centsToInput(selectedLot?.nextBidCents);
+  const amount = amountDraft && amountDraft.lotExternalId === selectedLot?.externalId
+    ? amountDraft.value
+    : suggestedAmount;
+  const formLocked = disabled || pending || Boolean(unknownAttempt);
+  const dropdownOpen = !selected && query.trim().length >= 2 && searchState !== "idle";
+
+  useEffect(() => {
+    const term = query.trim();
+    if (selected || term.length < 2) return;
+    const version = ++searchVersion.current;
+    const timeout = window.setTimeout(async () => {
+      const result = await searchAuctionParticipantsAction(term);
+      if (searchVersion.current !== version) return;
+      if (!result.success) {
+        setParticipants([]);
+        setSearchError(result.error || "Não foi possível pesquisar participantes. Tente novamente enquanto digita.");
+        setSearchState("error");
+        return;
+      }
+      const matches = result.data ?? [];
+      setParticipants(matches);
+      setSearchError("");
+      setActiveParticipantIndex(-1);
+      setSearchState(matches.length ? "results" : "empty");
+    }, 250);
+    return () => {
+      window.clearTimeout(timeout);
+      searchVersion.current += 1;
+    };
+  }, [query, selected]);
+
+  function chooseParticipant(participant: AuctionParticipantSearchResult) {
+    setSelected(participant);
+    setQuery(participant.displayName.trim());
+    setParticipants([]);
+    setSearchState("idle");
+    setSearchError("");
+    setActiveParticipantIndex(-1);
+    setFeedback(null);
   }
+
   function createQuickParticipant() {
     setQuickNotice(null);
     startTransition(async () => {
-      const result = await createQuickParticipantAction({ name: quickName, document: quickDocument, phone: quickPhone, whatsappOptIn: quickWhatsappOptIn });
+      const result = await createQuickParticipantAction({
+        name: quickName,
+        document: quickDocument,
+        phone: quickPhone,
+        whatsappOptIn: quickWhatsappOptIn,
+      });
       if (!result.success || !result.data) {
         setQuickNotice({ type: "error", message: result.error || "Não foi possível cadastrar o participante rápido." });
         return;
       }
       const displayName = result.data.displayName?.trim() || quickName.trim();
-      setSelected(result.data);
-      setSelectedLabel(displayName);
-      setQuery(displayName);
-      setParticipants([]);
+      chooseParticipant({ ...result.data, displayName });
       setQuickName("");
       setQuickDocument("");
       setQuickPhone("");
       setQuickWhatsappOptIn(false);
       setQuickOpen(false);
-      setNotice(
-        result.data.participantType === "QUICK"
+      setQuickNotice({
+        type: "success",
+        message: result.data.participantType === "QUICK"
           ? "Cadastro rápido criado e selecionado."
           : "Usuário cadastrado selecionado.",
-      );
+      });
     });
   }
+
+  async function sendAttempt(attempt: FloorBidAttempt) {
+    const result = await managerFloorBidAction(
+      auctionId,
+      attempt.lotExternalId,
+      attempt.input,
+      attempt.idempotencyKey,
+    );
+    if (!result.success) {
+      if (result.outcomeUnknown) {
+        setUnknownAttempt(attempt);
+        onRecoveryPendingChange(true);
+        setFeedback({
+          lotExternalId: attempt.lotExternalId,
+          kind: "unconfirmed",
+          title: "Resultado do lance ainda não confirmado",
+          detail: "Lote " + attempt.lotNumber + " — " + attempt.lotTitle + ". " +
+            (result.error ? result.error + " " : "") +
+            "O comando pode ter sido processado. Reenvie esta mesma tentativa para consultar a resposta; a mesma chave impede registrar o lance duas vezes.",
+        });
+        return;
+      }
+      setUnknownAttempt(null);
+      onRecoveryPendingChange(false);
+      setFeedback({
+        lotExternalId: attempt.lotExternalId,
+        kind: "error",
+        title: "Lance não aceito",
+        detail: (result.error || "O motor recusou o lance.") +
+          " Confira o próximo valor indicado e tente novamente.",
+      });
+      onRefresh();
+      return;
+    }
+
+    if (
+      !result.data ||
+      !["ACCEPTED", "PENDING_ELIGIBILITY", "PENDING_APPROVAL", "REJECTED"].includes(result.data.status) ||
+      !/^\d+$/.test(result.data.nextBidCents) ||
+      typeof result.data.version !== "string" ||
+      typeof result.data.lotSequence !== "string" ||
+      !(result.data.currentPriceCents === null || typeof result.data.currentPriceCents === "string") ||
+      !(result.data.currentBidderAlias === null || typeof result.data.currentBidderAlias === "string") ||
+      !(result.data.endsAt === null || typeof result.data.endsAt === "string")
+    ) {
+      setUnknownAttempt(attempt);
+      onRecoveryPendingChange(true);
+      setFeedback({
+        lotExternalId: attempt.lotExternalId,
+        kind: "unconfirmed",
+        title: "Resultado do lance ainda não confirmado",
+        detail: "O motor respondeu sem os dados do lance. Reenvie esta mesma tentativa para consultar a resposta sem duplicar o comando.",
+      });
+      return;
+    }
+
+    setUnknownAttempt(null);
+    onRecoveryPendingChange(false);
+    setAmountDraft(null);
+    onResult(attempt.lotExternalId, result.data);
+
+    if (result.data.status === "ACCEPTED") {
+      setFeedback({
+        lotExternalId: attempt.lotExternalId,
+        kind: "accepted",
+        title: "Lance aceito pelo motor",
+        detail: "Preço oficial: " + money(result.data.currentPriceCents, snapshot.auction.currency) +
+          " · Próximo lance: " + money(result.data.nextBidCents, snapshot.auction.currency) + ".",
+      });
+    } else if (result.data.status === "PENDING_ELIGIBILITY") {
+      setFeedback({
+        lotExternalId: attempt.lotExternalId,
+        kind: "pending",
+        title: "Lance pendente de validação",
+        detail: "A habilitação do participante ainda precisa ser confirmada. Este valor não altera o preço oficial enquanto estiver pendente.",
+      });
+    } else if (result.data.status === "PENDING_APPROVAL") {
+      setFeedback({
+        lotExternalId: attempt.lotExternalId,
+        kind: "pending",
+        title: "Lance aguardando análise",
+        detail: "O lance foi recebido e aguarda aprovação. Este valor ainda não altera o preço oficial.",
+      });
+    } else {
+      setFeedback({
+        lotExternalId: attempt.lotExternalId,
+        kind: "error",
+        title: "Lance não aceito",
+        detail: "O motor recusou o lance. Próximo valor indicado: " +
+          money(result.data.nextBidCents, snapshot.auction.currency) +
+          ". Ajuste o valor antes de tentar novamente.",
+      });
+    }
+  }
+
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const lot = snapshot.lots.find((item) => item.externalId === activeLotId);
+    if (submissionInFlight.current || unknownAttempt) return;
+    const lot = selectedLot;
     if (disabled || !lot || lot.status !== "OPEN" || !selected) {
-      setNotice("Escolha um lote aberto e um participante.");
+      setFeedback({
+        lotExternalId: lot?.externalId ?? "",
+        kind: "error",
+        title: "Não foi possível registrar o lance",
+        detail: !selected ? "Escolha um participante para continuar." :
+          !lot ? "Selecione um lote na tela de operações." :
+          "O lote selecionado não está aberto para receber lances.",
+      });
       return;
     }
     const amountCents = parseManagementAmount(amount);
     if (!amountCents || BigInt(amountCents) < BigInt(lot.nextBidCents)) {
-      setNotice(`Informe um valor válido a partir de ${money(lot.nextBidCents, snapshot.auction.currency)}.`);
+      setFeedback({
+        lotExternalId: lot.externalId,
+        kind: "error",
+        title: "Valor abaixo do próximo lance",
+        detail: "Informe pelo menos " + money(lot.nextBidCents, snapshot.auction.currency) + ".",
+      });
+      document.getElementById("floor-amount")?.focus();
       return;
     }
-    startTransition(async () => {
-      const result = await managerFloorBidAction(auctionId, lot.externalId, {
+
+    const attempt: FloorBidAttempt = {
+      idempotencyKey: globalThis.crypto.randomUUID(),
+      lotExternalId: lot.externalId,
+      lotNumber: lot.lotNumber,
+      lotTitle: lot.title,
+      input: {
         participantId: selected.id,
         amountCents,
         origin,
         acquisitionSource,
         expectedVersion: lot.version,
-      });
-      if (!result.success) {
-        setNotice(result.error || "Não foi possível registrar o lance.");
-        return;
+      },
+    };
+    setFeedback(null);
+    submissionInFlight.current = true;
+    startTransition(async () => {
+      try {
+        await sendAttempt(attempt);
+      } finally {
+        submissionInFlight.current = false;
       }
-      setNotice("Lance assistido registrado.");
-      setAmount("");
-      onDone();
     });
   }
+
+  function retryUnconfirmedAttempt() {
+    if (!unknownAttempt || submissionInFlight.current) return;
+    submissionInFlight.current = true;
+    startTransition(async () => {
+      try {
+        await sendAttempt(unknownAttempt);
+      } finally {
+        submissionInFlight.current = false;
+      }
+    });
+  }
+
+  const visibleFeedback = feedback?.lotExternalId === selectedLot?.externalId ? feedback : null;
+  const feedbackClass = visibleFeedback?.kind === "accepted"
+    ? "border-emerald-200 bg-[#e8f4ee] text-[#075b3e]"
+    : visibleFeedback?.kind === "pending"
+      ? "border-amber-200 bg-amber-50 text-amber-900"
+      : visibleFeedback?.kind === "unconfirmed"
+        ? "border-orange-200 bg-orange-50 text-orange-900"
+        : "border-red-200 bg-red-50 text-red-800";
+
   return (
     <section className="rounded-2xl border border-[#dfe8e2] bg-white p-4 shadow-sm sm:p-5">
       <div className="flex items-center gap-2">
@@ -793,75 +1028,138 @@ function FloorBidPanel({
         onSubmit={submit}
         className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3 lg:items-end"
       >
-        <Field label="Lote" id="floor-lot">
-          <select
-            id="floor-lot"
-            value={activeLotId}
-            onChange={(e) => setLotId(e.target.value)}
-            className="admin-field"
-          >
-            <option value="">Escolha o lote aberto</option>
-            {snapshot.lots
-              .filter((lot) => lot.status === "OPEN")
-              .map((lot) => (
-                <option key={lot.externalId} value={lot.externalId}>
-                  Lote {lot.lotNumber} — {lot.title}
-                </option>
-              ))}
-          </select>
-        </Field>
+        <div className="rounded-lg border border-[#dfe8e2] bg-[#f3f9f5] p-3 md:col-span-2 xl:col-span-3">
+          {selectedLot ? (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-semibold text-slate-900">
+                  Lote {selectedLot.lotNumber} — {selectedLot.title}
+                </p>
+                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">
+                  {lotLabels[selectedLot.status] ?? selectedLot.status}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-slate-600">
+                Preço oficial: {money(selectedLot.currentPriceCents, snapshot.auction.currency)}
+                {" · "}Próximo lance sugerido: {money(selectedLot.nextBidCents, snapshot.auction.currency)}
+              </p>
+              {selectedLot.status !== "OPEN" ? (
+                <p className="mt-2 text-xs font-medium text-amber-900">
+                  Este lote não está aberto para receber lances.
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p className="text-sm text-slate-600">Selecione um lote aberto no controle dos lotes.</p>
+          )}
+        </div>
+
         <Field label="Participante" id="floor-participant">
-          <div className="flex gap-2">
+          <div className="relative">
             <input
               id="floor-participant"
-              value={selected ? selectedLabel || selected.displayName : query}
-              onChange={(e) => {
+              role="combobox"
+              aria-autocomplete="list"
+              aria-haspopup="listbox"
+              aria-expanded={dropdownOpen}
+              aria-controls={searchState === "results" ? "floor-participant-options" : undefined}
+              aria-activedescendant={
+                searchState === "results" && activeParticipantIndex >= 0
+                  ? "floor-participant-option-" + activeParticipantIndex
+                  : undefined
+              }
+              aria-busy={searchState === "loading"}
+              value={selected?.displayName ?? query}
+              onChange={(event) => {
+                const value = event.target.value;
                 setSelected(null);
-                setSelectedLabel("");
-                setQuery(e.target.value);
+                setQuery(value);
+                setParticipants([]);
+                setSearchError("");
+                setActiveParticipantIndex(-1);
+                setSearchState(value.trim().length >= 2 ? "loading" : "idle");
+                setFeedback(null);
               }}
-              placeholder="Nome ou e-mail"
-              className="admin-field min-w-0 flex-1"
+              onKeyDown={(event) => {
+                if (searchState !== "results" || participants.length === 0) return;
+                if (event.key === "ArrowDown") {
+                  event.preventDefault();
+                  setActiveParticipantIndex((current) =>
+                    current < 0 ? 0 : Math.min(current + 1, participants.length - 1),
+                  );
+                } else if (event.key === "ArrowUp") {
+                  event.preventDefault();
+                  setActiveParticipantIndex((current) =>
+                    current <= 0 ? participants.length - 1 : current - 1,
+                  );
+                } else if (event.key === "Enter" && activeParticipantIndex >= 0) {
+                  event.preventDefault();
+                  chooseParticipant(participants[activeParticipantIndex]);
+                } else if (event.key === "Escape") {
+                  setParticipants([]);
+                  setSearchState("idle");
+                  setActiveParticipantIndex(-1);
+                }
+              }}
+              placeholder="Nome, e-mail ou documento"
+              autoComplete="off"
+              disabled={formLocked}
+              className="admin-field"
             />
-            <button
-              type="button"
-              onClick={search}
-              disabled={pending || query.trim().length < 2}
-              className="grid size-10 shrink-0 place-items-center rounded-lg border border-[#dfe8e2] text-[#075b3e] hover:bg-[#e8f4ee] disabled:opacity-50"
-              aria-label="Pesquisar participantes"
-            >
-              <Search className="size-4" aria-hidden="true" />
-            </button>
+            {dropdownOpen ? (
+              <div className="absolute inset-x-0 top-full z-30 mt-1 overflow-hidden rounded-lg border border-[#dfe8e2] bg-white shadow-lg">
+                {searchState === "loading" ? (
+                  <p role="status" className="px-3 py-3 text-xs font-medium text-slate-600">
+                    Pesquisando participantes…
+                  </p>
+                ) : null}
+                {searchState === "empty" ? (
+                  <p role="status" className="px-3 py-3 text-xs text-slate-600">
+                    Nenhum participante encontrado.
+                  </p>
+                ) : null}
+                {searchState === "error" ? (
+                  <p role="status" className="px-3 py-3 text-xs text-red-700">
+                    {searchError}
+                  </p>
+                ) : null}
+                {searchState === "results" ? (
+                  <div
+                    id="floor-participant-options"
+                    role="listbox"
+                    aria-label="Resultados da busca de participantes"
+                    className="max-h-64 overflow-y-auto py-1"
+                  >
+                    {participants.map((participant, index) => {
+                      const description = participant.participantType === "QUICK"
+                        ? "Cadastro rápido · " + (participant.maskedDocument || "documento não informado")
+                        : participant.email || "Usuário cadastrado";
+                      return (
+                        <div
+                          id={"floor-participant-option-" + index}
+                          key={participant.id}
+                          role="option"
+                          aria-selected={activeParticipantIndex === index}
+                          onPointerDown={(event) => event.preventDefault()}
+                          onClick={() => chooseParticipant(participant)}
+                          className={
+                            "cursor-pointer px-3 py-2.5 text-xs hover:bg-[#f3f9f5] " +
+                            (activeParticipantIndex === index ? "bg-[#f3f9f5]" : "")
+                          }
+                        >
+                          <span className="block font-semibold text-slate-900">{participant.displayName}</span>
+                          <span className="mt-0.5 block text-slate-500">{description}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
-          {participants.length > 0 && !selected ? (
-            <div className="mt-2 max-h-40 overflow-auto rounded-lg border border-[#dfe8e2] bg-white">
-              {participants.map((participant) => (
-                <button
-                  type="button"
-                  key={participant.id}
-                  onClick={() => {
-                    const displayName =
-                      participant.displayName.trim();
-                    setSelected(participant);
-                    setSelectedLabel(displayName);
-                    setQuery(displayName);
-                    setParticipants([]);
-                  }}
-                  className="block min-h-10 w-full px-3 text-left text-xs hover:bg-[#f3f9f5] focus-visible:bg-[#f3f9f5]"
-                >
-                  {participant.displayName}{" "}
-                  <span className="text-slate-500">
-                    {participant.participantType === "QUICK"
-                      ? `Cadastro rápido · ${participant.maskedDocument}`
-                      : participant.email}
-                  </span>
-                </button>
-              ))}
-            </div>
-          ) : null}
           {selected ? (
             <p className="mt-2 text-xs font-medium text-[#075b3e]" role="status">
-              Participante selecionado: {selectedLabel || selected.displayName}
+              Participante selecionado: {selected.displayName}
             </p>
           ) : null}
           <button
@@ -870,7 +1168,8 @@ function FloorBidPanel({
               setQuickOpen((current) => !current);
               setQuickNotice(null);
             }}
-            className="mt-2 inline-flex min-h-9 items-center rounded-lg border border-dashed border-[#08734e]/50 px-3 text-xs font-semibold text-[#075b3e] hover:bg-[#e8f4ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24]"
+            disabled={formLocked}
+            className="mt-2 inline-flex min-h-9 items-center rounded-lg border border-dashed border-[#08734e]/50 px-3 text-xs font-semibold text-[#075b3e] hover:bg-[#e8f4ee] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24] disabled:opacity-50"
           >
             {quickOpen ? "Fechar cadastro rápido" : "Cadastrar participante rápido"}
           </button>
@@ -892,6 +1191,7 @@ function FloorBidPanel({
                   onChange={(event) => setQuickName(event.target.value)}
                   maxLength={120}
                   autoComplete="off"
+                  disabled={formLocked}
                   className="admin-field mt-1"
                 />
               </label>
@@ -905,11 +1205,18 @@ function FloorBidPanel({
                   maxLength={30}
                   autoComplete="tel"
                   placeholder="(11) 99999-9999"
+                  disabled={formLocked}
                   className="admin-field mt-1"
                 />
               </label>
               <label className="flex items-start gap-2 text-xs leading-5 text-slate-700">
-                <input type="checkbox" className="mt-1" checked={quickWhatsappOptIn} onChange={(event) => setQuickWhatsappOptIn(event.target.checked)} disabled={!quickPhone.trim()} />
+                <input
+                  type="checkbox"
+                  className="mt-1"
+                  checked={quickWhatsappOptIn}
+                  onChange={(event) => setQuickWhatsappOptIn(event.target.checked)}
+                  disabled={formLocked || !quickPhone.trim()}
+                />
                 O participante autorizou receber mensagens deste leilão pelo WhatsApp.
               </label>
               <label className="block text-xs font-semibold text-slate-700" htmlFor="quick-participant-document">
@@ -921,18 +1228,19 @@ function FloorBidPanel({
                   inputMode="numeric"
                   maxLength={18}
                   autoComplete="off"
+                  disabled={formLocked}
                   className="admin-field mt-1"
                 />
               </label>
               {quickNotice ? (
-                <p role={quickNotice.type === "error" ? "alert" : "status"} className={`text-xs ${quickNotice.type === "error" ? "text-red-700" : "text-[#075b3e]"}`}>
+                <p role={quickNotice.type === "error" ? "alert" : "status"} className={"text-xs " + (quickNotice.type === "error" ? "text-red-700" : "text-[#075b3e]")}>
                   {quickNotice.message}
                 </p>
               ) : null}
               <button
                 type="button"
                 onClick={createQuickParticipant}
-                disabled={pending || quickName.trim().length < 2 || ![11, 14].includes(quickDocument.replace(/\D/g, "").length)}
+                disabled={formLocked || quickName.trim().length < 2 || ![11, 14].includes(quickDocument.replace(/\D/g, "").length)}
                 className="inline-flex min-h-9 items-center justify-center rounded-lg bg-[#08734e] px-3 text-xs font-semibold text-white hover:bg-[#075b3e] disabled:opacity-50"
               >
                 {pending ? "Salvando…" : "Criar e selecionar"}
@@ -940,21 +1248,31 @@ function FloorBidPanel({
             </div>
           ) : null}
         </Field>
+
         <Field label="Valor (R$)" id="floor-amount">
           <input
             id="floor-amount"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            onChange={(event) => {
+              if (selectedLot) setAmountDraft({ lotExternalId: selectedLot.externalId, value: event.target.value });
+              setFeedback(null);
+            }}
             inputMode="decimal"
             placeholder="0,00"
+            aria-describedby="floor-amount-hint"
+            disabled={formLocked || !selectedLot || selectedLot.status !== "OPEN"}
             className="admin-field"
           />
+          <p id="floor-amount-hint" className="mt-1 text-xs font-normal text-slate-500">
+            Próximo valor sugerido pelo motor: {selectedLot ? money(selectedLot.nextBidCents, snapshot.auction.currency) : "selecione um lote"}.
+          </p>
         </Field>
         <Field label="Origem" id="floor-origin">
           <select
             id="floor-origin"
             value={origin}
-            onChange={(e) => setOrigin(e.target.value as "FLOOR" | "PHONE")}
+            onChange={(event) => setOrigin(event.target.value as "FLOOR" | "PHONE")}
+            disabled={formLocked}
             className="admin-field"
           >
             <option value="FLOOR">Piso</option>
@@ -966,6 +1284,7 @@ function FloorBidPanel({
             id="acquisition-source"
             value={acquisitionSource}
             onChange={(event) => setAcquisitionSource(event.target.value as AcquisitionSource)}
+            disabled={formLocked}
             className="admin-field"
           >
             {acquisitionSourceOptions.map((option) => (
@@ -975,21 +1294,51 @@ function FloorBidPanel({
         </Field>
         <button
           type="submit"
-          disabled={pending || disabled || !selected || !activeLotId || !amount.trim()}
-          className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#08734e] px-4 text-sm font-semibold text-white hover:bg-[#075b3e] disabled:opacity-50 "
+          disabled={formLocked || !selected || selectedLot?.status !== "OPEN" || !amount.trim()}
+          className="inline-flex min-h-10 items-center justify-center rounded-lg bg-[#08734e] px-4 text-sm font-semibold text-white hover:bg-[#075b3e] disabled:opacity-50"
         >
           {pending ? "Enviando…" : "Registrar lance"}
         </button>
       </form>
-      {notice ? (
-        <p role="status" className="mt-4 text-sm text-slate-700">
-          {notice}
-        </p>
-      ) : null}
+
+      <div
+        aria-live={visibleFeedback?.kind === "error" || visibleFeedback?.kind === "unconfirmed" ? "assertive" : "polite"}
+        aria-atomic="true"
+      >
+        {visibleFeedback ? (
+          <div
+            role={visibleFeedback.kind === "error" || visibleFeedback.kind === "unconfirmed" ? "alert" : "status"}
+            className={"mt-4 flex items-start gap-3 rounded-lg border px-4 py-3 text-sm " + feedbackClass}
+          >
+            {visibleFeedback.kind === "accepted" ? (
+              <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            ) : visibleFeedback.kind === "pending" ? (
+              <Clock3 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            ) : visibleFeedback.kind === "unconfirmed" ? (
+              <RefreshCw className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            ) : (
+              <Gavel className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            )}
+            <div className="min-w-0">
+              <p className="font-semibold">{visibleFeedback.title}</p>
+              <p className="mt-1 leading-5">{visibleFeedback.detail}</p>
+              {visibleFeedback.kind === "unconfirmed" ? (
+                <button
+                  type="button"
+                  onClick={retryUnconfirmedAttempt}
+                  disabled={pending}
+                  className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-orange-900 px-3 text-xs font-semibold text-white hover:bg-orange-800 disabled:opacity-50"
+                >
+                  {pending ? "Confirmando…" : "Confirmar resultado do mesmo lance"}
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
     </section>
   );
-}
-function Field({
+}function Field({
   label,
   id,
   children,

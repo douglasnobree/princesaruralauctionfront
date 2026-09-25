@@ -272,11 +272,13 @@ export async function setAuctionParticipantEligibilityAction(userId: string, ena
   } catch { return { success: false, error: "Não foi possível atualizar a habilitação global agora." }; }
 }
 
-export async function managerFloorBidAction(auctionId: string, lotId: string, input: { participantId: string; amountCents: string; origin: "FLOOR" | "PHONE"; acquisitionSource?: AcquisitionSource; expectedVersion?: string }): Promise<ActionResult<EngineBidResult>> {
+export async function managerFloorBidAction(auctionId: string, lotId: string, input: { participantId: string; amountCents: string; origin: "FLOOR" | "PHONE"; acquisitionSource?: AcquisitionSource; expectedVersion?: string }, idempotencyKey: string): Promise<ActionResult<EngineBidResult> & { outcomeUnknown?: boolean }> {
   try {
-    const response = await engineRequest(`/auction-engine/manager/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/floor-bids`, { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": randomUUID() }, body: JSON.stringify(input), cache: "no-store" });
-    return parse(response, "Não foi possível registrar o lance assistido.");
-  } catch { return { success: false, error: "Não foi possível enviar o lance assistido agora." }; }
+    const response = await engineRequest(`/auction-engine/manager/auctions/${encodeURIComponent(auctionId)}/lots/${encodeURIComponent(lotId)}/floor-bids`, { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey }, body: JSON.stringify(input), cache: "no-store", signal: AbortSignal.timeout(15000) });
+    const result = await parse<EngineBidResult>(response, "Não foi possível registrar o lance assistido.");
+    if (!result.success && (response.status === 408 || response.status === 429 || response.status >= 500)) return { ...result, outcomeUnknown: true };
+    return result;
+  } catch { return { success: false, error: "Não foi possível confirmar a resposta do motor de leilão.", outcomeUnknown: true }; }
 }
 
 function parseBidAmountToCents(value: string) {
@@ -307,7 +309,7 @@ export async function managerFloorBidFormAction(
     amountCents,
     origin,
     ...(expectedVersion ? { expectedVersion } : {}),
-  });
+  }, randomUUID());
 }
 
 export async function managerStreamAction(auctionId: string, input: { provider: string; status: string; playbackUrl?: string; providerStreamId?: string }): Promise<ActionResult<EngineStream>> {
