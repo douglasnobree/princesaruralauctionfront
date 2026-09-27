@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AuctionLoginForm } from "@/components/Auth/AuctionLoginForm";
+import { GoogleLoginButton } from "@/components/GoogleLoginButton";
 
 export const metadata: Metadata = {
   title: "Entrar",
@@ -8,8 +9,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AuctionLoginPage({ searchParams }: { searchParams: Promise<{ returnTo?: string }> }) {
-  const { returnTo } = await searchParams;
+export default async function AuctionLoginPage({ searchParams }: { searchParams: Promise<{ returnTo?: string; googleError?: string }> }) {
+  const { returnTo, googleError } = await searchParams;
   const safeReturnTo = returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/leiloes";
   return (
     <div className="min-h-[calc(100vh-105px)] bg-[#f7f8f7] px-4 py-6 sm:py-10 sm:px-6 lg:py-16">
@@ -28,6 +29,8 @@ export default async function AuctionLoginPage({ searchParams }: { searchParams:
 
         <section className="rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)] sm:p-8">
           <AuctionLoginForm returnTo={safeReturnTo} />
+          {googleError && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">Não foi possível entrar com o Google. Tente novamente.</p>}
+          <GoogleLoginButton returnTo={safeReturnTo} />
         </section>
 
         <p className="mt-6 text-center text-sm text-slate-600">
