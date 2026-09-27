@@ -7,5 +7,41 @@ export default async function GoogleCompletePage({ searchParams }: { searchParam
   const { returnTo } = await searchParams;
   const safeReturnTo = returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/leiloes";
   const pending = await getGooglePending();
-  return <main className="flex min-h-[calc(100vh-105px)] items-center justify-center bg-[#f7f8f7] px-4 py-10"><div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-sm sm:p-8"><h1 className="text-2xl font-bold">Conclua seu acesso com Google</h1><p className="mb-6 mt-2 text-gray-600">Confirme sua conta e preencha os dados necessários para continuar.</p>{pending ? <GoogleCompleteForm pending={pending} returnTo={safeReturnTo} termsBase={getMarketplaceUrl()} /> : <p>Seu acesso expirou. <Link href="/login" className="text-green-700 underline">Voltar ao login</Link></p>}</div></main>;
+  const loginHref = `/login?returnTo=${encodeURIComponent(safeReturnTo)}`;
+
+  return (
+    <div className="min-h-[calc(100vh-105px)] bg-[#f7f8f7] px-4 py-8 sm:px-6 sm:py-12">
+      <div className="mx-auto w-full max-w-[760px]">
+        <header className="mb-7">
+          <h1 className="text-balance text-3xl font-semibold tracking-[-0.025em] text-slate-950 sm:text-4xl">
+            {pending ? pending.linkRequired ? "Vincule sua conta ao Google" : "Complete seu cadastro" : "Seu acesso expirou"}
+          </h1>
+          <p className="mt-3 max-w-[62ch] text-base leading-7 text-slate-600">
+            {pending
+              ? pending.linkRequired
+                ? "Confirme o vínculo com a conta que você já usa na plataforma e informe os dados que faltarem."
+                : "Só faltam alguns dados para você entrar nos leilões com sua Conta Google."
+              : "Por segurança, esta etapa tem tempo limitado. Inicie o login com Google novamente."}
+          </p>
+        </header>
+
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-8">
+          {pending ? (
+            <GoogleCompleteForm pending={pending} returnTo={safeReturnTo} termsBase={getMarketplaceUrl()} />
+          ) : (
+            <Link href={loginHref} className="inline-flex min-h-12 items-center justify-center rounded-lg bg-[#247c49] px-5 py-3 font-semibold text-white hover:bg-[#175a35] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fbaa34]">
+              Voltar ao login
+            </Link>
+          )}
+        </section>
+
+        {pending && (
+          <p className="mt-6 text-center text-sm text-slate-600">
+            Quer usar outra conta?{" "}
+            <Link href={loginHref} className="font-semibold text-[#17663d] underline underline-offset-2 hover:text-[#104d2e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#fbaa34]">Voltar ao login</Link>
+          </p>
+        )}
+      </div>
+    </div>
+  );
 }
