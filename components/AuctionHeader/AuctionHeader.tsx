@@ -1,4 +1,4 @@
-import { CalendarDays, Gavel, Home, LayoutDashboard, Search, ShoppingBag, ShoppingCart, UserRound } from "lucide-react";
+import { Gavel, Home, LayoutDashboard, Search, UserRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { getUser } from "@/lib/auth/server/session";
@@ -9,11 +9,7 @@ import { AuctionProfileMenu } from "@/components/AuctionHeader/AuctionProfileMen
 import { AuctionReturnToLink } from "@/components/Auth/AuctionReturnToLink";
 
 const navigation = [
-  { label: "Início", href: "/leiloes", icon: Home },
-  { label: "Agenda", href: "/leiloes#agenda", icon: CalendarDays },
   { label: "Leilões", href: "/leiloes", icon: Gavel, active: true },
-  { label: "Mercado", href: "/leiloes?tipo=mercado#agenda", icon: ShoppingCart },
-  { label: "Shopping", href: "/leiloes?tipo=shopping#agenda", icon: ShoppingBag },
   { label: "Princesa Rural", href: "/", icon: Home, handoff: true },
 ];
 
