@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AuctionRegisterForm } from "@/components/Auth/AuctionRegisterForm";
 import { getMarketplaceUrl } from "@/lib/config/urls";
+import { AuctionAuthLayout } from "@/components/Auth/AuctionAuthLayout";
 
 export const metadata: Metadata = {
   title: "Criar conta",
@@ -18,23 +19,19 @@ export default async function AuctionRegisterPage({
   const safeReturnTo = returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/leiloes";
 
   return (
-    <div id="main-content" className="min-h-[calc(100vh-105px)] bg-[#f7f8f7] px-4 py-6 sm:py-10 sm:px-6 lg:py-14">
-      <div className="mx-auto w-full max-w-[760px]">
-        <header className="mb-7">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#28834c]">
-            Participação em leilões
-          </p>
-          <h1 className="text-3xl font-semibold tracking-[-0.025em] text-slate-950 sm:text-4xl">
-            Crie sua conta
+    <AuctionAuthLayout registration>
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 text-balance">
+            Criar sua conta
           </h1>
           <p className="mt-2 max-w-[62ch] text-sm leading-6 text-slate-600 sm:text-base">
             Preencha seus dados para acompanhar lotes, habilitar sua participação e enviar lances.
           </p>
         </header>
 
-        <section className="rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)] sm:p-8">
+        <div>
           <AuctionRegisterForm marketplaceUrl={getMarketplaceUrl()} returnTo={safeReturnTo} />
-        </section>
+        </div>
 
         <p className="mt-6 text-center text-sm text-slate-600">
           Já possui uma conta?{" "}
@@ -45,7 +42,6 @@ export default async function AuctionRegisterPage({
             Entrar
           </Link>
         </p>
-      </div>
-    </div>
+    </AuctionAuthLayout>
   );
 }

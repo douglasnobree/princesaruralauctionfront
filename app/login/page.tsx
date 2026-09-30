@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AuctionLoginForm } from "@/components/Auth/AuctionLoginForm";
 import { GoogleLoginButton } from "@/components/GoogleLoginButton";
+import { AuctionAuthLayout } from "@/components/Auth/AuctionAuthLayout";
 
 export const metadata: Metadata = {
   title: "Entrar",
@@ -13,25 +14,21 @@ export default async function AuctionLoginPage({ searchParams }: { searchParams:
   const { returnTo, googleError } = await searchParams;
   const safeReturnTo = returnTo?.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/leiloes";
   return (
-    <div className="min-h-[calc(100vh-105px)] bg-[#f7f8f7] px-4 py-6 sm:py-10 sm:px-6 lg:py-16">
-      <div className="mx-auto w-full max-w-[440px]">
-        <header className="mb-7">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-[#28834c]">
-            Acesso aos leilões
-          </p>
-          <h1 className="text-3xl font-semibold tracking-[-0.025em] text-slate-950 sm:text-4xl">
-            Entre na sua conta
+    <AuctionAuthLayout>
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 text-balance">
+            Entrar na sua conta
           </h1>
           <p className="mt-2 text-sm leading-6 text-slate-600 sm:text-base">
-            Use sua conta PR Leilões para acompanhar lotes e enviar lances.
+            Entre com seu e-mail, CPF ou CNPJ e senha para acessar os leilões.
           </p>
         </header>
 
-        <section className="rounded-[18px] border border-slate-200 bg-white p-5 shadow-[0_14px_40px_rgba(15,23,42,0.06)] sm:p-8">
+        <div>
           <AuctionLoginForm returnTo={safeReturnTo} />
           {googleError && <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">Não foi possível entrar com o Google. Tente novamente.</p>}
           <GoogleLoginButton returnTo={safeReturnTo} />
-        </section>
+        </div>
 
         <p className="mt-6 text-center text-sm text-slate-600">
           Ainda não possui uma conta?{" "}
@@ -42,7 +39,6 @@ export default async function AuctionLoginPage({ searchParams }: { searchParams:
             Cadastre-se
           </Link>
         </p>
-      </div>
-    </div>
+    </AuctionAuthLayout>
   );
 }

@@ -262,6 +262,17 @@ body:has(.auction-management-shell) > main {
   border-color: oklch(0.577 0.245 27.325);
 }
 
+.auction-auth .register-input {
+  min-height: 3rem;
+  font-size: 1rem;
+  line-height: 1.5rem;
+}
+
+.auction-auth label,
+.auction-auth legend {
+  font-size: 0.875rem;
+}
+
 ::selection {
   background: oklch(0.82 0.12 145);
   color: oklch(0.2 0 0);

@@ -55,26 +55,31 @@ export function AuctionLoginForm({ returnTo = "/leiloes" }: { returnTo?: string 
     }
 
     setIsSubmitting(true);
-    const result = await loginAuctionAction({ login, loginType, password });
-    setIsSubmitting(false);
+    try {
+      const result = await loginAuctionAction({ login: login.trim(), loginType, password });
+      if (!result.success) {
+        setError(result.error);
+        requestAnimationFrame(() => errorRef.current?.focus());
+        return;
+      }
 
-    if (!result.success) {
-      setError(result.error);
+      const safeReturnTo = returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/leiloes";
+      router.replace(safeReturnTo);
+      router.refresh();
+    } catch {
+      setError("Não foi possível entrar agora. Tente novamente em alguns instantes.");
       requestAnimationFrame(() => errorRef.current?.focus());
-      return;
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const safeReturnTo = returnTo.startsWith("/") && !returnTo.startsWith("//") ? returnTo : "/leiloes";
-    router.replace(safeReturnTo);
-    router.refresh();
   }
 
   const loginType = detectLoginType(login);
-  const placeholder = loginType === "email" ? "seu@email.com" : loginType === "cpf" ? "000.000.000-00" : "00.000.000/0000-00";
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-6">
       <div
+        id="auction-login-error"
         ref={errorRef}
         tabIndex={-1}
         className={error ? "rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium leading-5 text-red-800 outline-none focus-visible:ring-2 focus-visible:ring-red-600" : "sr-only"}
@@ -94,11 +99,11 @@ export function AuctionLoginForm({ returnTo = "/leiloes" }: { returnTo?: string 
             name="login"
             value={loginType === "email" ? login : formatDocument(login, loginType)}
             onChange={(event) => setLogin(event.target.value)}
-            type={loginType === "email" ? "email" : "text"}
-            inputMode={loginType === "email" ? "email" : "numeric"}
+            type="text"
             autoComplete="username"
-            placeholder={placeholder}
+            placeholder="Seu e-mail, CPF ou CNPJ"
             aria-invalid={Boolean(error)}
+            aria-describedby={error ? "auction-login-error" : undefined}
             className="register-input register-input-with-icon"
           />
         </div>
@@ -117,6 +122,7 @@ export function AuctionLoginForm({ returnTo = "/leiloes" }: { returnTo?: string 
             autoComplete="current-password"
             placeholder="••••••••"
             aria-invalid={Boolean(error)}
+            aria-describedby={error ? "auction-login-error" : undefined}
             className="register-input register-input-with-icon pr-11"
           />
           <button
