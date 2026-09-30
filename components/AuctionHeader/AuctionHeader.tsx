@@ -10,6 +10,7 @@ import { AuctionReturnToLink } from "@/components/Auth/AuctionReturnToLink";
 
 const navigation = [
   { label: "Leilões", href: "/leiloes", icon: Gavel, active: true },
+  { label: "Faça seu leilão", href: "/faca-seu-leilao", icon: Gavel },
   { label: "Princesa Rural", href: "/", icon: Home, handoff: true },
 ];
 

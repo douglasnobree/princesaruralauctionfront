@@ -4,6 +4,7 @@ import { AuctionCard } from "@/components/Auction/AuctionCard";
 import { AuctionEmptyState } from "@/components/Auction/AuctionEmptyState";
 import { AuctionHeroBanner } from "@/components/Auction/AuctionHeroBanner";
 import Link from "next/link";
+import { AuctionSellerCta } from "@/components/AuctionEnquiry/AuctionSellerCta";
 import {
 	filterAuctionsByListingFilter,
 	getAuctions,
@@ -67,6 +68,7 @@ export default async function LeiloesPage({
 				mobileBannerUrl={featuredAuction?.mobileBannerUrl}
 				slug={featuredAuction?.slug}
 			/>}
+			<div className="px-4 pt-6 sm:px-6"><AuctionSellerCta /></div>
 
 			<section
 				id="agenda"
