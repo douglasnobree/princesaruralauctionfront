@@ -1055,7 +1055,7 @@ function FloorBidPanel({
                   {lotLabels[selectedLot.status] ?? selectedLot.status}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-slate-600">
+              <p key={`${selectedLot.id}:${selectedLot.currentPriceCents}`} className="pr-bid-change mt-1 text-xs text-slate-600">
                 Preço oficial: {money(selectedLot.currentPriceCents, snapshot.auction.currency)}
                 {" · "}Próximo lance sugerido: {money(selectedLot.nextBidCents, snapshot.auction.currency)}
               </p>

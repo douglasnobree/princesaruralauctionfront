@@ -253,7 +253,7 @@ export function AuctionRuntimeBoard({ externalAuctionId, initialSnapshot, focusL
 
 function LiveMetric({ icon, label, value, tone = "slate" }: { icon: React.ReactNode; label: string; value: string; tone?: "green" | "amber" | "blue" | "slate" }) {
 	const tones = { green: "text-emerald-700 bg-emerald-50", amber: "text-amber-700 bg-amber-50", blue: "text-sky-700 bg-sky-50", slate: "text-foreground bg-muted" };
-	return <div className="rounded-xl border bg-card p-4 shadow-xs"><div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><span className={`rounded-md p-1.5 ${tones[tone]}`}>{icon}</span>{label}</div><p className="mt-3 text-lg font-bold">{value}</p></div>;
+	return <div className="rounded-xl border bg-card p-4 shadow-xs"><div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><span className={`rounded-md p-1.5 ${tones[tone]}`}>{icon}</span>{label}</div><p key={value} className="pr-bid-change mt-3 text-lg font-bold">{value}</p></div>;
 }
 
 function LiveEventFeed({ notifications }: { notifications: LiveNotification[] }) {

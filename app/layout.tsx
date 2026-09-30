@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuctionHeader } from "@/components/AuctionHeader/AuctionHeader";
 import { AcquisitionCapture } from "@/components/Auction/AcquisitionCapture";
 import { AuctionAuthHeaderBoundary } from "@/components/Auth/AuctionAuthHeaderBoundary";
+import { AuctionMotion } from "@/components/Motion/AuctionMotion";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -87,6 +88,7 @@ export default function RootLayout({
         {/* PR Leilões: identidade própria, navegação focada em disputa, lotes e participação; verde floresta, verde folha, amarelo ouro e controles compactos de marketplace. */}
         <AuctionAuthHeaderBoundary><AuctionHeader /></AuctionAuthHeaderBoundary>
         <AcquisitionCapture />
+        <AuctionMotion />
         <main className="min-h-screen">{children}</main>
       </body>
     </html>

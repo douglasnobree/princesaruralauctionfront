@@ -33,7 +33,7 @@ export function AuctionLotCard({ lot, engineLot, currency = "BRL", mode, preBidA
 	const bidderName = engineLot ? getBidderDisplayName(engineLot) : null;
 
 	return (
-		<article className="group overflow-hidden rounded-xl border bg-card shadow-xs transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-secondary/40 hover:shadow-md">
+		<article className="pr-auction-card group overflow-hidden rounded-xl border bg-card shadow-xs transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-secondary/40 hover:shadow-md">
 			<Link
 				href={href}
 				className="block outline-none focus-visible:ring-3 focus-visible:ring-ring"

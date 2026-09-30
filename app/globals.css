@@ -316,3 +316,71 @@ main { min-width: 0; overflow-wrap: anywhere; }
   [data-slot="dialog-content"] input, [data-slot="dialog-content"] select, [data-slot="dialog-content"] textarea { font-size: 16px; }
   [data-slot="dialog-content"] button { min-height: 44px; }
 }
+
+/* PR Leilões motion: confident arrivals, stable operational controls, clear feedback. */
+:root { --pr-motion-ease: cubic-bezier(.16, 1, .3, 1); }
+body[data-pr-motion="on"] :where(button, a, summary) {
+  transition-duration: 220ms;
+  transition-timing-function: var(--pr-motion-ease);
+}
+body[data-pr-motion="on"] :where(input, select, textarea) {
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+body[data-pr-motion="on"] :where(input, select, textarea):focus-visible {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--pr-leaf) 13%, transparent);
+}
+body[data-pr-motion="on"] > header { animation: pr-header-enter 500ms var(--pr-motion-ease); }
+body[data-pr-motion="on"] nav a { position: relative; }
+body[data-pr-motion="on"] nav a::after {
+  content: "";
+  position: absolute;
+  inset: auto 12px 2px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--pr-gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 280ms var(--pr-motion-ease);
+  pointer-events: none;
+}
+body[data-pr-motion="on"] nav a:is(:hover, :focus-visible, [aria-current="page"])::after { transform: scaleX(1); }
+body[data-pr-motion="on"] nav a > svg { transition: transform 280ms var(--pr-motion-ease); }
+body[data-pr-motion="on"] nav a:is(:hover, :focus-visible) > svg { transform: rotate(-9deg) translateY(-1px); }
+.pr-auction-card { transition: transform 350ms var(--pr-motion-ease), box-shadow 350ms var(--pr-motion-ease), border-color 220ms ease; }
+.pr-auction-card img { transition: transform 650ms var(--pr-motion-ease), filter 350ms ease; }
+.pr-auction-card svg { transition: translate 280ms var(--pr-motion-ease); }
+@media (hover: hover) and (pointer: fine) {
+  .pr-auction-card:hover { transform: translateY(-5px); box-shadow: 0 14px 30px #06251814; }
+  .pr-auction-card:hover img { transform: scale(1.045); }
+  .pr-auction-card:hover svg:last-child { translate: 3px 0; }
+  body[data-pr-motion="on"] :where([data-slot="button"], button):not(:disabled):hover { filter: brightness(1.05); }
+}
+body[data-pr-motion="on"] :where([data-slot="button"], button):not(:disabled):active { scale: .975; }
+body[data-pr-motion="on"] .auction-management-shell :where(button, [data-slot="button"]):active { scale: 1; }
+[data-pr-menu] { transform-origin: top right; animation: pr-menu-enter 260ms var(--pr-motion-ease); }
+[data-slot="dialog-overlay"][data-state="open"] { animation-duration: 240ms; }
+[data-slot="dialog-content"][data-state="open"] { animation-duration: 320ms; animation-timing-function: var(--pr-motion-ease); }
+[data-slot="dialog-overlay"][data-state="closed"], [data-slot="dialog-content"][data-state="closed"] { animation-duration: 160ms; }
+body[data-pr-motion="on"] .auction-auth :where(header, form) { animation: pr-auth-enter 550ms var(--pr-motion-ease); }
+body[data-pr-motion="on"] .auction-auth form > * { animation: pr-field-enter 450ms var(--pr-motion-ease); }
+body[data-pr-motion="on"] .auction-auth form > :nth-child(2) { animation-delay: 50ms; }
+body[data-pr-motion="on"] .auction-auth form > :nth-child(3) { animation-delay: 100ms; }
+body[data-pr-motion="on"] .auction-auth form > :nth-child(n+4) { animation-delay: 150ms; }
+body[data-pr-motion="on"] :where([role="alert"], [data-pr-feedback]) { animation: pr-feedback-enter 320ms var(--pr-motion-ease); }
+.pr-bid-change { animation: pr-bid-change 650ms var(--pr-motion-ease); border-radius: 4px; }
+.pr-live-status { position: relative; gap: 6px; align-items: center; }
+.pr-live-status::before { content: ""; width: 6px; height: 6px; flex-shrink: 0; border-radius: 50%; background: currentColor; animation: pr-live-beat 2.4s ease-in-out infinite; }
+body[data-pr-hidden="true"] *, body[data-pr-hidden="true"] *::before, body[data-pr-hidden="true"] *::after, [data-pr-loop][data-pr-visible="false"], [data-pr-loop][data-pr-visible="false"]::before, [data-pr-loop][data-pr-visible="false"] * { animation-play-state: paused !important; }
+body[data-pr-motion="on"] details[open] > :not(summary) { animation: pr-field-enter 300ms var(--pr-motion-ease); }
+.management-panel-enter { animation-duration: 300ms; }
+.management-value-change { animation-duration: 850ms; }
+@keyframes pr-header-enter { from { opacity: .7; translate: 0 -8px; } to { opacity: 1; translate: 0 0; } }
+@keyframes pr-menu-enter { from { opacity: .4; translate: 0 -8px; scale: .97; } to { opacity: 1; translate: 0 0; scale: 1; } }
+@keyframes pr-auth-enter { from { opacity: .6; translate: 0 14px; } to { opacity: 1; translate: 0 0; } }
+@keyframes pr-field-enter { from { opacity: .55; translate: 0 7px; } to { opacity: 1; translate: 0 0; } }
+@keyframes pr-feedback-enter { from { opacity: .5; translate: 0 5px; } to { opacity: 1; translate: 0 0; } }
+@keyframes pr-bid-change { 0% { background-color: #fbaa3433; color: var(--pr-leaf); } 100% { background-color: transparent; } }
+@keyframes pr-live-beat { 0%, 100% { opacity: 1; scale: 1; } 50% { opacity: .55; scale: .75; } }
+@media print {
+  body[data-pr-motion="on"] *, body[data-pr-motion="on"] *::before, body[data-pr-motion="on"] *::after { animation: none !important; transition: none !important; }
+}

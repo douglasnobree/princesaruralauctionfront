@@ -47,7 +47,7 @@ export function AuctionEnquiryForm() {
       </div>
       {phoneError ? <p id="enquiry-phone-error" className={styles.error} role="alert">{phoneError}</p> : null}
       {messageUrl ? (
-        <div className={styles.messageReady}>
+        <div className={styles.messageReady} data-pr-feedback>
           <p role="status">Sua mensagem está pronta. Abra o WhatsApp e confirme o envio para falar com a equipe.</p>
           <a href={messageUrl} target="_blank" rel="noopener noreferrer" className={styles.primaryButton}><MessageCircle size={19} aria-hidden="true" />Abrir WhatsApp e enviar<ArrowUpRight size={18} aria-hidden="true" /></a>
         </div>

@@ -63,6 +63,7 @@ export function AuctionProfileMenu({ email }: { email: string }) {
       {open ? (
         <div
           id="auction-profile-menu"
+          data-pr-menu
           role="group"
           aria-label="Opções da conta"
           className="absolute right-0 top-full z-[60] mt-2 w-56 overflow-hidden rounded-xl border border-white/15 bg-[#062518] p-1.5 text-white shadow-xl"

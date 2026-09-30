@@ -70,7 +70,7 @@ function AuctionCardContent({ auction }: AuctionCardProps) {
 
 export function AuctionCard({ auction }: AuctionCardProps) {
 	return (
-		<article className="group overflow-hidden rounded-xl border border-border bg-card shadow-xs transition-shadow hover:shadow-md">
+		<article className="pr-auction-card group overflow-hidden rounded-xl border border-border bg-card shadow-xs transition-shadow hover:shadow-md">
 			<Link
 				href={`/leiloes/${auction.slug}`}
 				className="block h-full outline-none focus-visible:ring-3 focus-visible:ring-ring"

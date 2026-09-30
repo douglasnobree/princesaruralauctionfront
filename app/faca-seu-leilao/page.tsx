@@ -51,7 +51,7 @@ export default function AuctionEnquiryPage() {
               <a href="#contato" className={styles.primaryButton}>Quero realizar um leilão<ArrowUpRight size={19} aria-hidden="true" /></a>
               <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className={styles.lightLink}><MessageCircle size={18} aria-hidden="true" />Falar com nossa equipe</a>
             </div>
-            <a className={styles.exploreLink} href="#como-funciona">Conheça o processo<ArrowDown size={16} aria-hidden="true" /></a>
+            <a className={styles.exploreLink} href="#como-funciona" data-pr-loop>Conheça o processo<ArrowDown size={16} aria-hidden="true" /></a>
           </div>
           <figure className={styles.heroVisual}>
             <Image src="/images/auction-enquiry/rural-herd.webp" alt="Rebanho Nelore no pasto, com paisagem rural ao amanhecer" width={1536} height={1024} sizes="(max-width: 760px) 100vw, 55vw" priority />

@@ -5,7 +5,7 @@ import styles from "./auction-enquiry.module.css";
 
 export function AuctionSellerCta() {
   return (
-    <section className={styles.homeCta} aria-labelledby="auction-seller-title">
+    <section className={styles.homeCta} aria-labelledby="auction-seller-title" data-pr-reveal>
       <div className={styles.homeCtaCopy}>
         <h2 id="auction-seller-title">Seu próximo negócio pode começar com um leilão.</h2>
         <p>Animais, máquinas, veículos, propriedades ou outros bens. Conte com a PR Leilões para planejar, divulgar e realizar seu leilão.</p>

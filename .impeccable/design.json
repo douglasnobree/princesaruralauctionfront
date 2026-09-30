@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-30T03:32:46.597Z",
+  "title": "Design System: PR Leilões",
+  "extensions": {
+    "colorMeta": {
+      "pr-forest": {
+        "role": "primary",
+        "displayName": "Floresta PR",
+        "tonalRamp": [
+          "oklch(0.1500 0.0445 162.048)",
+          "oklch(0.2643 0.0445 162.048)",
+          "oklch(0.3786 0.0445 162.048)",
+          "oklch(0.4929 0.0445 162.048)",
+          "oklch(0.6071 0.0445 162.048)",
+          "oklch(0.7214 0.0445 162.048)",
+          "oklch(0.8357 0.0445 162.048)",
+          "oklch(0.9500 0.0445 162.048)"
+        ]
+      },
+      "pr-leaf": {
+        "role": "secondary",
+        "displayName": "Folha PR",
+        "tonalRamp": [
+          "oklch(0.1500 0.1206 152.829)",
+          "oklch(0.2643 0.1206 152.829)",
+          "oklch(0.3786 0.1206 152.829)",
+          "oklch(0.4929 0.1206 152.829)",
+          "oklch(0.6071 0.1206 152.829)",
+          "oklch(0.7214 0.1206 152.829)",
+          "oklch(0.8357 0.1206 152.829)",
+          "oklch(0.9500 0.1206 152.829)"
+        ]
+      },
+      "pr-gold": {
+        "role": "primary",
+        "displayName": "Ouro PR",
+        "tonalRamp": [
+          "oklch(0.1500 0.1558 71.144)",
+          "oklch(0.2643 0.1558 71.144)",
+          "oklch(0.3786 0.1558 71.144)",
+          "oklch(0.4929 0.1558 71.144)",
+          "oklch(0.6071 0.1558 71.144)",
+          "oklch(0.7214 0.1558 71.144)",
+          "oklch(0.8357 0.1558 71.144)",
+          "oklch(0.9500 0.1558 71.144)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "seller-display": {
+        "displayName": "Display comercial",
+        "purpose": "Título principal da captação; escala responsiva própria."
+      },
+      "seller-headline": {
+        "displayName": "Headline comercial",
+        "purpose": "Seções comerciais."
+      },
+      "catalog-headline": {
+        "displayName": "Headline de catálogo",
+        "purpose": "Título da agenda."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Leitura geral."
+      },
+      "seller-body": {
+        "displayName": "Body comercial",
+        "purpose": "Texto de apoio da captação."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Controles compartilhados."
+      }
+    },
+    "shadows": [
+      {
+        "name": "header",
+        "value": "0 3px 16px rgba(0,0,0,0.12)",
+        "purpose": "Separação da navegação."
+      },
+      {
+        "name": "auction-card-hover",
+        "value": "0 14px 30px #06251814",
+        "purpose": "Hover com ponteiro fino."
+      },
+      {
+        "name": "field-focus",
+        "value": "0 0 0 4px color-mix(in srgb, var(--pr-leaf) 13%, transparent)",
+        "purpose": "Foco com aprimoramento de movimento."
+      }
+    ],
+    "motion": [
+      {
+        "name": "pr-motion-ease",
+        "value": "cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Curva compartilhada."
+      },
+      {
+        "name": "controls",
+        "value": "220ms",
+        "purpose": "Estados de controles."
+      },
+      {
+        "name": "public-arrival",
+        "value": "650ms; translateY(22px) → 0; delay ≤ 195ms",
+        "purpose": "Entrada das superfícies públicas externas."
+      },
+      {
+        "name": "operational-arrival",
+        "value": "220ms; opacity .65 → 1; delay 0",
+        "purpose": "Entrada de painéis administrativos."
+      },
+      {
+        "name": "click-feedback",
+        "value": "260ms",
+        "purpose": "Reconhecimento por brilho sem mover alvos."
+      },
+      {
+        "name": "bid-change",
+        "value": "650ms",
+        "purpose": "Realce temporário de valor."
+      },
+      {
+        "name": "live-status",
+        "value": "2.4s ease-in-out infinite",
+        "purpose": "Indicador ao vivo; pausa fora da área visível ou aba oculta."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile-controls",
+        "value": "639px",
+        "purpose": "Limite máximo dos ajustes móveis globais."
+      },
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "seller-stack",
+        "value": "760px",
+        "purpose": "Limite máximo para empilhar grupos comerciais."
+      },
+      {
+        "name": "seller-single-column",
+        "value": "600px",
+        "purpose": "Limite máximo para campos e passos em uma coluna."
+      },
+      {
+        "name": "seller-desktop-adjustment",
+        "value": "1100px",
+        "purpose": "Limite máximo de ajuste da hero."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botão primário",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ação principal compartilhada.",
+      "html": "<button class=\"ds-button ds-primary\">Participar do leilão</button>",
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:8px 16px;border:0;border-radius:10px;font:500 14px/20px var(--font-geist-sans, sans-serif);cursor:pointer;transition:background-color 220ms var(--pr-motion-ease),filter 220ms var(--pr-motion-ease),scale 220ms var(--pr-motion-ease)}.ds-button:focus-visible{outline:3px solid color-mix(in srgb,var(--pr-gold) 50%,transparent);outline-offset:2px}.ds-button:active{scale:.975}.ds-button:disabled{opacity:.5;pointer-events:none}.ds-primary{background:var(--pr-gold);color:var(--pr-forest)}.ds-primary:hover{background:color-mix(in srgb,var(--pr-gold) 90%,transparent)}"
+    },
+    {
+      "name": "Botão secundário",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Ação de apoio com preenchimento folha.",
+      "html": "<button class=\"ds-button ds-secondary\">Ver lotes</button>",
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:8px 16px;border:0;border-radius:10px;font:500 14px/20px var(--font-geist-sans, sans-serif);cursor:pointer;transition:background-color 220ms var(--pr-motion-ease),filter 220ms var(--pr-motion-ease),scale 220ms var(--pr-motion-ease)}.ds-button:focus-visible{outline:3px solid color-mix(in srgb,var(--pr-gold) 50%,transparent);outline-offset:2px}.ds-button:active{scale:.975}.ds-button:disabled{opacity:.5;pointer-events:none}.ds-secondary{background:var(--pr-leaf);color:var(--background)}.ds-secondary:hover{background:color-mix(in srgb,var(--pr-leaf) 80%,transparent)}"
+    },
+    {
+      "name": "Botão com borda",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Alternativa com superfície clara.",
+      "html": "<button class=\"ds-button ds-outline\">Voltar</button>",
+      "css": ".ds-button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:36px;padding:8px 16px;border:0;border-radius:10px;font:500 14px/20px var(--font-geist-sans, sans-serif);cursor:pointer;transition:background-color 220ms var(--pr-motion-ease),filter 220ms var(--pr-motion-ease),scale 220ms var(--pr-motion-ease)}.ds-button:focus-visible{outline:3px solid color-mix(in srgb,var(--pr-gold) 50%,transparent);outline-offset:2px}.ds-button:active{scale:.975}.ds-button:disabled{opacity:.5;pointer-events:none}.ds-outline{border:1px solid var(--border);background:var(--background);color:var(--foreground);box-shadow:0 1px 2px rgb(0 0 0 / .05)}.ds-outline:hover{background:var(--pr-leaf);color:white}"
+    },
+    {
+      "name": "Botão comercial",
+      "kind": "button",
+      "refersTo": "seller-button",
+      "description": "Ação de captação com brilho breve no hover e foco.",
+      "html": "<button class=\"ds-seller\">Quero realizar um leilão<svg width=\"19\" height=\"19\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"M7 17 17 7M7 7h10v10\"/></svg></button>",
+      "css": ".ds-seller{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:52px;padding:14px 22px;border:0;border-radius:6px;background:var(--pr-gold);color:var(--pr-forest);font:700 14px/1.4 var(--font-geist-sans,sans-serif);cursor:pointer;position:relative;overflow:hidden;transition:background-color 180ms,transform 180ms}.ds-seller:hover{background:#ffc267;transform:translateY(-2px)}.ds-seller:active{transform:translateY(0)}.ds-seller:focus-visible{outline:2px solid #a26409;outline-offset:5px}.ds-seller:before{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 30%,#ffffff60 50%,transparent 70%);translate:-120% 0;pointer-events:none}.ds-seller:is(:hover,:focus-visible):before{animation:ds-sweep 650ms ease-out}@keyframes ds-sweep{to{translate:120% 0}}"
+    },
+    {
+      "name": "Campo compartilhado",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo com placeholder, foco e erro visíveis.",
+      "html": "<label class=\"ds-field-label\" for=\"ds-name\">Nome</label><input class=\"ds-input\" id=\"ds-name\" placeholder=\"Seu nome\">",
+      "css": ".ds-field-label{display:block;margin-bottom:8px;font:500 14px/20px var(--font-geist-sans,sans-serif);color:var(--foreground)}.ds-input{width:100%;height:36px;min-width:0;padding:4px 12px;border:1px solid var(--input);border-radius:10px;background:transparent;color:var(--foreground);font:400 14px/20px var(--font-geist-sans,sans-serif);box-shadow:0 1px 2px rgb(0 0 0 / .05);transition:border-color 180ms,box-shadow 180ms}.ds-input::placeholder{color:var(--muted-foreground)}.ds-input:focus-visible{outline:none;border-color:var(--ring);box-shadow:0 0 0 3px color-mix(in srgb,var(--ring) 50%,transparent),0 0 0 4px color-mix(in srgb,var(--pr-leaf) 13%,transparent)}.ds-input[aria-invalid=true]{border-color:var(--destructive)}.ds-input:disabled{opacity:.5;cursor:not-allowed}@media(max-width:639px){.ds-input{font-size:16px}}"
+    },
+    {
+      "name": "Quantidade de lotes",
+      "kind": "chip",
+      "refersTo": "lot-count",
+      "description": "Etiqueta informativa de quantidade; sem interação.",
+      "html": "<span class=\"ds-count\">12 lotes</span>",
+      "css": ".ds-count{display:inline-block;padding:4px 10px;border-radius:9999px;background:var(--muted);color:var(--foreground);font:600 12px/16px var(--font-geist-sans,sans-serif)}"
+    },
+    {
+      "name": "Navegação",
+      "kind": "nav",
+      "description": "Links compactos sobre floresta com destaque folha e sublinhado ouro.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Navegação principal\"><a href=\"#leiloes\" aria-current=\"page\">Leilões</a><a href=\"#vender\">Faça seu leilão</a></nav>",
+      "css": ".ds-nav{display:flex;gap:8px;padding:8px;background:var(--pr-forest);overflow-x:auto}.ds-nav a{position:relative;display:inline-flex;align-items:center;min-height:28px;flex-shrink:0;padding:0 12px;border-radius:10px;color:#ffffffe6;text-decoration:none;font:700 11px/16px var(--font-geist-sans,sans-serif);letter-spacing:.02em;text-transform:uppercase;transition:background-color 220ms var(--pr-motion-ease)}.ds-nav a:is(:hover,[aria-current=page]){background:color-mix(in srgb,var(--pr-leaf) 70%,transparent);color:white}.ds-nav a:focus-visible{outline:2px solid var(--pr-gold);outline-offset:2px}.ds-nav a:after{content:'';position:absolute;inset:auto 12px 2px;height:2px;border-radius:2px;background:var(--pr-gold);transform:scaleX(0);transform-origin:left;transition:transform 280ms var(--pr-motion-ease)}.ds-nav a:is(:hover,:focus-visible,[aria-current=page]):after{transform:scaleX(1)}@media(max-width:767px){.ds-nav a{min-height:44px}}"
+    },
+    {
+      "name": "Cartão de leilão",
+      "kind": "card",
+      "refersTo": "auction-card",
+      "description": "Estrutura compacta do cartão; prévia sem fotografia ou dados reais.",
+      "html": "<article class=\"ds-card\"><a href=\"#leilao\"><span class=\"ds-card-count\">12 lotes</span><h2>Leilão rural</h2><p>Consulte a agenda e os lotes.</p><span class=\"ds-card-action\">Ver lotes</span></a></article>",
+      "css": ".ds-card{overflow:hidden;border:1px solid var(--border);border-radius:16px;background:var(--card);color:var(--card-foreground);box-shadow:0 1px 2px rgb(0 0 0 / .05);transition:transform 350ms var(--pr-motion-ease),box-shadow 350ms var(--pr-motion-ease)}.ds-card a{display:block;padding:20px;color:inherit;text-decoration:none;font-family:var(--font-geist-sans,sans-serif)}.ds-card a:focus-visible{outline:3px solid var(--ring);outline-offset:-3px}.ds-card h2{margin:12px 0;font-size:20px;font-weight:700;line-height:24px}.ds-card p{font-size:14px;font-weight:600;color:var(--muted-foreground)}.ds-card-count{display:inline-block;background:var(--muted);padding:4px 10px;border-radius:9999px;font-size:12px;font-weight:600}.ds-card-action{display:block;border-top:1px solid var(--border);padding-top:8px;font-size:16px;font-weight:600;color:var(--pr-leaf)}@media(hover:hover) and (pointer:fine){.ds-card:hover{transform:translateY(-5px);box-shadow:0 14px 30px #06251814}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Identidade atual da PR Leilões",
+    "overview": "A referência é a marca existente, com seus verdes, ouro e arquivos oficiais em `public/brand/pr-leiloes`. O caráter é moderno, profissional e rural, com texto direto em português brasileiro. Esta documentação registra o sistema implementado; não cria uma nova metáfora ou identidade.\n\nO catálogo e os controles de participação usam densidade compacta e informação funcional. As superfícies comerciais acrescentam respiro, fotografia rural e seções editoriais variadas. Essa diferença de densidade pertence ao contexto de uso; a composição da landing não é uma regra para todas as páginas.",
+    "keyCharacteristics": [
+      "Marca oficial e relação visual com Princesa Rural.",
+      "Floresta como estrutura, folha como apoio e ouro como ação.",
+      "Geist, títulos claros e controles compactos.",
+      "Cantos moderados, divisão por tom e bordas discretas.",
+      "Movimento visível com controles operacionais estáveis."
+    ],
+    "rules": [
+      {
+        "name": "The Brand Continuity Rule",
+        "body": "Preserve floresta, folha, ouro e os arquivos oficiais da PR Leilões ao estender a interface.",
+        "section": "colors"
+      },
+      {
+        "name": "The Stable Operations Rule",
+        "body": "Movimento de entrada e feedback não deve atrasar ações nem deslocar alvos operacionais.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "**Do** preserve a marca oficial, floresta, folha e ouro.",
+      "**Do** use Geist e hierarquia adequada à densidade de cada superfície.",
+      "**Do** mantenha rótulos, foco visível e áreas de toque adequadas no móvel.",
+      "**Do** deixe conteúdo visível sem JavaScript e mantenha controles operacionais estáveis.",
+      "**Do** pause laços invisíveis e finalize animações para impressão."
+    ],
+    "donts": [
+      "**Don't** substitua a identidade atual por uma nova direção visual sem solicitação.",
+      "**Don't** exagere em gradientes, arredondamentos ou sombras decorativas.",
+      "**Don't** replique a composição comercial como modelo obrigatório para telas operacionais.",
+      "**Don't** acrescente redução automática de animação sem a mudança específica solicitada pelo usuário."
+    ]
+  }
+}

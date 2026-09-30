@@ -48,7 +48,9 @@ function auctionLabel(status: AuctionStatus, mode?: AuctionMode) {
 export function AuctionStatusBadge({ status, mode }: { status: AuctionStatus; mode?: AuctionMode }) {
 	return (
 		<span
-			className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${auctionStyles[status]}`}
+			key={status}
+			data-pr-loop={status === "OPEN" ? "status" : undefined}
+			className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${status === "OPEN" ? "pr-live-status" : ""} ${auctionStyles[status]}`}
 		>
 			{auctionLabel(status, mode)}
 		</span>
@@ -73,7 +75,9 @@ export function AuctionLotStatusBadge({
 					: lotLabels[status];
 	return (
 		<span
-			className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${lotStyles[status]}`}
+			key={label}
+			data-pr-loop={status === "OPEN" ? "status" : undefined}
+			className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${status === "OPEN" ? "pr-live-status" : ""} ${lotStyles[status]}`}
 		>
 			{label}
 		</span>

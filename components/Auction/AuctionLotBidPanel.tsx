@@ -563,7 +563,7 @@ export function AuctionLotBidPanel({
 				<div className="flex flex-wrap items-start justify-between gap-3">
 					<div>
 						<p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{isShopping ? "Preço do lote" : lot.status === "SOLD" ? "Valor de arremate" : "Último lance"}</p>
-						<p className="mt-1 text-[clamp(1.25rem,6vw,2rem)] font-bold leading-none tabular-nums text-primary">{formatCents(isShopping ? fixedPriceCents : lot.currentPriceCents, snapshot.auction.currency)}</p>
+						<p key={`${lot.externalId}:${isShopping ? fixedPriceCents : lot.currentPriceCents}`} className="pr-bid-change mt-1 text-[clamp(1.25rem,6vw,2rem)] font-bold leading-none tabular-nums text-primary">{formatCents(isShopping ? fixedPriceCents : lot.currentPriceCents, snapshot.auction.currency)}</p>
 					</div>
 					{isShopping ? <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground"><Coins className="size-3.5" /> Compra imediata</span> : <button type="button" id={`bid-history-trigger-${lot.externalId}`} aria-expanded={bidHistoryOpen} aria-controls={`bid-history-${lot.externalId}`} onClick={toggleBidHistory} className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-md px-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
 						<Clock3 className="size-3.5" aria-hidden="true" /> Últimos 10 lances
