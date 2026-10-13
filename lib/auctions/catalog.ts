@@ -265,6 +265,8 @@ function mapLot(lot: ApiAuctionLot, auctionSlug?: string, mode?: Auction["mode"]
 
 function mapAuction(auction: ApiAuction): Auction {
 	const lots = (auction.lots ?? []).map((lot) => mapLot(lot, auction.slug, auction.mode, auction.preBidEndsAt));
+	const desktopBannerUrl = auction.desktopBannerUrl ? resolveAsset(auction.desktopBannerUrl, "/uploads/auctions/banners/") : null;
+	const mobileBannerUrl = auction.mobileBannerUrl ? resolveAsset(auction.mobileBannerUrl, "/uploads/auctions/banners/") : null;
 	const coverImage = [auction.coverImageUrl, auction.coverImage].find(
 		(value) =>
 			value &&
@@ -290,12 +292,12 @@ function mapAuction(auction: ApiAuction): Auction {
 		time: formatTime(auction.startsAt),
 		lotCount: auction.lotCount,
 		status: auction.status,
-		image: resolveAsset(
+		image: desktopBannerUrl || mobileBannerUrl || resolveAsset(
 			coverImage || lots[0]?.image,
 			"/uploads/auctions/covers/",
 		),
-		desktopBannerUrl: auction.desktopBannerUrl ? resolveAsset(auction.desktopBannerUrl, "/uploads/auctions/banners/") : null,
-		mobileBannerUrl: auction.mobileBannerUrl ? resolveAsset(auction.mobileBannerUrl, "/uploads/auctions/banners/") : null,
+		desktopBannerUrl,
+		mobileBannerUrl,
 		genealogyCatalogUrl: `${API_BASE_URL}/auctions/public/${encodeURIComponent(auction.slug)}/genealogy-catalog`,
 		lots,
 	};

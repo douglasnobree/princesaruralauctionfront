@@ -2,7 +2,6 @@
 
 import {
   ArrowLeft,
-  ImagePlus,
   LockKeyhole,
   Radio,
   Save,
@@ -10,20 +9,17 @@ import {
   TimerReset,
   WandSparkles,
 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import {
   createAuctionAction,
   updateAuctionAction,
-  uploadAuctionCoverImageAction,
   saveAuctionBannerAction,
 } from "@/hooks/actions/auctionActions";
 import {
   fromDateTimeLocalBrt,
   calculatePauseHours,
-  getAuctionAssetUrl,
   toDateTimeLocalBrt,
 } from "@/lib/auctions/admin-utils";
 import { slugifyAuction } from "@/lib/auctions/form-mappers";
@@ -75,7 +71,7 @@ const emptyState: FormState = {
 const modeDetails = {
   TIMED: {
     shortTitle: "Shopping",
-    description: "Disputa por lances com encerramento programado em cada lote.",
+    description: "Disputa por lances com encerramento do leilão herdado pelos lotes.",
     icon: TimerReset,
     badge: "Tempo determinado",
   },
@@ -153,37 +149,13 @@ export function AuctionForm({
     isEditing && initialData?.availableActions?.reasons.edit,
   );
   const [form, setForm] = useState<FormState>(() => getInitialState(initialData));
-  const [cover, setCover] = useState<File | null>(null);
-  const [coverPreview, setCoverPreview] = useState<string | null>(
-    initialData?.coverImageUrl || initialData?.coverImage
-      ? getAuctionAssetUrl(initialData.coverImageUrl || initialData.coverImage)
-      : null,
-  );
   const [banners, setBanners] = useState<Partial<Record<"desktop" | "mobile", File | null>>>({});
   const [bannerUrls, setBannerUrls] = useState({ desktop: initialData?.desktopBannerUrl, mobile: initialData?.mobileBannerUrl });
   const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    return () => {
-      if (coverPreview?.startsWith("blob:")) URL.revokeObjectURL(coverPreview);
-    };
-  }, [coverPreview]);
-
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
-  }
-
-  function handleCoverChange(file?: File) {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      setNotice("Selecione um arquivo de imagem válido para a capa.");
-      return;
-    }
-    if (coverPreview?.startsWith("blob:")) URL.revokeObjectURL(coverPreview);
-    setCover(file);
-    setCoverPreview(URL.createObjectURL(file));
-    setNotice(null);
   }
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -206,12 +178,13 @@ export function AuctionForm({
     const startInstant = new Date(startsAt);
     const endsAt = fromDateTimeLocalBrt(form.endsAt);
     const hasPreBidSchedule = form.mode === "LIVE" || hasSavedPreBidSchedule;
-    if (form.mode === "SHOPPING") {
+    if (form.mode === "SHOPPING" || form.mode === "TIMED") {
       if (!endsAt || new Date(endsAt) <= startInstant) {
-        setNotice("No Mercado, informe um encerramento posterior ao início.");
+        setNotice(`No ${form.mode === "TIMED" ? "Shopping" : "Mercado"}, informe um encerramento posterior ao início.`);
         return;
       }
-    } else if (hasPreBidSchedule && (form.preBidStartsAt || form.pauseHours || form.preBidEndsAt)) {
+    }
+    if (form.mode !== "SHOPPING" && hasPreBidSchedule && (form.preBidStartsAt || form.pauseHours || form.preBidEndsAt)) {
       const pauseHours = Number(form.pauseHours);
       const preBidStartsAt = fromDateTimeLocalBrt(form.preBidStartsAt);
       if (!preBidStartsAt || !Number.isInteger(pauseHours) || pauseHours < 1) {
@@ -236,6 +209,7 @@ export function AuctionForm({
         paymentText: form.paymentText.trim() || undefined,
         deliveryText: form.deliveryText.trim() || undefined,
         startsAt,
+        ...(form.mode === "TIMED" ? { endsAt } : {}),
         ...(form.mode === "SHOPPING"
           ? { endsAt }
           : {
@@ -265,19 +239,6 @@ export function AuctionForm({
         return;
       }
       savedId.current = result.data.id;
-      if (cover) {
-        const imageResult = await uploadAuctionCoverImageAction(
-          result.data.id,
-          cover,
-        );
-        if (!imageResult.success) {
-          setNotice(
-            `Dados salvos, mas a capa não foi enviada: ${imageResult.error || "erro desconhecido"}`,
-          );
-          return;
-        }
-      }
-      setCover(null);
       for (const device of ["desktop", "mobile"] as const) {
         if (banners[device] === undefined) continue;
         const bannerResult = await saveAuctionBannerAction(result.data.id, device, banners[device] ?? null);
@@ -360,7 +321,6 @@ export function AuctionForm({
                     <Field label="Abertura do Shopping" id="auction-starts-shopping" required>
                       <input id="auction-starts-shopping" type="datetime-local" value={form.startsAt} onChange={(event) => update("startsAt", event.target.value)} required disabled={fieldDisabled} className="management-field" />
                     </Field>
-                    <p className="rounded-lg bg-muted/50 p-3 text-xs font-normal leading-5 text-muted-foreground lg:col-span-2">Configure o encerramento de cada lote na lista de lotes. Os lances e o fechamento seguem os horários cadastrados no motor.</p>
                   </>
                 ) : (
                   <>
@@ -377,6 +337,12 @@ export function AuctionForm({
                     {form.mode === "TIMED" && hasSavedPreBidSchedule ? <p className="rounded-lg bg-muted/50 p-3 text-xs font-normal leading-5 text-muted-foreground lg:col-span-3">Este leilão já possui uma janela antiga de pré-lance. Ela será preservada para não alterar o calendário existente.</p> : null}
                   </>
                 )}
+                {form.mode === "TIMED" ? <>
+                  <Field label="Encerramento do leilão" id="auction-ends-timed" required>
+                    <input id="auction-ends-timed" type="datetime-local" value={form.endsAt} onChange={(event) => update("endsAt", event.target.value)} required disabled={fieldDisabled} aria-describedby="auction-ends-timed-help" className="management-field" />
+                  </Field>
+                  <p id="auction-ends-timed-help" className="rounded-lg bg-muted/50 p-3 text-xs font-normal leading-5 text-muted-foreground md:col-span-2 lg:col-span-3">Os lotes herdam o horário de encerramento do leilão. Você pode definir um horário diferente ao editar cada lote na lista de lotes.</p>
+                </> : null}
                 {form.mode !== "SHOPPING" ? (
                   <>
                     <Field label="Incremento padrão" id="auction-increment">
@@ -396,13 +362,13 @@ export function AuctionForm({
                 </Field>
               </div>
             </section>
-            <section className="rounded-xl border bg-background"><div className="border-b px-5 py-4"><h2 className="font-semibold">Informações comerciais e capa</h2></div><div className="grid gap-5 p-5 md:grid-cols-2"><Field label="Regulamento" id="auction-regulation"><textarea id="auction-regulation" value={form.regulationText} onChange={(event) => update("regulationText", event.target.value)} disabled={fieldDisabled} rows={5} className="management-field h-auto py-2" /></Field><div className="grid gap-5 sm:grid-cols-2 md:col-span-2"><Field label="Pagamento" id="auction-payment"><textarea id="auction-payment" value={form.paymentText} onChange={(event) => update("paymentText", event.target.value)} disabled={fieldDisabled} rows={4} className="management-field h-auto py-2" /></Field><Field label="Entrega" id="auction-delivery"><textarea id="auction-delivery" value={form.deliveryText} onChange={(event) => update("deliveryText", event.target.value)} disabled={fieldDisabled} rows={4} className="management-field h-auto py-2" /></Field></div><div className="space-y-2 text-sm font-medium"><span>Capa do leilão</span><label className="flex min-h-28 cursor-pointer items-center justify-center rounded-lg border border-dashed border-input bg-muted/20 p-3 text-center outline-none transition-[background-color] duration-150 hover:bg-muted/40 focus-within:ring-2 focus-within:ring-ring has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60"><input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={(event) => handleCoverChange(event.target.files?.[0])} disabled={fieldDisabled} />{coverPreview ? <div className="relative h-28 w-full overflow-hidden rounded-md outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"><Image src={coverPreview} alt="Prévia da capa do leilão" fill className="object-cover" unoptimized /></div> : <span className="flex flex-col items-center gap-2 text-muted-foreground"><ImagePlus className="size-6" aria-hidden="true" />Selecionar imagem</span>}</label><p className="text-xs font-normal text-muted-foreground">PNG, JPG ou WEBP. O envio acontece depois de salvar.</p></div></div></section>
+            <section className="rounded-xl border bg-background"><div className="border-b px-5 py-4"><h2 className="font-semibold">Informações comerciais</h2></div><div className="grid gap-5 p-5 md:grid-cols-2"><Field label="Regulamento" id="auction-regulation"><textarea id="auction-regulation" value={form.regulationText} onChange={(event) => update("regulationText", event.target.value)} disabled={fieldDisabled} rows={5} className="management-field h-auto py-2" /></Field><div className="grid gap-5 sm:grid-cols-2 md:col-span-2"><Field label="Pagamento" id="auction-payment"><textarea id="auction-payment" value={form.paymentText} onChange={(event) => update("paymentText", event.target.value)} disabled={fieldDisabled} rows={4} className="management-field h-auto py-2" /></Field><Field label="Entrega" id="auction-delivery"><textarea id="auction-delivery" value={form.deliveryText} onChange={(event) => update("deliveryText", event.target.value)} disabled={fieldDisabled} rows={4} className="management-field h-auto py-2" /></Field></div></div></section>
           </div>
         </details>
 
         <section className="rounded-xl border bg-card p-5" aria-labelledby="auction-banners-title">
           <h2 id="auction-banners-title" className="font-semibold">Banners da página do leilão</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Use uma arte para cada tela. As imagens aparecem inteiras no topo da página, separadas da capa. Sem banner para celular, será usada a imagem para desktop.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Os banners aparecem no topo da página e identificam o leilão na listagem. Sem banner para celular, será usada a imagem para desktop.</p>
           <div className="mt-5 grid gap-5 md:grid-cols-2">
             {(["desktop", "mobile"] as const).map((device) => <AuctionBannerField key={device} device={device} savedUrl={bannerUrls[device]} value={banners[device]} disabled={fieldDisabled} onChange={(file) => setBanners((current) => ({ ...current, [device]: file }))} />)}
           </div>

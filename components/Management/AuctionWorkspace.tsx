@@ -208,7 +208,7 @@ export function AuctionWorkspace({
         </div>
       ) : null}
       {tab === "dados" ? <AuctionForm initialData={auction} capabilities={workspaceCapabilities} /> : null}
-      {tab === "lotes" ? <AuctionLotsPanel auctionId={auction.id} initialLots={lots} capabilities={workspaceCapabilities} canEditLots={canEditLots} mode={auction.mode} engineLots={engineSnapshot?.lots} /> : null}
+      {tab === "lotes" ? <AuctionLotsPanel auctionId={auction.id} initialLots={lots} capabilities={workspaceCapabilities} canEditLots={canEditLots} mode={auction.mode} auctionEndsAt={auction.endsAt} engineLots={engineSnapshot?.lots} /> : null}
       {tab === "lances" ? (
         <section className="space-y-5" aria-labelledby="pending-bids-title">
           <header className="rounded-xl border bg-card p-5 shadow-sm sm:p-6">

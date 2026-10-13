@@ -261,7 +261,7 @@ export function AuctionList({
                         <td className="px-4 py-4">
                           <Link href={`/admin/leiloes/${auction.id}?aba=${auction.status === "OPEN" ? "operacao" : "resumo"}`} className="flex min-w-0 items-center gap-3 outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <div className="relative h-12 w-16 shrink-0 overflow-hidden rounded-md bg-muted outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10">
-                              <Image src={getAuctionAssetUrl(auction.coverImageUrl || auction.coverImage)} alt="" fill className="object-cover" unoptimized />
+                              <Image src={getAuctionAssetUrl(auction.desktopBannerUrl || auction.mobileBannerUrl || auction.coverImageUrl || auction.coverImage)} alt="" fill className="object-cover" unoptimized />
                             </div>
                             <div className="min-w-0">
                               <span className="font-semibold hover:underline">{auction.title}</span>
@@ -283,7 +283,7 @@ export function AuctionList({
                 {visibleAuctions.map((auction) => (
                   <article key={auction.id} className="rounded-lg border p-4 transition-[box-shadow] duration-150 hover:shadow-sm">
                     <div className="flex gap-3">
-                      <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-md bg-muted outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"><Image src={getAuctionAssetUrl(auction.coverImageUrl || auction.coverImage)} alt="" fill className="object-cover" unoptimized /></div>
+                      <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-md bg-muted outline outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"><Image src={getAuctionAssetUrl(auction.desktopBannerUrl || auction.mobileBannerUrl || auction.coverImageUrl || auction.coverImage)} alt="" fill className="object-cover" unoptimized /></div>
                       <div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="truncate font-semibold">{auction.title}</h2><span className={`inline-flex rounded-md border px-2 py-1 text-xs font-semibold ${statusClasses[auction.status]}`}>{formatAuctionStatus(auction.status)}</span></div><p className="mt-1 truncate text-xs text-muted-foreground">{auctionCategory(auction)} · {auction.lotCount} lote(s)</p></div>
                     </div>
                     <p className="mt-3 text-xs text-muted-foreground">Próxima data: {formatAuctionDate(auction.startsAt)}</p>

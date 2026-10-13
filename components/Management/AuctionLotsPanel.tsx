@@ -108,6 +108,7 @@ export function AuctionLotsPanel({
   capabilities,
   canEditLots,
   mode,
+  auctionEndsAt,
   engineLots = [],
 }: {
   auctionId: string;
@@ -115,6 +116,7 @@ export function AuctionLotsPanel({
   capabilities: AuctionCapabilities;
   canEditLots?: boolean;
   mode: AuctionAdminMode;
+  auctionEndsAt?: string | null;
   engineLots?: EngineLot[];
 }) {
   const isShopping = mode === "SHOPPING";
@@ -139,13 +141,13 @@ export function AuctionLotsPanel({
 
   function startCreate() {
     setEditingId(null);
-    setDraft({ ...blank, number: String(Math.max(0, ...sortedLots.map((lot) => lot.number)) + 1) });
+    setDraft({ ...blank, closesAt: mode === "TIMED" ? toDateTimeLocalBrt(auctionEndsAt) : "", number: String(Math.max(0, ...sortedLots.map((lot) => lot.number)) + 1) });
     setNotice(null);
   }
 
   function startEdit(lot: AuctionAdminLot) {
     setEditingId(lot.id);
-    setDraft(draftFromLot(lot));
+    setDraft({ ...draftFromLot(lot), closesAt: toDateTimeLocalBrt(lot.closesAt ?? (mode === "TIMED" ? auctionEndsAt : null)) });
     setNotice(null);
   }
 
@@ -633,8 +635,10 @@ function LotForm({
               value={draft.closesAt}
               onChange={(event) => onChange("closesAt", event.target.value)}
               disabled={disabled}
+              aria-describedby={mode === "TIMED" ? "lot-closes-help" : undefined}
               className="admin-field"
             />
+            {mode === "TIMED" ? <span id="lot-closes-help" className="mt-1 block text-xs font-normal text-muted-foreground">O horário do leilão é usado por padrão. Edite para definir outro horário para este lote.</span> : null}
           </Field>
         </> : null}
         <Field label="YouTube" id="lot-youtube">
