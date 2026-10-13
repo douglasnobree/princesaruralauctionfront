@@ -60,6 +60,22 @@ test("Shopping exposes the auction closing and sends it with the Brasília offse
   assert.equal(saved[0].endsAt, "2099-01-01T17:00:00-03:00");
 });
 
+test("new Shopping auctions save the configured auction closing", async () => {
+  let saved;
+  const h = harness("components/Management/AuctionForm.tsx", "AuctionForm", { capabilities: { canCreate: true } }, {
+    createAuctionAction: async (input) => { saved = input; return { success: true, data: auction }; },
+  });
+  const shopping = find(h.render(), (node) => node.type === "button" && find(node.props.children, (child) => child.props?.children === "Shopping"));
+  shopping.props.onClick();
+  for (const [id, value] of [["auction-title", "Shopping"], ["auction-starts-shopping", "2099-01-01T09:00"], ["auction-ends-timed", "2099-01-01T15:00"]]) {
+    byId(h.render(), id).props.onChange({ target: { value } });
+  }
+  submit(h.render());
+  await h.settle();
+  assert.equal(saved.mode, "TIMED");
+  assert.equal(saved.endsAt, "2099-01-01T15:00:00-03:00");
+});
+
 test("Shopping rejects missing or non-increasing auction closing before saving", async () => {
   for (const value of ["", "2099-01-01T08:00", "2099-01-01T09:00"]) {
     let saves = 0;
