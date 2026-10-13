@@ -14,10 +14,13 @@ export default async function AuctionManagementDetailPage({ params }: { params: 
   const { session, permissions } = await getAuctionManagementAccess();
   const capabilities = permissionsToAuctionCapabilities(permissions, session.user.accountType);
   if (!capabilities.canView) return <AccessDenied message="Seu perfil não possui a permissão de consulta de leilões." />;
-  const [auctionResult, lotsResult, engineResult] = await Promise.all([
-    getAdminAuctionAction(id), getAuctionLotsAction(id), getEngineSnapshotAction(id),
+  const [auctionResult, lotsResult] = await Promise.all([
+    getAdminAuctionAction(id), getAuctionLotsAction(id),
   ]);
   if (!auctionResult.success || !auctionResult.data) return <AccessDenied title="Leilão indisponível" message={auctionResult.error || "Não foi possível carregar este leilão."} />;
+  const engineResult = auctionResult.data.status === "DRAFT"
+    ? { data: null, error: "Publique o leilão para preparar a operação e liberar os lances." }
+    : await getEngineSnapshotAction(id);
   return <AuctionWorkspace key={id} auction={auctionResult.data} lots={lotsResult.data ?? auctionResult.data.lots ?? []}
     capabilities={capabilities} engineSnapshot={engineResult.data ?? null} engineError={engineResult.error} />;
 }

@@ -36,7 +36,7 @@ export function explainEngineError(code: string | undefined, fallback: string, d
 		return `O lote está ${statusLabel(details?.from)} e essa ação não está disponível. Próximas etapas: ${allowed}. Atualize o estado antes de tentar novamente.`;
 	}
 	if (code === "LOT_NOT_FOUND") return "Este lote ainda não está sincronizado com o motor. Recarregue o leilão ou publique a execução antes de tentar de novo.";
-	if (code === "AUCTION_NOT_FOUND") return "Este leilão ainda não está sincronizado com o motor. Publique a execução e atualize esta tela.";
+	if (code === "AUCTION_NOT_FOUND") return "A operação deste leilão ainda não foi preparada. Use Publicar ou Preparar operação na gestão do leilão.";
 	if (code === "VERSION_CONFLICT") return "A tela estava desatualizada. Atualizamos o estado oficial; confira os dados e repita a ação.";
 	if (code === "REGISTRATION_REQUIRED") return "Seu cadastro ainda não foi aprovado para este leilão. Solicite a habilitação e aguarde a validação da equipe PR Leilões.";
 	if (code === "SHOPPING_ALREADY_SOLD") return "Este lote acabou de ser comprado por outro participante. Atualize a página para conferir o estado oficial.";

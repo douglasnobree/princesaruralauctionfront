@@ -145,8 +145,8 @@ export function AuctionLiveExperience({
         lot.externalId === catalogLot.id || lot.externalId === catalogLot.slug,
     );
     return engineLot
-      ? ['OPEN', 'CLOSING', 'SOLD'].includes(engineLot.status)
-      : ['OPEN', 'SOLD'].includes(catalogLot.status);
+      ? ['OPEN', 'CLOSING', 'SOLD', 'UNSOLD', 'CLOSED'].includes(engineLot.status)
+      : ['OPEN', 'SOLD', 'CLOSED'].includes(catalogLot.status);
   });
 
   return (
@@ -221,7 +221,7 @@ export function AuctionLiveExperience({
                 Lotes do leilão
               </h2>
               <p className='mt-1 max-w-3xl text-sm leading-6 text-muted-foreground'>
-                Consulte os lotes disponíveis e os já vendidos. Os vendidos ficam disponíveis para consulta até o encerramento do leilão.
+                Consulte os lotes disponíveis, vendidos e não vendidos até o encerramento do leilão.
               </p>
             </div>
             {visibleCatalogLots.length > 0 ? (
@@ -256,7 +256,7 @@ export function AuctionLiveExperience({
             )}
             {initialSnapshot ? (
               <ClosedLotsPreview
-                lots={initialSnapshot.lots.filter((lot) => lot.status !== 'SOLD')}
+                lots={initialSnapshot.lots.filter((lot) => lot.status === 'CANCELLED')}
                 currency={initialSnapshot.auction.currency}
               />
             ) : null}

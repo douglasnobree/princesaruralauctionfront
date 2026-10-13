@@ -93,7 +93,7 @@ assert.match(auctionWorkspace, /capabilities\.canNotifyParticipants/);
 const operationPanel = await read("components/Management/AuctionOperationPanel.tsx");
 assert.match(operationPanel, /Cadastrar participante rápido/);
 assert.match(operationPanel, /CPF ou CNPJ/);
-assert.match(operationPanel, /Esse cadastro não cria conta/);
+assert.match(operationPanel, /O cadastro não cria uma conta/);
 assert.match(operationPanel, /Origem do participante/);
 assert.match(operationPanel, /O participante autorizou receber mensagens/);
 

@@ -9,9 +9,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
-import { deleteAuctionAction } from "@/hooks/actions/auctionActions";
+import { useMemo, useState } from "react";
+import { DeleteAuctionButton } from "@/components/Management/DeleteAuctionButton";
 import {
   formatAuctionDate,
   formatAuctionStatus,
@@ -62,14 +61,11 @@ export function AuctionList({
   capabilities: AuctionCapabilities;
   error?: string;
 }) {
-  const router = useRouter();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | AuctionAdminStatus>("");
   const [category, setCategory] = useState("");
   const [quickFilter, setQuickFilter] = useState<QuickFilter>("all");
   const [page, setPage] = useState(1);
-  const [notice, setNotice] = useState("");
-  const [isPending, startTransition] = useTransition();
 
   const counts = useMemo(
     () => ({
@@ -132,26 +128,6 @@ export function AuctionList({
     setPage(1);
   }
 
-  function removeAuction(auction: AuctionAdmin) {
-    if (
-      !capabilities.canDelete ||
-      !window.confirm(
-        `Excluir o leilão “${auction.title}”? Esta ação não pode ser desfeita.`,
-      )
-    ) {
-      return;
-    }
-    startTransition(async () => {
-      const result = await deleteAuctionAction(auction.id);
-      setNotice(
-        result.success
-          ? "Leilão excluído."
-          : result.error || "Não foi possível excluir o leilão.",
-      );
-      if (result.success) router.refresh();
-    });
-  }
-
   if (!capabilities.canView) {
     return (
       <AccessDenied message="Seu perfil não possui a permissão de consulta de leilões." />
@@ -202,11 +178,6 @@ export function AuctionList({
         </div>
       </div>
 
-      {notice ? (
-        <p className="rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground" role="status">
-          {notice}
-        </p>
-      ) : null}
       {error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
           Não foi possível carregar todos os leilões: {error}
@@ -302,7 +273,7 @@ export function AuctionList({
                         <td className="whitespace-nowrap px-4 py-4 text-muted-foreground"><span className="inline-flex items-center gap-1.5"><CalendarClock className="size-3.5" aria-hidden="true" />{formatAuctionDate(auction.startsAt)}</span></td>
                         <td className="px-4 py-4">{auction.lotCount}{auction.plannedLotCount > 0 ? `/${auction.plannedLotCount}` : ""}</td>
                         <td className="max-w-[18rem] px-4 py-4 text-xs text-muted-foreground">{needsAttention(auction) ? auction.availableActions?.reasons.publish?.message || "Complete os dados e os lotes" : "Pronto para acompanhar"}</td>
-                        <td className="px-4 py-4 text-right"><Link href={`/admin/leiloes/${auction.id}?aba=${auction.status === "OPEN" ? "operacao" : "resumo"}`} className="inline-flex min-h-9 items-center rounded-md border bg-background px-3 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]">Abrir</Link></td>
+                        <td className="px-4 py-4 text-right"><div className="flex justify-end gap-2"><Link href={`/admin/leiloes/${auction.id}?aba=${auction.status === "OPEN" ? "operacao" : "resumo"}`} className="inline-flex min-h-9 items-center rounded-md border bg-background px-3 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]">Abrir</Link>{capabilities.canDelete && auction.availableActions?.canDelete !== false ? <DeleteAuctionButton auction={auction} /> : null}</div></td>
                       </tr>
                     ))}
                   </tbody>
@@ -317,7 +288,7 @@ export function AuctionList({
                     </div>
                     <p className="mt-3 text-xs text-muted-foreground">Próxima data: {formatAuctionDate(auction.startsAt)}</p>
                     {needsAttention(auction) ? <p className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800">{auction.availableActions?.reasons.publish?.message || "Complete os dados e os lotes."}</p> : null}
-                    <div className="mt-3 flex justify-end gap-2"><Link href={`/admin/leiloes/${auction.id}?aba=${auction.status === "OPEN" ? "operacao" : "resumo"}`} className="inline-flex min-h-9 items-center rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring">Abrir workspace</Link>{capabilities.canDelete && auction.availableActions?.canDelete !== false ? <button type="button" onClick={() => removeAuction(auction)} disabled={isPending} className="inline-flex min-h-9 items-center rounded-md border border-destructive/30 px-3 text-sm font-semibold text-destructive outline-none hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-destructive/40 disabled:opacity-50">Excluir</button> : null}</div>
+                    <div className="mt-3 flex justify-end gap-2"><Link href={`/admin/leiloes/${auction.id}?aba=${auction.status === "OPEN" ? "operacao" : "resumo"}`} className="inline-flex min-h-9 items-center rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring">Abrir workspace</Link>{capabilities.canDelete && auction.availableActions?.canDelete !== false ? <DeleteAuctionButton auction={auction} /> : null}</div>
                   </article>
                 ))}
               </div>

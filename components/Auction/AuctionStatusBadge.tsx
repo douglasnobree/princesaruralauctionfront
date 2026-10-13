@@ -22,7 +22,7 @@ const lotLabels: Record<AuctionLotStatus, string> = {
 	OPEN: "Aberto",
 	PAUSED: "Pausado",
 	SOLD: "Vendido",
-	CLOSED: "Encerrado",
+	CLOSED: "Não vendido",
 	CANCELLED: "Cancelado",
 };
 

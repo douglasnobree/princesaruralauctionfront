@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   ArrowDown,
   ArrowUp,
@@ -117,6 +118,7 @@ export function AuctionLotsPanel({
   engineLots?: EngineLot[];
 }) {
   const isShopping = mode === "SHOPPING";
+  const router = useRouter();
   const [lots, setLots] = useState(initialLots);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -205,6 +207,7 @@ export function AuctionLotsPanel({
       setDraft(null);
       setEditingId(null);
       setNotice(editingId ? "Lote atualizado." : "Lote criado.");
+      router.refresh();
     });
   }
 
@@ -220,6 +223,7 @@ export function AuctionLotsPanel({
         current.map((item) => (item.id === lot.id ? result.data! : item)),
       );
       setNotice(`Lote ${lot.number} atualizado para ${formatLotStatus(status)}.`);
+      router.refresh();
     });
   }
 
@@ -234,6 +238,7 @@ export function AuctionLotsPanel({
       );
       if (result.success) {
         setLots((current) => current.filter((item) => item.id !== lot.id));
+        router.refresh();
       }
     });
   }

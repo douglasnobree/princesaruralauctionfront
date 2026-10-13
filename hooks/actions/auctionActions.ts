@@ -74,8 +74,8 @@ export async function cancelAuctionAction(id: string): Promise<ActionResult<Auct
   try { const result = await parseResponse<AuctionAdmin>(await auctionFetch(`/auctions/${encodeURIComponent(id)}/status`, { method:"PATCH", body:JSON.stringify({ status:"CANCELLED" }) }), "Não foi possível cancelar o leilão."); if (result.success) revalidateAuctions(); return result; }
   catch { return { success:false, error:"Não foi possível cancelar o leilão." }; }
 }
-export async function deleteAuctionAction(id: string): Promise<ActionResult<{message:string}>> {
-  try { const result = await parseResponse<{message:string}>(await auctionFetch(`/auctions/${encodeURIComponent(id)}`, { method:"DELETE" }), "Não foi possível excluir o leilão."); if (result.success) revalidateAuctions(); return result; }
+export async function deleteAuctionAction(id: string, confirmationTitle: string): Promise<ActionResult<{message:string}>> {
+  try { const result = await parseResponse<{message:string}>(await auctionFetch(`/auctions/${encodeURIComponent(id)}/permanent`, { method:"DELETE", body:JSON.stringify({ confirmationTitle }) }), "Não foi possível excluir o leilão."); if (result.success) revalidateAuctions(); return result; }
   catch { return { success:false, error:"Não foi possível excluir o leilão." }; }
 }
 export async function uploadAuctionCoverImageAction(id: string, file: File): Promise<ActionResult<AuctionAdmin>> {

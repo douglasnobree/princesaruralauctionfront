@@ -13,7 +13,6 @@ import {
   Settings2,
   ShieldCheck,
   ShoppingCart,
-  Trash2,
   XCircle,
 } from "lucide-react";
 import Link from "next/link";
@@ -22,7 +21,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
   cancelAuctionAction,
-  deleteAuctionAction,
   publishAuctionAction,
 } from "@/hooks/actions/auctionActions";
 import {
@@ -31,6 +29,7 @@ import {
   formatCents,
 } from "@/lib/auctions/admin-utils";
 import type { EngineAuctionSnapshot } from "@/lib/auctions/engine-types";
+import { DeleteAuctionButton } from "@/components/Management/DeleteAuctionButton";
 const AuctionBroadcastPanel = dynamic(() => import("@/components/Management/AuctionBroadcastPanel").then((module) => module.AuctionBroadcastPanel), { loading: () => <div role="status" className="management-skeleton rounded-xl border p-6">Carregando seção…</div> });
 import type { AuctionAdmin, AuctionAdminLot } from "@/types/auction-admin";
 import type { AuctionCapabilities } from "@/components/Management/capabilities";
@@ -150,14 +149,14 @@ export function AuctionWorkspace({
             <p className="mt-1 text-sm text-muted-foreground">
               Início {formatAuctionDate(auction.startsAt)} · {auction.lotCount} lote(s) · {auction.mode === "SHOPPING" ? "preço fixo" : `incremento ${formatCents(auction.incrementCents)}`}
             </p>
-            <AuctionStatusControls auction={auction} capabilities={capabilities} />
+            <AuctionStatusControls auction={auction} capabilities={capabilities} operationUnavailable={!engineSnapshot} />
           </div>
         </div>
         <div className="flex flex-wrap gap-2 lg:justify-end">
           {workspaceCapabilities.canEdit ? <Link href={`/admin/leiloes/${auction.id}?aba=dados`} onClick={(event) => { event.preventDefault(); changeTab("dados"); }} className="inline-flex min-h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><Pencil className="size-4" aria-hidden="true" />Editar dados</Link> : null}
           {canEditLots ? <Link href={`/admin/leiloes/${auction.id}?aba=lotes`} onClick={(event) => { event.preventDefault(); changeTab("lotes"); }} className="inline-flex min-h-9 items-center gap-2 rounded-md border bg-background px-3 text-sm font-semibold outline-none transition-[background-color,scale] duration-150 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><ListOrdered className="size-4" aria-hidden="true" />{auction.availableActions?.canManageLots === false ? "Editar lotes" : "Gerenciar lotes"}</Link> : null}
           {capabilities.canViewReports ? <Link href={`/admin/leiloes/${auction.id}/relatorio`} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-secondary px-3 text-sm font-semibold text-secondary-foreground outline-none transition-[background-color,scale] duration-150 hover:bg-secondary/90 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96]"><FileBarChart className="size-4" aria-hidden="true" />Ver relatório</Link> : null}
-          {capabilities.canDelete && (auction.availableActions?.canDelete ?? true) ? <DeleteAuctionButton auction={auction} /> : null}
+          {capabilities.canDelete && (auction.availableActions?.canDelete ?? true) ? <DeleteAuctionButton auction={auction} redirectOnDelete /> : null}
         </div>
       </header>
 
@@ -229,7 +228,7 @@ export function AuctionWorkspace({
       {tab === "participantes" ? <AuctionParticipantsPanel auctionId={auction.id} lots={lots} capabilities={capabilities} /> : null}
       {tab === "vendas" && auction.mode === "SHOPPING" && capabilities.canManageStatus ? <AuctionMarketSalesPanel auctionId={auction.id} /> : null}
       {tab === "comunicacao" ? <AuctionCommunicationPanel auctionId={auction.id} canNotify={capabilities.canNotifyParticipants} /> : null}
-      {tab === "operacao" ? <AuctionOperationPanel auctionId={auction.id} initialSnapshot={engineSnapshot} capabilities={capabilities} lots={lots} /> : null}
+      {tab === "operacao" ? <AuctionOperationPanel key={engineSnapshot ? "ready" : "pending"} auctionId={auction.id} initialSnapshot={engineSnapshot} initialError={engineError} capabilities={capabilities} lots={lots} /> : null}
       {engineError && tab === "resumo" ? <p role="status" className="text-sm text-amber-800">{engineError} A operação permite tentar novamente.</p> : null}
       {tab === "transmissao" ? <AuctionBroadcastPanel auctionId={auction.id} canManage={capabilities.canManageStatus} /> : null}
       </div>
@@ -241,16 +240,18 @@ function Metric({ label, value }: { label: string; value: string }) {
   return <div className="border-b p-4 last:border-b-0 sm:border-r sm:last:border-r-0 xl:border-b-0"><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 font-semibold">{value}</p></div>;
 }
 
-function AuctionStatusControls({ auction, capabilities }: { auction: AuctionAdmin; capabilities: AuctionCapabilities }) {
+function AuctionStatusControls({ auction, capabilities, operationUnavailable }: { auction: AuctionAdmin; capabilities: AuctionCapabilities; operationUnavailable: boolean }) {
   const router = useRouter();
   const [notice, setNotice] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const canPublish = capabilities.canManageStatus && auction.availableActions?.canPublish !== false && auction.status !== "OPEN" && auction.status !== "CLOSED" && auction.status !== "CANCELLED";
+  const alreadyPublished = ["PRE_LAUNCH", "COMING_SOON", "WAITING_OPENING", "OPEN"].includes(auction.status);
+  const showPublish = capabilities.canManageStatus && auction.status !== "CLOSED" && auction.status !== "CANCELLED" && (!alreadyPublished || operationUnavailable);
+  const publishBlockedReason = auction.availableActions?.reasons.publish?.message || (!alreadyPublished && auction.availableActions?.canPublish === false ? "Complete os dados e os lotes antes de publicar." : undefined);
 
   function publish() {
     startTransition(async () => {
       const result = await publishAuctionAction(auction.id);
-      setNotice(result.success ? "Leilão publicado." : result.error || "Não foi possível publicar.");
+      setNotice(result.success ? (alreadyPublished ? "Operação preparada." : "Leilão publicado.") : result.error || "Não foi possível publicar.");
       if (result.success) router.refresh();
     });
   }
@@ -264,23 +265,15 @@ function AuctionStatusControls({ auction, capabilities }: { auction: AuctionAdmi
     });
   }
 
-  return <div className="mt-3 flex flex-wrap items-center gap-2">{canPublish ? <button type="button" onClick={publish} disabled={pending} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground outline-none transition-[background-color,scale] duration-150 hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96] disabled:opacity-50"><CheckCircle2 className="size-4" aria-hidden="true" />{pending ? "Publicando…" : "Publicar"}</button> : null}{capabilities.canManageStatus && auction.availableActions?.canCancel !== false && auction.status !== "CANCELLED" && auction.status !== "CLOSED" ? <button type="button" onClick={cancel} disabled={pending} className="inline-flex min-h-9 items-center gap-2 rounded-md border border-destructive/30 px-3 text-sm font-semibold text-destructive outline-none transition-[background-color,scale] duration-150 hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-destructive/40 active:scale-[0.96] disabled:opacity-50"><XCircle className="size-4" aria-hidden="true" />Cancelar</button> : null}{notice ? <span role="status" className="text-xs font-semibold text-muted-foreground">{notice}</span> : null}</div>;
-}
-
-function DeleteAuctionButton({ auction }: { auction: AuctionAdmin }) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  function remove() {
-    if (!window.confirm(`Excluir o leilão “${auction.title}”? Esta ação não pode ser desfeita.`)) return;
-    startTransition(async () => {
-      const result = await deleteAuctionAction(auction.id);
-      if (result.success) {
-        router.push("/admin/leiloes");
-        router.refresh();
-      } else {
-        window.alert(result.error || "Não foi possível excluir o leilão.");
-      }
-    });
-  }
-  return <button type="button" onClick={remove} disabled={pending} className="inline-flex min-h-9 items-center gap-2 rounded-md border border-destructive/30 px-3 text-sm font-semibold text-destructive outline-none transition-[background-color,scale] duration-150 hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-destructive/40 active:scale-[0.96] disabled:opacity-50"><Trash2 className="size-4" aria-hidden="true" />Excluir</button>;
+  return (
+    <div className="mt-3 space-y-2">
+      <div className="flex flex-wrap items-center gap-2">
+        {showPublish ? <button type="button" onClick={publish} disabled={pending || Boolean(publishBlockedReason)} aria-describedby={publishBlockedReason ? "publish-blocked-reason" : undefined} className="inline-flex min-h-9 items-center gap-2 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground outline-none transition-[background-color,scale] duration-150 hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring active:scale-[0.96] disabled:opacity-50"><CheckCircle2 className="size-4" aria-hidden="true" />{pending ? "Preparando…" : alreadyPublished ? "Preparar operação" : "Publicar"}</button> : null}
+        {capabilities.canManageStatus && auction.availableActions?.canCancel !== false && auction.status !== "CANCELLED" && auction.status !== "CLOSED" ? <button type="button" onClick={cancel} disabled={pending} className="inline-flex min-h-9 items-center gap-2 rounded-md border border-destructive/30 px-3 text-sm font-semibold text-destructive outline-none transition-[background-color,scale] duration-150 hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-destructive/40 active:scale-[0.96] disabled:opacity-50"><XCircle className="size-4" aria-hidden="true" />Cancelar</button> : null}
+        <span role="status" className="text-xs font-semibold text-muted-foreground">{notice}</span>
+      </div>
+      {showPublish && publishBlockedReason ? <p id="publish-blocked-reason" className="max-w-xl text-sm text-amber-800">Publicação pendente: {publishBlockedReason}</p> : null}
+      {showPublish && alreadyPublished && !publishBlockedReason ? <p className="text-sm text-muted-foreground">O leilão está publicado, mas a operação não foi carregada. Prepare a operação para sincronizar os lotes e tentar novamente.</p> : null}
+    </div>
+  );
 }

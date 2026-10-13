@@ -122,11 +122,13 @@ function streamProviderLabel(provider: string) {
 export function AuctionOperationPanel({
   auctionId,
   initialSnapshot,
+  initialError,
   capabilities,
   lots = [],
 }: {
   auctionId: string;
   initialSnapshot: EngineAuctionSnapshot | null;
+  initialError?: string;
   capabilities: AuctionCapabilities;
   lots?: AuctionAdminLot[];
 }) {
@@ -146,7 +148,7 @@ export function AuctionOperationPanel({
   const [tool, setTool] = useState<"bids" | "participants" | "broadcast" | "communication">("bids");
   const [selectedLot, setSelectedLot] = useState("");
   const [pendingBidRecovery, setPendingBidRecovery] = useState(false);
-  const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncError, setSyncError] = useState<string | null>(initialError ?? null);
   const [refreshing, setRefreshing] = useState(false);
   const streamDirty = useRef(false);
   const requestVersion = useRef(0);
@@ -169,7 +171,7 @@ export function AuctionOperationPanel({
       if (!signal?.aborted && request === requestVersion.current) setSyncError(cause instanceof Error ? cause.message : "Não foi possível atualizar o estado.");
     } finally { if (!signal?.aborted) setRefreshing(false); }
   }
-  useVisiblePoll(async (signal) => { if (!isPending && !refreshing && !pendingBidRecovery) await refresh(undefined, signal); }, 2500);
+  useVisiblePoll(async (signal) => { if (snapshot && !isPending && !refreshing && !pendingBidRecovery) await refresh(undefined, signal); }, 2500);
   function run(action: () => Promise<{ success: boolean; error?: string }>, confirmation?: string) {
     if (confirmation && !window.confirm(confirmation)) return;
     startTransition(async () => {
@@ -191,7 +193,7 @@ export function AuctionOperationPanel({
         <h2 className="font-semibold">Operação ainda não disponível</h2>
         <p className="mt-1 leading-6">
           {syncError || error ||
-            "Publique o leilão e aguarde o motor preparar o snapshot oficial."}
+            "Use Publicar ou Preparar operação no início desta página para liberar a operação do leilão."}
         </p>
         <button type="button" disabled={refreshing} onClick={() => { setRefreshing(true); void refresh(); }} className="mt-3 min-h-11 underline">{refreshing ? "Atualizando…" : "Tentar novamente"}</button>
       </section>
