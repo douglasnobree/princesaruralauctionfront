@@ -5,17 +5,16 @@ import { ArrowDown, ArrowRight, ArrowUpRight, CarFront, Check, Gavel, MapPinned,
 import { AuctionEnquiryForm } from "@/components/AuctionEnquiry/AuctionEnquiryForm";
 import { getAuctionEnquiryUrl } from "@/lib/auction-enquiries";
 import styles from "@/components/AuctionEnquiry/auction-enquiry.module.css";
+import { publicPageMetadata } from "@/lib/seo";
 
 const title = "Faça seu leilão conosco";
 const description = "Quer leiloar animais, máquinas, veículos ou propriedades? Conte com a PR Leilões para planejar, divulgar e realizar seu leilão. Fale com nossa equipe.";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = publicPageMetadata({
   title,
   description,
-  alternates: { canonical: "/faca-seu-leilao" },
-  openGraph: { title: `${title} | PR Leilões`, description, url: "/faca-seu-leilao", images: [{ url: "/brand/pr-leiloes/share-preview.png", width: 1200, height: 630, alt: "PR Leilões" }] },
-  twitter: { card: "summary_large_image", title: `${title} | PR Leilões`, description, images: ["/brand/pr-leiloes/share-preview.png"] },
-};
+  path: "/faca-seu-leilao",
+});
 
 const benefits = [
   { icon: UsersRound, title: "Seu leilão, além da sua região.", text: "Apresente seus bens a compradores de diferentes lugares, com acesso aos lotes pela internet." },

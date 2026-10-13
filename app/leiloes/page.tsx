@@ -5,6 +5,9 @@ import { AuctionEmptyState } from "@/components/Auction/AuctionEmptyState";
 import { AuctionHeroBanner } from "@/components/Auction/AuctionHeroBanner";
 import Link from "next/link";
 import { AuctionSellerCta } from "@/components/AuctionEnquiry/AuctionSellerCta";
+import { publicPageMetadata, SITE_DESCRIPTION, SITE_TITLE } from "@/lib/seo";
+import { JsonLd } from "@/components/Seo/JsonLd";
+import { listingStructuredData } from "@/lib/seo/structured-data";
 import {
 	filterAuctionsByListingFilter,
 	getAuctions,
@@ -14,16 +17,24 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-	title: "Leilões",
-	description:
-		"Acompanhe os leilões rurais do PR Leilões e consulte seus lotes.",
-};
+type ListingSearchParams = { q?: string; tipo?: string };
+
+export async function generateMetadata({ searchParams }: {
+	searchParams?: Promise<ListingSearchParams>;
+}): Promise<Metadata> {
+	const params = await searchParams;
+	return publicPageMetadata({
+		title: SITE_TITLE,
+		description: SITE_DESCRIPTION,
+		path: "/leiloes",
+		noindex: Boolean(params?.q?.trim() || (params?.tipo && params.tipo !== "all")),
+	});
+}
 
 export default async function LeiloesPage({
 	searchParams,
 }: {
-	searchParams?: Promise<{ q?: string; tipo?: string }>;
+	searchParams?: Promise<ListingSearchParams>;
 }) {
 	const [auctions, platformBanners] = await Promise.all([getAuctions(), getAuctionPlatformBanners()]);
 	const params = await searchParams;
@@ -61,6 +72,7 @@ export default async function LeiloesPage({
 
 	return (
 		<div className="bg-muted/35 pb-10 pt-4 sm:pt-5">
+			<JsonLd data={listingStructuredData(visibleAuctions)} />
 			{platformBanners.desktopBannerUrl || platformBanners.mobileBannerUrl ? <div className="mx-auto max-w-6xl px-4 sm:px-6"><AuctionResponsiveBanner desktopUrl={platformBanners.desktopBannerUrl} mobileUrl={platformBanners.mobileBannerUrl} title="PR Leilões" altText="Banner da plataforma PR Leilões" /></div> : <AuctionHeroBanner
 				image={featuredAuction?.image}
 				title={featuredAuction?.title}

@@ -10,7 +10,8 @@
     "test:auth": "node --test tests/auth-*.test.mjs",
     "test:public": "node --test tests/auction-public-lot-contracts.test.mjs",
     "test:management": "node tests/auction-management-contracts.test.mjs",
-    "test:publication": "node --test tests/auction-publication.test.mjs"
+    "test:publication": "node --test tests/auction-publication.test.mjs",
+    "test:seo": "node --test tests/seo.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

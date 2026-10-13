@@ -36,3 +36,33 @@ Confira com:
 docker network inspect apps_app-network
 docker compose -f docker-compose.production.yml ps
 ```
+
+## SEO
+
+As páginas públicas têm canonical, títulos e descrições próprios, Open Graph,
+Twitter Cards e dados estruturados de organização, site, catálogo, produto e
+breadcrumbs. O lance inicial não é publicado como preço de venda nos dados
+estruturados, pois a disputa e o valor atual são controlados pelo motor de leilões.
+
+`/sitemap.xml` consulta o catálogo público a cada requisição e inclui a agenda,
+`/faca-seu-leilao`, leilões publicados e seus lotes visíveis. Não inclui a raiz
+(que redireciona permanentemente para `/leiloes`), filtros, buscas ou áreas
+operacionais. Se a API falhar, a rota retorna erro em vez de informar um sitemap
+incompleto como válido. Não são inventadas datas de alteração para o catálogo.
+
+`/robots.txt` informa o sitemap e bloqueia o rastreamento de `/api/`. As páginas
+de conta, login, gestão, acesso negado e broadcast usam `noindex`. As rotas HTML
+continuam rastreáveis para que os buscadores consigam ler essa instrução.
+Buscas e filtros da agenda também usam `noindex, follow` e canonical sem parâmetros.
+
+Em produção, configure `AUCTION_APP_URL=https://prleiloes.com` (tem precedência
+sobre `NEXT_PUBLIC_AUCTION_APP_URL`). Para verificar a propriedade no Google
+Search Console por meta tag, informe `GOOGLE_SITE_VERIFICATION` antes de reiniciar
+o serviço. Após o deploy, envie `https://prleiloes.com/sitemap.xml` no Search Console
+e inspecione uma página de leilão e uma de lote. A implementação local não confirma
+indexação nem posições nos resultados de busca.
+
+Validação automatizada: `npm run test:seo`.
+
+Referências: [metadados do Next.js](https://nextjs.org/docs/app/api-reference/functions/generate-metadata)
+e [instruções de indexação do Google](https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag).

@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { GoogleCompleteForm } from "@/components/GoogleCompleteForm";
 import { getGooglePending } from "@/lib/auth/server/google-actions";
 import { getMarketplaceUrl } from "@/lib/config/urls";
+
+export const metadata: Metadata = {
+  title: "Complete seu cadastro",
+  robots: { index: false, follow: false },
+};
 
 export default async function GoogleCompletePage({ searchParams }: { searchParams: Promise<{ returnTo?: string }> }) {
   const { returnTo } = await searchParams;

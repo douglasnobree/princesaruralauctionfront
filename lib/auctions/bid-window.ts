@@ -47,7 +47,7 @@ export function isPreBidClosed(
   auction: EngineAuction,
   nowMs = Date.now(),
 ): boolean {
-  if (!hasConfiguredPreBid(auction)) return false;
+  if (auction.status !== 'SCHEDULED' || !hasConfiguredPreBid(auction)) return false;
   const cutoff =
     auction.preBidEndsAt ??
     (auction.mode === 'LIVE' ? auction.startsAt : null);
@@ -60,6 +60,7 @@ export function auctionAcceptsBids(
 ): boolean {
   if (auction.mode === 'SHOPPING') return false;
   if (
+    auction.mode === 'TIMED' &&
     auction.status === 'RUNNING' &&
     auction.startsAt &&
     nowMs < new Date(auction.startsAt).getTime()

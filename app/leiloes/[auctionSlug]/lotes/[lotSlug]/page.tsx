@@ -1,36 +1,50 @@
-import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { AuctionLotDetail } from "@/components/Auction/AuctionLotDetail";
-import { getEngineSnapshotAction } from "@/hooks/actions/auctionEngineActions";
-import { getAuctionBySlug, getAuctionLotBySlug } from "@/lib/auctions/catalog";
+import { getPublicLotPage } from "@/lib/auctions/public-page";
+import { auctionPath, lotDescription, lotPath, publicPageMetadata } from "@/lib/seo";
+import { breadcrumbStructuredData, lotStructuredData } from "@/lib/seo/structured-data";
+import { JsonLd } from "@/components/Seo/JsonLd";
 
 export const dynamic = "force-dynamic";
 
+type LotPageProps = { params: Promise<{ auctionSlug: string; lotSlug: string }> };
+
+export async function generateMetadata({ params }: LotPageProps): Promise<Metadata> {
+	const { auctionSlug, lotSlug } = await params;
+	const { auction, lot } = await getPublicLotPage(auctionSlug, lotSlug);
+	return publicPageMetadata({
+		title: `Lote ${lot.number}: ${lot.title} | ${auction.title}`,
+		description: lotDescription(auction, lot),
+		path: lotPath(auction.slug, lot.slug),
+		image: lot.image,
+	});
+}
+
 export default async function AuctionLotPage({
 	params,
-}: {
-	params: Promise<{ auctionSlug: string; lotSlug: string }>;
-}) {
+}: LotPageProps) {
 	const { auctionSlug, lotSlug } = await params;
-	const [auction, lot] = await Promise.all([
-		getAuctionBySlug(auctionSlug),
-		getAuctionLotBySlug(auctionSlug, lotSlug),
-	]);
-	if (!auction || !lot) notFound();
-	const engineResult = auction.id ? await getEngineSnapshotAction(auction.id) : { success: false as const };
-
-	if (engineResult.success && engineResult.data && ["FINISHED", "CLOSED", "CANCELLED", "ABORTED"].includes(engineResult.data.auction.status)) notFound();
+	const { auction, lot, snapshot } = await getPublicLotPage(auctionSlug, lotSlug);
 
 	const currentLotIndex = auction.lots.findIndex(
 		(auctionLot) => auctionLot.id === lot.id,
 	);
 
 	return (
+		<>
+		<JsonLd data={lotStructuredData(auction, lot)} />
+		<JsonLd data={breadcrumbStructuredData([
+			{ name: "Leilões", path: "/leiloes" },
+			{ name: auction.title, path: auctionPath(auction.slug) },
+			{ name: lot.title, path: lotPath(auction.slug, lot.slug) },
+		])} />
 		<AuctionLotDetail
 			auction={auction}
 			lot={lot}
 		previousLot={auction.lots[currentLotIndex - 1]}
 		nextLot={auction.lots[currentLotIndex + 1]}
-		engineSnapshot={engineResult.success ? engineResult.data : undefined}
+		engineSnapshot={snapshot}
 	/>
+	</>
 	);
 }

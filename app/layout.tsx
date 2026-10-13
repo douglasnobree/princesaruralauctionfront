@@ -5,6 +5,10 @@ import { AuctionHeader } from "@/components/AuctionHeader/AuctionHeader";
 import { AcquisitionCapture } from "@/components/Auction/AcquisitionCapture";
 import { AuctionAuthHeaderBoundary } from "@/components/Auth/AuctionAuthHeaderBoundary";
 import { AuctionMotion } from "@/components/Motion/AuctionMotion";
+import { getAuctionAppUrl } from "@/lib/config/urls";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE } from "@/lib/seo";
+import { siteStructuredData } from "@/lib/seo/structured-data";
+import { JsonLd } from "@/components/Seo/JsonLd";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,15 +21,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_AUCTION_APP_URL || "https://prleiloes.com",
-  ),
+  metadataBase: new URL(getAuctionAppUrl()),
   title: {
-    default: "PR Leilões | Leilões rurais",
+    default: `${SITE_TITLE} | ${SITE_NAME}`,
     template: "%s | PR Leilões",
   },
-  description:
-    "Acompanhe leilões rurais, consulte lotes e participe das disputas no PR Leilões.",
+  description: SITE_DESCRIPTION,
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+  verification: { google: process.env.GOOGLE_SITE_VERIFICATION || undefined },
   applicationName: "PR Leilões",
   category: "agriculture",
   manifest: "/manifest.webmanifest",
@@ -49,9 +56,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "pt_BR",
     siteName: "PR Leilões",
-    title: "PR Leilões | Leilões rurais",
-    description:
-      "Acompanhe leilões rurais, consulte lotes e participe das disputas no PR Leilões.",
+    title: `${SITE_TITLE} | ${SITE_NAME}`,
+    description: SITE_DESCRIPTION,
     images: [
       {
         url: "/brand/pr-leiloes/share-preview.png",
@@ -63,9 +69,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "PR Leilões | Leilões rurais",
-    description:
-      "Acompanhe leilões rurais, consulte lotes e participe das disputas no PR Leilões.",
+    title: `${SITE_TITLE} | ${SITE_NAME}`,
+    description: SITE_DESCRIPTION,
     images: ["/brand/pr-leiloes/share-preview.png"],
   },
 };
@@ -85,6 +90,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <JsonLd data={siteStructuredData()} />
         {/* PR Leilões: identidade própria, navegação focada em disputa, lotes e participação; verde floresta, verde folha, amarelo ouro e controles compactos de marketplace. */}
         <AuctionAuthHeaderBoundary><AuctionHeader /></AuctionAuthHeaderBoundary>
         <AcquisitionCapture />

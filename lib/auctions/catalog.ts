@@ -305,7 +305,8 @@ function mapAuction(auction: ApiAuction): Auction {
 
 export async function getAuctions(): Promise<Auction[]> {
 	const response = await fetchApi<ApiAuction[]>("/auctions/public");
-	return (response?.map(mapAuction) ?? []).filter(isPublicAuction);
+	if (!response) throw new AuctionCatalogError("O catálogo público de leilões não foi encontrado.");
+	return response.map(mapAuction).filter(isPublicAuction);
 }
 
 export async function getAuctionBySlug(
