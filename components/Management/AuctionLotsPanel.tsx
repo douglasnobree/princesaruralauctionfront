@@ -107,6 +107,7 @@ export function AuctionLotsPanel({
   initialLots,
   capabilities,
   canEditLots,
+  canCreateLots,
   mode,
   auctionEndsAt,
   engineLots = [],
@@ -115,6 +116,7 @@ export function AuctionLotsPanel({
   initialLots: AuctionAdminLot[];
   capabilities: AuctionCapabilities;
   canEditLots?: boolean;
+  canCreateLots?: boolean;
   mode: AuctionAdminMode;
   auctionEndsAt?: string | null;
   engineLots?: EngineLot[];
@@ -133,6 +135,7 @@ export function AuctionLotsPanel({
   );
   const canMutate = capabilities.canManageLots;
   const canEdit = canEditLots ?? canMutate;
+  const canCreate = canCreateLots ?? canMutate;
   const requiresChangeReason = canEdit && !canMutate;
 
   function updateDraft<K extends keyof Draft>(key: K, value: Draft[K]) {
@@ -140,6 +143,7 @@ export function AuctionLotsPanel({
   }
 
   function startCreate() {
+    if (!canCreate) return;
     setEditingId(null);
     setDraft({ ...blank, closesAt: mode === "TIMED" ? toDateTimeLocalBrt(auctionEndsAt) : "", number: String(Math.max(0, ...sortedLots.map((lot) => lot.number)) + 1) });
     setNotice(null);
@@ -153,9 +157,9 @@ export function AuctionLotsPanel({
 
   function saveLot(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!draft || (!canMutate && !editingId) || !canEdit) return;
+    if (!draft || (editingId ? !canEdit : !canCreate)) return;
     if (requiresChangeReason && !draft.changeReason.trim()) {
-      setNotice("Informe uma justificativa para editar o lote após o início do leilão.");
+      setNotice(`Informe uma justificativa para ${editingId ? "editar" : "adicionar"} o lote após o início do leilão.`);
       return;
     }
 
@@ -415,11 +419,12 @@ export function AuctionLotsPanel({
             Cadastre, ordene e altere o estado dos lotes conforme o contrato do leilão.
           </p>
         </div>
-        {canMutate ? (
+        {canCreate ? (
           <button
             type="button"
             onClick={startCreate}
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#08734e] px-3.5 text-sm font-semibold text-white hover:bg-[#075b3e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24] focus-visible:ring-offset-2"
+            disabled={isPending}
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#08734e] px-3.5 text-sm font-semibold text-white hover:bg-[#075b3e] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24] focus-visible:ring-offset-2 disabled:opacity-50"
           >
             <Plus className="size-4" aria-hidden="true" />
             Novo lote
@@ -436,7 +441,7 @@ export function AuctionLotsPanel({
       </div>
       {canEdit && !canMutate ? (
         <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          A edição dos lotes continua liberada após o início, mas cada alteração exige uma justificativa, registrada na auditoria e nos logs do sistema.
+          {canCreate ? "A inclusão e a edição dos lotes continuam liberadas após o início." : "A edição dos lotes continua liberada após o início."} Cada inclusão ou alteração exige uma justificativa, registrada na auditoria e nos logs do sistema.
         </p>
       ) : null}
       {notice ? (
@@ -449,7 +454,7 @@ export function AuctionLotsPanel({
           draft={draft}
           editing={Boolean(editingId)}
           requiresChangeReason={requiresChangeReason}
-          disabled={isPending || (!canMutate && !editingId) || !canEdit}
+          disabled={isPending || (editingId ? !canEdit : !canCreate)}
           onChange={updateDraft}
         onCancel={() => {
             setDraft(null);
@@ -543,19 +548,20 @@ function LotForm({
       </div>
       {requiresChangeReason ? (
         <label className="mt-5 block text-xs font-semibold text-slate-700">
-          Justificativa da alteração <span className="text-red-700">*</span>
+          {editing ? "Justificativa da alteração" : "Justificativa da inclusão"} <span className="text-red-700">*</span>
           <textarea
             id="lot-change-reason"
             required
             maxLength={1000}
+            aria-describedby="lot-change-reason-help"
             value={draft.changeReason}
             onChange={(event) => onChange("changeReason", event.target.value)}
             disabled={disabled}
             rows={3}
-            placeholder="Explique por que este lote precisa ser alterado após o início."
+            placeholder={editing ? "Explique por que este lote precisa ser alterado após o início." : "Explique por que este lote está sendo adicionado após o início."}
             className="admin-field mt-1.5 h-auto py-2"
           />
-          <span className="mt-1 block font-normal text-slate-500">
+          <span id="lot-change-reason-help" className="mt-1 block font-normal text-slate-500">
             A justificativa será registrada na auditoria e nos logs do sistema.
           </span>
         </label>

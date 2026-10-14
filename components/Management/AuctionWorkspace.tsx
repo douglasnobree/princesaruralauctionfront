@@ -111,6 +111,9 @@ export function AuctionWorkspace({
   const canEditLots =
     capabilities.canManageLots &&
     (auction.availableActions?.canEditLots ?? true);
+  const canCreateLots =
+    capabilities.canManageLots &&
+    (auction.availableActions?.canCreateLots ?? workspaceCapabilities.canManageLots);
   const publicLots = lots.filter((lot) => ["OPEN", "SOLD", "CLOSED"].includes(lot.status));
   const hasPreBidSchedule = Boolean(auction.preBidStartsAt || auction.preBidEndsAt);
   const auctionStartMs = auction.startsAt ? new Date(auction.startsAt).getTime() : Number.NaN;
@@ -208,7 +211,7 @@ export function AuctionWorkspace({
         </div>
       ) : null}
       {tab === "dados" ? <AuctionForm initialData={auction} capabilities={workspaceCapabilities} /> : null}
-      {tab === "lotes" ? <AuctionLotsPanel auctionId={auction.id} initialLots={lots} capabilities={workspaceCapabilities} canEditLots={canEditLots} mode={auction.mode} auctionEndsAt={auction.endsAt} engineLots={engineSnapshot?.lots} /> : null}
+      {tab === "lotes" ? <AuctionLotsPanel auctionId={auction.id} initialLots={lots} capabilities={workspaceCapabilities} canEditLots={canEditLots} canCreateLots={canCreateLots} mode={auction.mode} auctionEndsAt={auction.endsAt} engineLots={engineSnapshot?.lots} /> : null}
       {tab === "lances" ? (
         <section className="space-y-5" aria-labelledby="pending-bids-title">
           <header className="rounded-xl border bg-card p-5 shadow-sm sm:p-6">

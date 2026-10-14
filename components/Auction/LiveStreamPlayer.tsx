@@ -3,6 +3,7 @@
 import { Radio, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { EngineStream } from "@/lib/auctions/engine-types";
+import { YouTubeLivePlayer } from "./YouTubeLivePlayer";
 
 function isHttpUrl(value: string | null | undefined): value is string {
   if (!value) return false;
@@ -48,10 +49,7 @@ export function LiveStreamPlayer({
     : provider === "youtube"
       ? stream?.providerStreamId ?? null
       : null;
-  const youtubeEmbedUrl = youtubeId
-    ? `https://www.youtube-nocookie.com/embed/${encodeURIComponent(youtubeId)}?autoplay=1&mute=1&playsinline=1&rel=0`
-    : null;
-  const directMediaUrl = !isMock && isHttpUrl(sourceUrl) && !youtubeEmbedUrl ? sourceUrl : null;
+  const directMediaUrl = !isMock && isHttpUrl(sourceUrl) && !youtubeId ? sourceUrl : null;
   const isHls = provider === "hls" || (directMediaUrl?.toLowerCase().split("?")[0].endsWith(".m3u8") ?? false);
   const hlsRef = useRef<{ destroy: () => void } | null>(null);
   const sourceKey = `${stream?.playbackUrl ?? ""}|${stream?.providerStreamId ?? ""}|${stream?.version ?? ""}`;
@@ -96,15 +94,9 @@ export function LiveStreamPlayer({
       aria-label={`Transmissão ${title}`}
       className="overflow-hidden rounded-xl bg-neutral-950 text-white"
     >
-      <div className="relative aspect-video w-full overflow-hidden">
-        {youtubeEmbedUrl ? (
-          <iframe
-            src={youtubeEmbedUrl}
-            title={`Transmissão ao vivo de ${title}`}
-            className="absolute inset-0 size-full border-0"
-            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-            allowFullScreen
-          />
+      <div className={youtubeId ? undefined : "relative aspect-video w-full overflow-hidden"}>
+        {youtubeId ? (
+          <YouTubeLivePlayer key={youtubeId} videoId={youtubeId} title={title} />
         ) : directMediaUrl && !mediaError ? (
           <video
             ref={videoRef}
