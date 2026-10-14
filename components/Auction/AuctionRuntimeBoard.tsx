@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { AuctionLotCard } from "@/components/Auction/AuctionLotCard";
-import type { AuctionLot } from "@/lib/auctions/types";
+import Image from "next/image";
+import type { Auction, AuctionLot } from "@/lib/auctions/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, BadgeCheck, BellRing, CircleAlert, Clock3, History, Loader2, Radio, RefreshCw, Send, Trophy, Wifi, WifiOff, Zap } from "lucide-react";
+import { ArrowRight, BadgeCheck, Banknote, ChevronDown, CircleAlert, FileText, GitFork, History, Loader2, RefreshCw, Trophy, Truck, Wifi, WifiOff } from "lucide-react";
 import { AuctionLoginDialog } from "@/components/Auction/AuctionLoginDialog";
 import { AuctionRegistrationDialog } from "@/components/Auction/AuctionRegistrationDialog";
 import { AuctionWhatsAppConsentControl } from "@/components/Auction/AuctionWhatsAppConsentControl";
@@ -21,6 +21,7 @@ import { getBidderDisplayName, getReadableBidderName, mergeKnownBidderNames } fr
 import { BRAZIL_TIME_ZONE } from "@/lib/utils/formatters";
 import type { ActionResult } from "@/types/common";
 import { detectAcquisitionSource } from "@/lib/auctions/acquisition-sources";
+import styles from "./auction-live.module.css";
 
 function formatCents(value: string | null, currency = "BRL") {
 	if (value === null) return "—";
@@ -100,8 +101,9 @@ function updateStream(snapshot: EngineAuctionSnapshot, payload: Record<string, u
 
 type BoardFeedback = { type: "success" | "error"; message: string; code?: string; correlationId?: string };
 type LiveNotification = { id: number; message: string; tone: "price" | "status" | "system"; createdAt: Date };
+type CommercialTerms = Pick<Auction, "regulationText" | "paymentText" | "deliveryText">;
 
-export function AuctionRuntimeBoard({ externalAuctionId, initialSnapshot, focusLotExternalId, catalogLots = [], hideClosedAuction = false }: { externalAuctionId: string; initialSnapshot: EngineAuctionSnapshot; focusLotExternalId?: string; catalogLots?: AuctionLot[]; hideClosedAuction?: boolean }) {
+export function AuctionRuntimeBoard({ externalAuctionId, initialSnapshot, focusLotExternalId, catalogLots = [], commercialTerms, hideClosedAuction = false }: { externalAuctionId: string; initialSnapshot: EngineAuctionSnapshot; focusLotExternalId?: string; catalogLots?: AuctionLot[]; commercialTerms?: CommercialTerms; hideClosedAuction?: boolean }) {
 	const [snapshot, setSnapshot] = useState(initialSnapshot);
 	const snapshotRef = useRef(initialSnapshot);
 	const [connection, setConnection] = useState<"connecting" | "connected" | "polling">("connecting");
@@ -223,43 +225,109 @@ export function AuctionRuntimeBoard({ externalAuctionId, initialSnapshot, focusL
 	const auctionIsRunning = snapshot.auction.status === "RUNNING";
 	const preBidIsOpen = isPreBidOpen(snapshot.auction);
 	const isPreBid = hasConfiguredPreBid(snapshot.auction) && (preBidIsOpen || snapshot.auction.status === "SCHEDULED");
-	const liveStreamAvailable = snapshot.auction.mode === "LIVE" && auctionIsRunning;
-	const connectionLabel = connection === "connected" ? "Ao vivo" : connection === "connecting" ? "Conectando" : "Atualização automática";
+	const connectionLabel = connection === "connected" ? "Placar conectado" : connection === "connecting" ? "Conectando ao placar…" : "Atualização automática";
 	const registrationLabel = registrationState === "checking" ? "Verificando participação…" : registrationState === "pending" ? "Aguardando validação" : "Habilitar participação";
-	const activeLots = snapshot.lots.filter(isPublicActiveLot).filter((lot) => !focusLotExternalId || lot.externalId === focusLotExternalId);
-	const visibleLots = snapshot.lots.filter((lot) => isPublicActiveLot(lot) || lot.status === "UNSOLD").filter((lot) => !focusLotExternalId || lot.externalId === focusLotExternalId);
-	const closedLots = snapshot.lots.filter((lot) => isClosedLot(lot) && lot.status !== "UNSOLD").filter((lot) => !focusLotExternalId || lot.externalId === focusLotExternalId).sort((a, b) => b.lotNumber - a.lotNumber);
-	const focusedLot = focusLotExternalId ? snapshot.lots.find((lot) => lot.externalId === focusLotExternalId) : null;
-	const boardTitle = focusLotExternalId ? `Lance no lote ${focusedLot ? String(focusedLot.lotNumber).padStart(2, "0") : ""}` : isPreBid ? "Lotes disponíveis para pré-lance" : "Lotes em tempo real";
-	const boardDescription = focusLotExternalId ? "Acompanhe o preço oficial e envie seu lance diretamente nesta página." : isPreBid ? "Envie seus lances antes da abertura. O placar oficial acompanha tudo automaticamente." : "Os próximos lotes entram aqui assim que o manager os abrir.";
+	const activeLots = snapshot.lots.filter(isPublicActiveLot).filter((lot) => !focusLotExternalId || lot.externalId === focusLotExternalId).sort((a, b) => a.lotNumber - b.lotNumber);
+	const closedLots = snapshot.lots.filter(isClosedLot).filter((lot) => !focusLotExternalId || lot.externalId === focusLotExternalId).sort((a, b) => b.lotNumber - a.lotNumber);
+	const upcomingLots = snapshot.lots.filter((lot) => lot.status === "QUEUED" || lot.status === "PAUSED").sort((a, b) => a.lotNumber - b.lotNumber);
+	const onBidResult = (result: ActionResult<EngineBidResult | Record<string, unknown>>) => {
+		if (result.success && result.data) {
+			const bidResult = result.data as EngineBidResult;
+			applySnapshot(updateLot(snapshotRef.current, bidResult as unknown as Record<string, unknown>));
+			setFeedback({ type: "success", message: bidSuccessMessage(bidResult, snapshot.auction.currency) });
+			notify(bidResult.sold ? "Compra confirmada e lote vendido." : "Seu lance foi confirmado.", "price");
+		} else if (isAuctionAuthenticationError(result.errorCode)) {
+			setFeedback(null);
+			setLoginDialogOpen(true);
+		} else {
+			if (result.errorCode === "REGISTRATION_REQUIRED") setRegistrationState("available");
+			setFeedback({ type: "error", message: result.error || "Lance rejeitado.", code: result.errorCode, correlationId: result.correlationId });
+		}
+	};
 	if (hideClosedAuction && ["FINISHED", "CLOSED", "CANCELLED", "ABORTED"].includes(snapshot.auction.status)) return <p role="status" className="mt-6 rounded-xl border bg-card p-5">Leilão encerrado. Os lotes não estão mais disponíveis para consulta pública.</p>;
 	if (snapshot.auction.mode === "SHOPPING") return null;
 	return <>
-	<section aria-label="Estado e participação do leilão" className="mt-10 space-y-6">
-		<div className="grid min-w-0 grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_18rem]">
-			<div className="min-w-0 space-y-5">
-				{liveStreamAvailable ? <LiveStreamPlayer stream={snapshot.stream} title={snapshot.auction.title} /> : <div className="flex min-h-56 items-center gap-4 rounded-2xl border bg-card p-6 shadow-xs sm:p-8"><span className="rounded-xl bg-muted p-3 text-muted-foreground">{isPreBid ? <Clock3 className="size-5" /> : <Radio className="size-5" />}</span><div><p className="text-sm font-semibold text-foreground">{isPreBid ? (preBidIsOpen ? "Pré-lance aberto" : "Pré-lance indisponível") : "A transmissão ainda não começou"}</p><p className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{isPreBid ? (preBidIsOpen ? "Você já pode enviar pré-lances nos lotes abertos. Esta etapa não depende de transmissão ao vivo." : "O período de pré-lance está pausado ou encerrado.") : "Os lotes podem ser consultados. A disputa ao vivo será liberada quando o manager iniciar o leilão."} Estado atual: <strong className="font-semibold text-foreground">{auctionStatusLabel(snapshot.auction.status)}</strong>.</p></div></div>}
-				<div className="grid gap-3 sm:grid-cols-3"><LiveMetric icon={isPreBid ? <Clock3 className="size-4" /> : <Radio className="size-4" />} label={isPreBid ? "Formato" : "Transmissão"} value={isPreBid ? "Pré-lance" : liveStreamAvailable && snapshot.stream?.status === "LIVE" ? "Ao vivo" : "Aguardando"} tone={isPreBid ? "blue" : liveStreamAvailable && snapshot.stream?.status === "LIVE" ? "green" : "amber"} /><LiveMetric icon={<Activity className="size-4" />} label="Lotes em disputa" value={`${activeLots.length} ${isPreBid ? "em pré-lance" : "em disputa"}`} /><LiveMetric icon={connection === "connected" ? <Wifi className="size-4" /> : <WifiOff className="size-4" />} label="Estado do placar" value={connectionLabel} tone={connection === "connected" ? "green" : "blue"} /></div>
-				{registrationState !== "approved" ? <div className="rounded-2xl border bg-card p-4 shadow-xs sm:p-5"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Sua participação</p><div className="mt-1 inline-flex items-center gap-2 text-lg font-bold"><Zap className="size-5 text-primary" />Entre na disputa</div></div><Button type="button" variant="secondary" className="active:scale-[0.96] transition-transform" onClick={handleRegister} disabled={registrationState === "checking" || registrationState === "pending"}>{registrationState === "pending" ? <Clock3 className="size-4" /> : null}{registrationLabel}</Button></div><p className="mt-3 text-sm leading-6 text-muted-foreground">Seu cadastro é salvo no servidor e verificado novamente quando você voltar a esta página. O placar é atualizado automaticamente.</p></div> : <AuctionWhatsAppConsentControl auctionId={externalAuctionId} />}
-				{feedback?.type === "success" ? <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{feedback.message}</p> : null}
-				{feedback?.type === "error" ? <EngineCommandFeedback message={feedback.message} code={feedback.code} correlationId={feedback.correlationId} onRefresh={() => void refreshState()} /> : null}
-				<div><div className="mb-4 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{focusLotExternalId ? "Operação do lote" : "Placar oficial"}</p><h2 className="mt-1 text-2xl font-bold tracking-tight">{boardTitle}</h2><p className="mt-1 text-sm text-muted-foreground">{boardDescription}</p></div><Button type="button" variant="ghost" size="sm" onClick={() => void refreshState()}><RefreshCw className="size-4" />Sincronizar</Button></div><div className="grid grid-cols-1 gap-5 lg:grid-cols-2">{visibleLots.length > 0 ? visibleLots.map((lot) => { const catalogLot = catalogLots.find((item) => item.id === lot.externalId || item.slug === lot.externalId); return lot.status === "UNSOLD" ? catalogLot ? <AuctionLotCard key={lot.id} lot={catalogLot} engineLot={lot} currency={snapshot.auction.currency} mode={snapshot.auction.mode} /> : <ClosedLotCard key={lot.id} lot={lot} currency={snapshot.auction.currency} /> : <RuntimeLot key={lot.id} auctionId={externalAuctionId} auction={snapshot.auction} currency={snapshot.auction.currency} lot={lot} registrationApproved={registrationState === "approved"} onRequireRegistration={handleRegister} onResult={(result) => { if (result.success && result.data) { const bidResult = result.data as EngineBidResult; applySnapshot(updateLot(snapshotRef.current, bidResult as unknown as Record<string, unknown>)); setFeedback({ type: "success", message: bidSuccessMessage(bidResult, snapshot.auction.currency) }); notify(bidResult.sold ? "Compra confirmada e lote vendido." : "Seu lance foi processado pelo motor.", "price"); } else if (isAuctionAuthenticationError(result.errorCode)) { setFeedback(null); setLoginDialogOpen(true); } else { if (result.errorCode === "REGISTRATION_REQUIRED") setRegistrationState("available"); setFeedback({ type: "error", message: result.error || "Lance rejeitado.", code: result.errorCode, correlationId: result.correlationId }); } }} />; }) : <div className="rounded-2xl border border-dashed bg-card p-8 text-center lg:col-span-2"><BadgeCheck className="mx-auto size-8 text-primary" /><p className="mt-3 font-semibold">{focusLotExternalId ? "Este lote ainda não está aberto para lances" : isPreBid ? "Nenhum lote aberto para pré-lance" : "O próximo lote ainda não foi aberto"}</p><p className="mt-1 text-sm leading-6 text-muted-foreground">{focusLotExternalId ? "O manager ainda não liberou este lote no motor. Assim que o status mudar para aberto, o formulário aparecerá aqui." : isPreBid ? "Os lotes aparecerão assim que forem liberados para receber pré-lances." : "Quando o manager iniciar a próxima disputa, ela aparecerá automaticamente neste placar."}</p></div>}</div>{closedLots.length > 0 ? <ClosedLotsSection lots={closedLots} currency={snapshot.auction.currency} catalogLots={catalogLots} /> : null}</div>
+		<section aria-label="Estado e participação do leilão" className={styles.board}>
+			<div className={styles.layout}>
+				<div className={styles.stream}>
+					<LiveStreamPlayer stream={snapshot.stream} title={snapshot.auction.title} />
+				</div>
+				<div className={styles.bidding}>
+					{activeLots.length > 0 ? activeLots.map((lot) => (
+						<RuntimeLot
+							key={lot.id}
+							auctionId={externalAuctionId}
+							auction={snapshot.auction}
+							currency={snapshot.auction.currency}
+							lot={lot}
+							catalogLot={catalogLots.find((item) => item.id === lot.externalId || item.slug === lot.externalId)}
+							commercialTerms={commercialTerms}
+							registrationApproved={registrationState === "approved"}
+							registrationWaiting={registrationState === "checking" || registrationState === "pending"}
+							registrationLabel={registrationLabel}
+							onRequireRegistration={handleRegister}
+							onResult={onBidResult}
+						/>
+					)) : (
+						<div className={styles.empty}>
+							<BadgeCheck className="mb-3 size-6 text-secondary" aria-hidden="true" />
+							<h2>{isPreBid ? "Aguardando abertura dos pré-lances" : auctionIsRunning ? "Aguardando o próximo lote" : auctionStatusLabel(snapshot.auction.status)}</h2>
+							<p>Assim que um lote for aberto, ele aparecerá aqui automaticamente.</p>
+							{registrationState !== "approved" ? <Button type="button" variant="secondary" className="mt-4 min-h-11 w-full" onClick={handleRegister} disabled={registrationState === "checking" || registrationState === "pending"}>{registrationLabel}</Button> : null}
+						</div>
+					)}
+					{feedback?.type === "success" ? <p role="status" className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{feedback.message}</p> : null}
+					{feedback?.type === "error" ? <EngineCommandFeedback message={feedback.message} code={feedback.code} correlationId={feedback.correlationId} onRefresh={() => void refreshState()} /> : null}
+				</div>
+				{upcomingLots.length > 0 ? <UpcomingLots lots={upcomingLots} catalogLots={catalogLots} /> : null}
 			</div>
-			<LiveEventFeed notifications={notifications} />
-		</div>
-	</section>
-	<AuctionLoginDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} />
-	<AuctionRegistrationDialog auctionId={externalAuctionId} open={registrationDialogOpen} onOpenChange={setRegistrationDialogOpen} onConfirm={confirmRegistration} />
+			<div className={styles.connection}>
+				<span>{connection === "connected" ? <Wifi aria-hidden="true" /> : <WifiOff aria-hidden="true" />}{connectionLabel}{!auctionIsRunning ? ` · ${auctionStatusLabel(snapshot.auction.status)}` : ""}</span>
+				<Button type="button" variant="ghost" size="sm" onClick={() => void refreshState()}><RefreshCw aria-hidden="true" />Atualizar placar</Button>
+			</div>
+			{notifications.length > 0 ? <details className={styles.updates}><summary>Atualizações do leilão</summary><ul>{notifications.map((notification) => <li key={notification.id}>{notification.message}</li>)}</ul></details> : null}
+			<div className="sr-only" role="status" aria-live="polite">{notifications[0]?.message}</div>
+			{closedLots.length > 0 ? <ClosedLotsSection lots={closedLots} currency={snapshot.auction.currency} catalogLots={catalogLots} /> : null}
+			{registrationState === "approved" ? <details className={styles.updates}><summary>Notificações pelo WhatsApp</summary><AuctionWhatsAppConsentControl auctionId={externalAuctionId} /></details> : null}
+		</section>
+		<AuctionLoginDialog open={loginDialogOpen} onOpenChange={setLoginDialogOpen} />
+		<AuctionRegistrationDialog auctionId={externalAuctionId} open={registrationDialogOpen} onOpenChange={setRegistrationDialogOpen} onConfirm={confirmRegistration} />
 	</>;
 }
 
-function LiveMetric({ icon, label, value, tone = "slate" }: { icon: React.ReactNode; label: string; value: string; tone?: "green" | "amber" | "blue" | "slate" }) {
-	const tones = { green: "text-emerald-700 bg-emerald-50", amber: "text-amber-700 bg-amber-50", blue: "text-sky-700 bg-sky-50", slate: "text-foreground bg-muted" };
-	return <div className="rounded-xl border bg-card p-4 shadow-xs"><div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><span className={`rounded-md p-1.5 ${tones[tone]}`}>{icon}</span>{label}</div><p key={value} className="pr-bid-change mt-3 text-lg font-bold">{value}</p></div>;
+function UpcomingLots({ lots, catalogLots }: { lots: EngineLot[]; catalogLots: AuctionLot[] }) {
+	const [showAll, setShowAll] = useState(false);
+	return <section className={styles.upcoming} aria-label="Próximos lotes">
+		<div className={styles.upcomingHeader}>
+			<h2>Próximos lotes</h2>
+			<button type="button" aria-expanded={showAll} aria-controls="proximos-lotes" onClick={() => setShowAll((current) => !current)}>{showAll ? "Mostrar menos" : "Ver todos"} <ArrowRight aria-hidden="true" /></button>
+		</div>
+		<div id="proximos-lotes" className={`${styles.lotList} ${showAll ? styles.allLots : ""}`} tabIndex={0} role="region" aria-label="Lista de próximos lotes">
+			{lots.map((lot) => {
+				const catalogLot = catalogLots.find((item) => item.id === lot.externalId || item.slug === lot.externalId);
+				const content = <>
+					<div className={styles.previewImage}><Image src={catalogLot?.image || "/placeholder-image.svg"} alt="" fill sizes="76px" /></div>
+					<div className={styles.previewText}><strong>Lote {String(lot.lotNumber).padStart(2, "0")}</strong><p>{lot.title}</p></div>
+				</>;
+				return catalogLot ? <Link key={lot.id} className={styles.preview} href={`/leiloes/${catalogLot.auctionSlug}/lotes/${catalogLot.slug}`}>{content}</Link> : <div key={lot.id} className={styles.preview}>{content}</div>;
+			})}
+		</div>
+	</section>;
 }
 
-function LiveEventFeed({ notifications }: { notifications: LiveNotification[] }) {
-	return <aside className="h-fit rounded-2xl border bg-card p-4 shadow-xs xl:sticky xl:top-24"><div className="flex items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Atividade</p><h2 className="mt-1 text-lg font-bold">Acontecendo agora</h2></div><span className="relative flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary"><BellRing className="size-4" />{notifications.length > 0 ? <span className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-red-500 ring-2 ring-card" /> : null}</span></div><div className="mt-4 space-y-3">{notifications.length === 0 ? <div className="rounded-xl bg-muted/60 p-4 text-sm leading-6 text-muted-foreground">As atualizações do placar e da transmissão aparecerão aqui sem recarregar a página.</div> : notifications.map((notification) => <div key={notification.id} className="flex gap-3 rounded-xl border bg-background p-3"><span className={`mt-0.5 size-2 shrink-0 rounded-full ${notification.tone === "price" ? "bg-emerald-500" : notification.tone === "status" ? "bg-primary" : "bg-sky-500"}`} /><div className="min-w-0"><p className="text-sm font-medium leading-5">{notification.message}</p><p className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground"><Clock3 className="size-3" />{formatTime(notification.createdAt)}</p></div></div>)}</div></aside>;
+function LotConditions({ lot, terms }: { lot?: AuctionLot; terms?: CommercialTerms }) {
+	const information = [
+		{ title: "Pagamento", icon: Banknote, text: lot?.payment || terms?.paymentText || "Consulte as condições de pagamento com a equipe do leilão." },
+		{ title: "Regulamento", icon: FileText, text: terms?.regulationText || "Consulte o regulamento com a equipe do leilão." },
+		{ title: "Frete e entrega", icon: Truck, text: lot?.deliveryDescription || terms?.deliveryText || "Consulte as condições de frete e entrega com a equipe do leilão." },
+	];
+	return <div className={styles.conditions}>
+		{lot?.genealogyUrl ? <a className={styles.genealogy} href={lot.genealogyUrl} target="_blank" rel="noopener noreferrer" aria-label={`Abrir PDF da genealogia do lote ${lot.number} em nova guia`}><GitFork aria-hidden="true" />Ver genealogia do lote</a> : null}
+		{information.map(({ title, icon: Icon, text }) => <details key={title} className={styles.condition}>
+			<summary><span><Icon aria-hidden="true" />{title}</span>{title === "Pagamento" && (lot?.payment || terms?.paymentText) ? <span className={styles.paymentPreview}>{text}</span> : null}<ChevronDown aria-hidden="true" /></summary>
+			<p>{text}</p>
+		</details>)}
+	</div>;
 }
 
 function ClosedLotsSection({ lots, currency, catalogLots }: { lots: EngineAuctionSnapshot["lots"]; currency: string; catalogLots: AuctionLot[] }) {
@@ -278,15 +346,14 @@ function ClosedLotCard({ lot, currency, catalogLot }: { lot: EngineLot; currency
 	const winner = getReadableBidderName(lot.winnerName) || getReadableBidderName(lot.currentBidderName) || getReadableBidderName(lot.currentBidderAlias);
 	const finalAmount = lot.winningAmountCents ?? lot.currentPriceCents;
 	const sold = lot.status === "SOLD";
-	return <article key={lot.id} className="rounded-2xl border bg-card p-4 shadow-xs"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Lote {String(lot.lotNumber).padStart(2, "0")}</p><h3 className="mt-1 font-bold">{lot.title}</h3></div><span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${sold ? "bg-emerald-50 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{sold ? <Trophy className="size-3.5" /> : null}{lotStatusLabel(lot.status)}</span></div><div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-muted/45 p-3"><div><p className="text-xs text-muted-foreground">{sold ? "Valor final" : "Resultado"}</p><p className="mt-1 font-semibold tabular-nums">{sold && finalAmount ? formatCents(finalAmount, currency) : "Sem venda"}</p></div><div><p className="text-xs text-muted-foreground">{sold ? "Vencedor" : "Observação"}</p><p className="mt-1 truncate font-semibold" title={winner ?? undefined}>{sold ? winner ?? "Participante identificado" : lot.status === "CANCELLED" ? "Lote cancelado" : "Não houve vencedor"}</p></div></div>{sold && catalogLot ? <Link className="mt-3 inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-semibold text-secondary hover:bg-muted" href={`/leiloes/${catalogLot.auctionSlug}/lotes/${catalogLot.slug}`}>Ver lote vendido</Link> : null}{lot.closedAt ? <p className="mt-3 text-xs text-muted-foreground">Encerrado às {formatTime(lot.closedAt)}</p> : null}</article>;
+	return <article key={lot.id} className="rounded-2xl border bg-card p-4 shadow-xs"><div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Lote {String(lot.lotNumber).padStart(2, "0")}</p><h3 className="mt-1 font-bold">{lot.title}</h3></div><span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${sold ? "bg-emerald-50 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{sold ? <Trophy className="size-3.5" /> : null}{lotStatusLabel(lot.status)}</span></div><div className="mt-4 grid grid-cols-2 gap-3 rounded-xl bg-muted/45 p-3"><div><p className="text-xs text-muted-foreground">{sold ? "Valor final" : "Resultado"}</p><p className="mt-1 font-semibold tabular-nums">{sold && finalAmount ? formatCents(finalAmount, currency) : "Sem venda"}</p></div><div><p className="text-xs text-muted-foreground">{sold ? "Vencedor" : "Observação"}</p><p className="mt-1 truncate font-semibold" title={winner ?? undefined}>{sold ? winner ?? "Participante identificado" : lot.status === "CANCELLED" ? "Lote cancelado" : "Não houve vencedor"}</p></div></div>{catalogLot && (sold || lot.status === "UNSOLD") ? <Link className="mt-3 inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-semibold text-secondary hover:bg-muted" href={`/leiloes/${catalogLot.auctionSlug}/lotes/${catalogLot.slug}`}>{sold ? "Ver lote vendido" : "Ver lote"}</Link> : null}{lot.closedAt ? <p className="mt-3 text-xs text-muted-foreground">Encerrado às {formatTime(lot.closedAt)}</p> : null}</article>;
 }
 
-function RuntimeLot({ auctionId, auction, currency, lot, registrationApproved, onRequireRegistration, onResult }: { auctionId: string; auction: EngineAuctionSnapshot["auction"]; currency: string; lot: EngineLot; registrationApproved: boolean; onRequireRegistration: () => Promise<void>; onResult: (result: ActionResult<EngineBidResult | Record<string, unknown>>) => void }) {
+function RuntimeLot({ auctionId, auction, currency, lot, catalogLot, commercialTerms, registrationApproved, registrationWaiting, registrationLabel, onRequireRegistration, onResult }: { auctionId: string; auction: EngineAuctionSnapshot["auction"]; currency: string; lot: EngineLot; catalogLot?: AuctionLot; commercialTerms?: CommercialTerms; registrationApproved: boolean; registrationWaiting: boolean; registrationLabel: string; onRequireRegistration: () => Promise<void>; onResult: (result: ActionResult<EngineBidResult | Record<string, unknown>>) => void }) {
 	const [amount, setAmount] = useState("");
 	const [selectedBidValue, setSelectedBidValue] = useState(lot.nextBidCents);
 	const [busy, setBusy] = useState(false);
 	const [pendingControl, setPendingControl] = useState<"quick" | "custom" | "proxy" | null>(null);
-	const [pendingAmount, setPendingAmount] = useState<string | null>(null);
 	const [proxyMaxBidCents, setProxyMaxBidCents] = useState<string | null>(null);
 	useEffect(() => {
 		let active = true;
@@ -302,13 +369,12 @@ function RuntimeLot({ auctionId, auction, currency, lot, registrationApproved, o
 	const canBid = registrationApproved && auctionAcceptsBids(auction) && lot.status === "OPEN";
 	const bidWindowOpen = auctionAcceptsBids(auction) && lot.status === "OPEN";
 	const selectedFixedBidIsBlocked = effectiveSelectedBidValue !== "custom" && proxyMaxBidCents !== null && BigInt(effectiveSelectedBidValue) <= BigInt(proxyMaxBidCents);
-	const bidUnavailableMessage = !registrationApproved ? "Habilite sua participação acima para enviar lances." : !auctionAcceptsBids(auction) ? auction.status === "SCHEDULED" && auction.mode !== "LIVE" ? "O pré-lance ainda não começou ou não está configurado." : auction.mode === "LIVE" && auction.status !== "RUNNING" ? "A disputa ao vivo ainda não começou." : "O período de pré-lance está pausado ou encerrado." : "Este lote está fora de disputa no momento.";
+	const bidUnavailableMessage = !registrationApproved ? "Habilite sua participação para enviar lances." : !auctionAcceptsBids(auction) ? auction.status === "SCHEDULED" && auction.mode !== "LIVE" ? "O pré-lance ainda não começou ou não está configurado." : auction.mode === "LIVE" && auction.status !== "RUNNING" ? auction.status === "PAUSED" ? "A disputa ao vivo está pausada. Aguarde a abertura." : "A disputa ao vivo ainda não começou." : "O período de pré-lance está pausado ou encerrado." : "Este lote está fora de disputa no momento.";
 	const submitAmount = async (amountCents: string, proxy: boolean, control: "quick" | "custom" | "proxy") => {
 		if (busy) return;
 		if (!registrationApproved) { await onRequireRegistration(); return; }
 		setBusy(true);
 		setPendingControl(control);
-		setPendingAmount(amountCents);
 		try {
 			const result = proxy ? await setProxyBidAction(auctionId, lot.externalId, amountCents, lot.version) : await placeBidAction(auctionId, lot.externalId, amountCents, lot.version);
 			if (proxy && result.success && result.data?.proxyMaxBidCents) setProxyMaxBidCents(result.data.proxyMaxBidCents);
@@ -316,7 +382,6 @@ function RuntimeLot({ auctionId, auction, currency, lot, registrationApproved, o
 		} finally {
 			setBusy(false);
 			setPendingControl(null);
-			setPendingAmount(null);
 		}
 	};
 	const submit = async (proxy: boolean) => {
@@ -325,6 +390,41 @@ function RuntimeLot({ auctionId, auction, currency, lot, registrationApproved, o
 		await submitAmount(amountCents, proxy, proxy ? "proxy" : "custom");
 	};
 	const bidderName = getBidderDisplayName(lot);
-	const hasBidder = Boolean(bidderName);
-	return <article aria-busy={busy} className="rounded-2xl border bg-card p-5 shadow-xs transition-[border-color,box-shadow,transform] duration-150 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"><div className="flex items-start justify-between gap-4"><div className="min-w-0"><p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Lote {String(lot.lotNumber).padStart(2, "0")}</p><h3 className="mt-1 truncate text-lg font-bold">{lot.title}</h3></div><span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${lot.status === "OPEN" ? "bg-emerald-50 text-emerald-700" : "bg-muted text-muted-foreground"}`}>{lotStatusLabel(lot.status)}</span></div><div className="mt-5 grid gap-3 rounded-xl bg-muted/45 p-3 min-[380px]:grid-cols-2 sm:p-4"><div><p className="text-xs text-muted-foreground">Lance atual</p><p className="mt-1 text-2xl font-bold tabular-nums">{formatCents(lot.currentPriceCents, currency)}</p></div><div><p className="text-xs text-muted-foreground">Próximo lance</p><p className="mt-1 text-lg font-semibold tabular-nums">{minimum}</p></div></div><p className="mt-3 text-sm leading-6 text-muted-foreground">{bidderName ? <>Liderança: <span className="font-semibold text-foreground">{bidderName}</span>.</> : hasBidder ? "Liderança: participante identificado." : "Nenhum lance confirmado."}</p><div className="mt-5 space-y-4"><div role="group" aria-label={`Valores de lance do lote ${lot.lotNumber}`}><label className="grid min-w-0 gap-1.5 text-sm font-bold text-foreground" htmlFor={`bid-value-${lot.id}`}>Valor do próximo lance<select id={`bid-value-${lot.id}`} value={effectiveSelectedBidValue} onChange={(event) => setSelectedBidValue(event.target.value)} className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm font-semibold text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring" disabled={!bidWindowOpen || busy}><>{quickBidOptions.map((option) => <option key={option.value} value={option.value}>{formatCents(option.value, currency)}</option>)}</><option value="custom">Outro valor personalizado</option></select></label></div>{effectiveSelectedBidValue === "custom" ? <label className="grid gap-1.5 text-xs font-medium text-muted-foreground" htmlFor={`custom-bid-${lot.id}`}>Valor personalizado<Input id={`custom-bid-${lot.id}`} inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="1.250,00" disabled={!bidWindowOpen || busy} /></label> : <Button type="button" className="h-10 w-full" disabled={!bidWindowOpen || busy || selectedFixedBidIsBlocked} onClick={() => void submitAmount(effectiveSelectedBidValue, false, "quick")}>{pendingControl === "quick" && pendingAmount === effectiveSelectedBidValue ? <Loader2 className="size-4 animate-spin" /> : <><Send className="size-4" />Dar lance</>}</Button>}{effectiveSelectedBidValue === "custom" ? <Button type="button" variant="secondary" className="w-full active:scale-[0.96] transition-transform" disabled={!bidWindowOpen || busy} onClick={() => void submit(false)}>{pendingControl === "custom" ? <><Loader2 className="size-4 animate-spin" />Enviando…</> : <><Send className="size-4" />Dar lance</>}</Button> : null}</div>{!canBid ? <p className="mt-4 inline-flex items-center gap-2 text-sm text-amber-700"><CircleAlert className="size-4" />{bidUnavailableMessage}</p> : null}</article>;
+	const lotNumber = String(lot.lotNumber).padStart(2, "0");
+	const selectedAmount = effectiveSelectedBidValue === "custom" ? parseInputToCents(amount) : effectiveSelectedBidValue;
+	return <article aria-busy={busy} className={styles.lot}>
+		<div className={styles.lotStatus} data-status={lot.status}>LOTE {lotNumber} · {lotStatusLabel(lot.status).toLocaleUpperCase("pt-BR")}</div>
+		<div className={styles.lotBody}>
+			<h2 className={styles.lotTitle}>LOTE {lotNumber} - {lot.title}</h2>
+			<div className={styles.price}>
+				<p>{lot.currentPriceCents === null ? "Lance inicial" : "Último lance"}</p>
+				<strong key={lot.currentPriceCents} className="pr-bid-change">{formatCents(lot.currentPriceCents ?? lot.startingBidCents, currency)}</strong>
+			</div>
+			{bidderName ? <p className={styles.bidder}>Liderança: {bidderName}</p> : null}
+			<div className={styles.nextBid}><span>Próximo lance</span><strong>{selectedAmount ? formatCents(selectedAmount, currency) : minimum}</strong></div>
+			<Button
+				type="button"
+				className={styles.bidButton}
+				disabled={!bidWindowOpen || busy || registrationWaiting || selectedFixedBidIsBlocked}
+				onClick={() => effectiveSelectedBidValue === "custom" ? void submit(false) : void submitAmount(effectiveSelectedBidValue, false, "quick")}
+			>
+				{pendingControl ? <><Loader2 className="size-4 animate-spin" aria-hidden="true" />Enviando…</> : registrationWaiting ? registrationLabel : "Dar lance"}
+			</Button>
+			<details className={styles.bidOptions}>
+				<summary>Escolher outro valor<ChevronDown aria-hidden="true" /></summary>
+				<label htmlFor={`bid-value-${lot.id}`}>Valor do lance
+					<select id={`bid-value-${lot.id}`} aria-label="Valor do lance" value={effectiveSelectedBidValue} onChange={(event) => setSelectedBidValue(event.target.value)} disabled={!bidWindowOpen || busy}>
+						{quickBidOptions.map((option) => <option key={option.value} value={option.value}>{formatCents(option.value, currency)}</option>)}
+						<option value="custom">Outro valor personalizado</option>
+					</select>
+				</label>
+				{effectiveSelectedBidValue === "custom" ? <label htmlFor={`custom-bid-${lot.id}`}>Valor personalizado
+					<Input id={`custom-bid-${lot.id}`} inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="1.250,00" disabled={!bidWindowOpen || busy} />
+				</label> : null}
+			</details>
+			{!canBid && !registrationWaiting ? <p className={styles.eligibility}><CircleAlert aria-hidden="true" />{bidUnavailableMessage}</p> : null}
+			{selectedFixedBidIsBlocked ? <p className={styles.eligibility}>Seu lance automático já cobre este valor. Escolha um valor maior.</p> : null}
+		</div>
+		<LotConditions lot={catalogLot} terms={commercialTerms} />
+	</article>;
 }

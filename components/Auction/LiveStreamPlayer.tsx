@@ -1,26 +1,8 @@
 "use client";
 
-import {
-  Camera,
-  CircleDot,
-  ExternalLink,
-  Maximize2,
-  Radio,
-  Signal,
-  TriangleAlert,
-} from "lucide-react";
+import { Radio, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { EngineStream } from "@/lib/auctions/engine-types";
-
-function streamLabel(status: string) {
-  return status === "LIVE"
-    ? "Ao vivo"
-    : status === "STARTING"
-      ? "Preparando transmissão"
-      : status === "ENDED"
-        ? "Transmissão encerrada"
-        : "Transmissão indisponível";
-}
 
 function isHttpUrl(value: string | null | undefined): value is string {
   if (!value) return false;
@@ -48,15 +30,6 @@ function getYoutubeVideoId(value: string) {
   }
 }
 
-function getProviderLabel(provider: string) {
-  const normalized = provider.toLowerCase();
-  if (normalized === "youtube") return "YouTube Live";
-  if (normalized === "hls") return "HLS";
-  if (normalized === "direct") return "Stream direto";
-  if (normalized === "mock") return "Sem fonte configurada";
-  return provider || "Fonte externa";
-}
-
 export function LiveStreamPlayer({
   stream,
   title,
@@ -80,8 +53,6 @@ export function LiveStreamPlayer({
     : null;
   const directMediaUrl = !isMock && isHttpUrl(sourceUrl) && !youtubeEmbedUrl ? sourceUrl : null;
   const isHls = provider === "hls" || (directMediaUrl?.toLowerCase().split("?")[0].endsWith(".m3u8") ?? false);
-  const isLive = stream?.status === "LIVE";
-  const hasSource = Boolean(youtubeEmbedUrl || directMediaUrl);
   const hlsRef = useRef<{ destroy: () => void } | null>(null);
   const sourceKey = `${stream?.playbackUrl ?? ""}|${stream?.providerStreamId ?? ""}|${stream?.version ?? ""}`;
   const [mediaErrorKey, setMediaErrorKey] = useState<string | null>(null);
@@ -120,17 +91,12 @@ export function LiveStreamPlayer({
     };
   }, [directMediaUrl, isHls, sourceKey]);
 
-  function openFullscreen() {
-    const target = videoRef.current?.parentElement;
-    if (target && document.fullscreenEnabled) void target.requestFullscreen();
-  }
-
   return (
     <section
       aria-label={`Transmissão ${title}`}
-      className="overflow-hidden rounded-2xl bg-slate-950 text-white shadow-[0_18px_50px_-24px_rgba(15,23,42,0.7)]"
+      className="overflow-hidden rounded-xl bg-neutral-950 text-white"
     >
-      <div className="relative w-full aspect-video min-h-[260px] sm:min-h-[230px] overflow-hidden rounded-xl bg-slate-900">
+      <div className="relative aspect-video w-full overflow-hidden">
         {youtubeEmbedUrl ? (
           <iframe
             src={youtubeEmbedUrl}
@@ -142,7 +108,7 @@ export function LiveStreamPlayer({
         ) : directMediaUrl && !mediaError ? (
           <video
             ref={videoRef}
-            className="absolute inset-0 size-full object-cover"
+            className="absolute inset-0 size-full object-contain"
             controls
             autoPlay
             muted
@@ -152,68 +118,27 @@ export function LiveStreamPlayer({
             onError={() => { if (!isHls) setMediaErrorKey(sourceKey); }}
           />
         ) : (
-          <div className="absolute inset-0 overflow-hidden bg-[radial-gradient(circle_at_70%_25%,rgba(16,185,129,0.2),transparent_28%),linear-gradient(135deg,#152238_0%,#0f172a_52%,#17251f_100%)]">
-            <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/75 to-transparent" />
+          <div className="absolute inset-0 overflow-hidden">
             <div className="absolute inset-0 flex items-center justify-center p-6 text-center">
               <div className="max-w-md">
                 <span className="mx-auto flex size-12 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white/80">
                   {mediaError ? <TriangleAlert className="size-5" /> : <Radio className="size-5" />}
                 </span>
                 <p className="mt-4 text-sm font-semibold">
-                  {mediaError ? "Não foi possível reproduzir a fonte" : isMock ? "Transmissão aguardando fonte" : "Transmissão aguardando sinal"}
+                  {mediaError ? "Não foi possível carregar a transmissão" : "Aguardando transmissão"}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-white/65">
                   {mediaError
-                    ? "Confira se a URL é HTTPS e se o serviço permite reprodução no navegador."
+                    ? "Tente atualizar a página para assistir novamente."
                     : manager
                       ? "Configure uma fonte do YouTube, HLS ou stream direto no control room."
-                      : "A transmissão aparecerá aqui assim que uma fonte compatível for conectada."}
+                      : "O vídeo aparecerá aqui assim que a transmissão começar."}
                 </p>
               </div>
             </div>
           </div>
         )}
 
-        <div className="pointer-events-none absolute inset-0 flex flex-col justify-between p-4 sm:p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${isLive && hasSource ? "bg-red-500 text-white" : "bg-white/15 text-white/80"}`}>
-                <CircleDot className={`size-3 ${isLive && hasSource ? "animate-pulse" : ""}`} />
-                {streamLabel(stream?.status ?? "FAILED")}
-              </span>
-              <span className="rounded-full bg-black/30 px-2.5 py-1 text-[11px] font-medium text-white/75">
-                {getProviderLabel(stream?.provider ?? "")}
-              </span>
-            </div>
-            {directMediaUrl ? (
-              <button
-                type="button"
-                onClick={openFullscreen}
-                className="pointer-events-auto rounded-full bg-black/30 p-2 text-white/80 transition-colors hover:bg-black/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                aria-label="Abrir transmissão em tela cheia"
-              >
-                <Maximize2 className="size-4" />
-              </button>
-            ) : null}
-          </div>
-          <div className={hasSource ? "hidden sm:block" : "hidden"}>
-            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-white/65">
-              <Camera className="size-3.5" /> Fonte oficial do leilão
-            </p>
-            <h2 className="mt-1 max-w-xl text-xl font-bold tracking-tight sm:text-2xl">{title}</h2>
-          </div>
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-4 py-3 text-xs text-white/60 sm:px-5">
-        <span className="inline-flex items-center gap-2">
-          <Signal className={isLive && hasSource ? "size-3.5 text-emerald-400" : "size-3.5"} />
-          {hasSource ? getProviderLabel(stream?.provider ?? "") : "Fonte ainda não configurada"}
-        </span>
-        {sourceUrl && isHttpUrl(sourceUrl) && !youtubeEmbedUrl ? (
-          <a href={sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 hover:text-white">
-            Abrir fonte <ExternalLink className="size-3.5" />
-          </a>
-        ) : null}
       </div>
     </section>
   );

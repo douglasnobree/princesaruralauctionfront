@@ -32,6 +32,6 @@ export default async function AuctionLotsPage({
 			{ name: "Leilões", path: "/leiloes" },
 			{ name: auction.title, path: auctionPath(auction.slug) },
 		])} />
-		<AuctionLiveExperience externalAuctionId={auction.id ?? auction.slug} initialSnapshot={snapshot} title={auction.title} description={auction.description} image={auction.image} desktopBannerUrl={auction.desktopBannerUrl} mobileBannerUrl={auction.mobileBannerUrl} date={auction.date} time={auction.time} lotCount={auction.lotCount} status={auction.status} mode={auction.mode} genealogyCatalogUrl={auction.genealogyCatalogUrl} catalogLots={auction.lots} />
+		<AuctionLiveExperience externalAuctionId={auction.id ?? auction.slug} initialSnapshot={snapshot} title={auction.title} description={auction.description} regulationText={auction.regulationText} paymentText={auction.paymentText} deliveryText={auction.deliveryText} image={auction.image} desktopBannerUrl={auction.desktopBannerUrl} mobileBannerUrl={auction.mobileBannerUrl} date={auction.date} time={auction.time} lotCount={auction.lotCount} status={auction.status} mode={auction.mode} genealogyCatalogUrl={auction.genealogyCatalogUrl} catalogLots={auction.lots} />
 	</>;
 }

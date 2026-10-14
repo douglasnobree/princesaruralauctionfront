@@ -92,6 +92,9 @@ type AuctionLiveExperienceProps = {
   initialSnapshot?: EngineAuctionSnapshot;
   title: string;
   description?: string | null;
+  regulationText?: string | null;
+  paymentText?: string | null;
+  deliveryText?: string | null;
   image?: string;
   desktopBannerUrl?: string | null;
   mobileBannerUrl?: string | null;
@@ -110,6 +113,9 @@ export function AuctionLiveExperience({
   initialSnapshot,
   title,
   description,
+  regulationText,
+  paymentText,
+  deliveryText,
   image = '/placeholder-image.svg',
   desktopBannerUrl,
   mobileBannerUrl,
@@ -148,10 +154,17 @@ export function AuctionLiveExperience({
       ? ['OPEN', 'CLOSING', 'SOLD', 'UNSOLD', 'CLOSED'].includes(engineLot.status)
       : ['OPEN', 'SOLD', 'CLOSED'].includes(catalogLot.status);
   });
+  const hasLiveLayout = mode === 'LIVE' && !isLotCatalog && Boolean(initialSnapshot);
 
   return (
-    <div className='w-full bg-muted/35 py-6 sm:py-8'>
-      <div className='mx-auto w-full max-w-6xl px-4 sm:px-6'>
+    <div className={`w-full py-6 sm:py-8 ${hasLiveLayout ? 'bg-background' : 'bg-muted/35'}`}>
+      <div className={`mx-auto w-full px-4 sm:px-6 ${hasLiveLayout ? 'max-w-[1440px] lg:px-7' : 'max-w-6xl'}`}>
+        {hasLiveLayout ? (
+          <header>
+            <h1 className='text-xl font-bold leading-tight tracking-tight [overflow-wrap:anywhere] sm:text-2xl'>{title}</h1>
+            {sandbox ? <p className='mt-2 text-sm text-muted-foreground'>Ambiente de teste</p> : null}
+          </header>
+        ) : <>
         <AuctionResponsiveBanner desktopUrl={desktopBannerUrl} mobileUrl={mobileBannerUrl} title={title} />
         <section className='grid w-full overflow-hidden rounded-xl border bg-card shadow-xs sm:grid-cols-[16rem_1fr]'>
           <div className={`relative aspect-[16/9] bg-muted sm:aspect-auto ${desktopBannerUrl || mobileBannerUrl ? 'hidden sm:block' : ''}`}>
@@ -211,6 +224,7 @@ export function AuctionLiveExperience({
             ) : null}
           </div>
         </section>
+        </>}
 
         {isLotCatalog ? (
           <section className='mt-7' aria-labelledby='pre-bid-lots-title'>
@@ -266,6 +280,7 @@ export function AuctionLiveExperience({
             externalAuctionId={externalAuctionId}
             initialSnapshot={initialSnapshot}
             catalogLots={catalogLots}
+            commercialTerms={{ regulationText, paymentText, deliveryText }}
             hideClosedAuction={!sandbox}
           />
         ) : (
@@ -275,6 +290,21 @@ export function AuctionLiveExperience({
             concluída.
           </div>
         )}
+        {hasLiveLayout ? (
+          <details className='mt-8 border-t pt-3 [&_summary::-webkit-details-marker]:hidden'>
+            <summary className='flex min-h-11 cursor-pointer items-center text-sm font-semibold outline-none focus-visible:outline-2 focus-visible:outline-primary'>Sobre o leilão</summary>
+            <div className='space-y-4 pb-4 pt-3 text-sm leading-6 text-muted-foreground'>
+              <AuctionResponsiveBanner desktopUrl={desktopBannerUrl} mobileUrl={mobileBannerUrl} title={title} />
+              {description ? <p className='max-w-3xl whitespace-pre-wrap'>{description}</p> : null}
+              <p className='flex flex-wrap gap-x-5 gap-y-2'>
+                {date ? <span className='inline-flex items-center gap-2'><CalendarDays className='size-4' />{date}</span> : null}
+                {time ? <span className='inline-flex items-center gap-2'><Clock3 className='size-4' />{time}</span> : null}
+                <span>{lotCount} {lotCount === 1 ? 'lote' : 'lotes'}</span>
+              </p>
+              {catalogLots.length > 0 && genealogyCatalogUrl ? <AuctionFullGenealogyButton catalogUrl={genealogyCatalogUrl} /> : null}
+            </div>
+          </details>
+        ) : null}
       </div>
     </div>
   );

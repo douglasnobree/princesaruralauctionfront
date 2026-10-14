@@ -1,0 +1,187 @@
+.board {
+  --live-green: #0b6244;
+  --live-green-hover: #084b34;
+  margin-top: 24px;
+  min-width: 0;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.stream,
+.bidding,
+.upcoming {
+  min-width: 0;
+}
+
+.stream { grid-row: 1; }
+.bidding { grid-row: 2; display: grid; gap: 16px; }
+.upcoming { grid-row: 3; }
+
+.lot {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+.lotStatus {
+  padding: 10px 16px;
+  background: var(--live-green);
+  color: white;
+  font-size: 14px;
+  font-weight: 650;
+  text-align: center;
+}
+
+.lotStatus[data-status="CLOSING"] { background: color-mix(in srgb, var(--pr-gold) 40%, var(--pr-forest)); }
+.lotStatus[data-status="PAUSED"] { background: color-mix(in srgb, var(--pr-forest) 70%, white); }
+
+.lotBody { padding: 20px 16px 0; }
+
+.lotTitle {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 20px;
+  font-weight: 750;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.price {
+  margin-top: 24px;
+  border-left: 3px solid var(--pr-leaf);
+  padding: 8px 0 8px 16px;
+}
+
+.price p,
+.nextBid {
+  font-size: 14px;
+  color: var(--muted-foreground);
+}
+
+.price strong {
+  display: block;
+  margin-top: 2px;
+  color: var(--pr-forest);
+  font-size: clamp(1.75rem, 3vw, 2rem);
+  font-weight: 750;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.bidder { margin-top: 10px; font-size: 13px; color: var(--muted-foreground); overflow-wrap: anywhere; }
+
+.nextBid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin: 20px 0 8px;
+}
+
+.nextBid strong { color: var(--pr-forest); font-size: 16px; font-weight: 650; font-variant-numeric: tabular-nums; }
+
+.bidButton {
+  width: 100%;
+  min-height: 48px;
+  background: var(--live-green);
+  color: white;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 650;
+  transition: background-color 160ms ease-out;
+}
+
+.bidButton:hover { background: var(--live-green-hover); }
+.bidButton:disabled { opacity: .55; }
+
+.bidOptions { margin: 4px 0 0; }
+.bidOptions summary,
+.condition summary { list-style: none; cursor: pointer; }
+.bidOptions summary::-webkit-details-marker,
+.condition summary::-webkit-details-marker { display: none; }
+
+.bidOptions summary {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--live-green);
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.bidOptions svg,
+.condition summary > svg { width: 16px; height: 16px; flex-shrink: 0; transition: transform 180ms ease-out; }
+.bidOptions[open] summary svg,
+.condition[open] summary > svg { transform: rotate(180deg); }
+.bidOptions label { display: grid; gap: 8px; margin-bottom: 12px; font-size: 14px; font-weight: 550; }
+.bidOptions select,
+.bidOptions input { width: 100%; min-height: 44px; border: 1px solid var(--border); border-radius: 6px; background: var(--background); padding: 8px 12px; font-size: 16px; }
+
+.eligibility { display: flex; align-items: start; gap: 8px; margin: 12px 0 16px; font-size: 13px; line-height: 1.5; color: color-mix(in srgb, var(--pr-gold) 40%, var(--pr-forest)); }
+.eligibility svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; }
+
+.conditions { margin-top: 8px; border-top: 1px solid var(--border); padding-top: 16px; }
+.genealogy { display: flex; min-height: 48px; align-items: center; gap: 10px; margin: 0 16px 12px; border: 1px solid var(--live-green); border-radius: 6px; padding: 10px 14px; color: var(--live-green); font-size: 14px; font-weight: 600; transition: background-color 160ms ease-out; }
+.genealogy:hover { background: color-mix(in srgb, var(--live-green) 5%, transparent); }
+.genealogy svg { width: 18px; height: 18px; flex-shrink: 0; }
+.condition { margin: 0 16px; border-bottom: 1px solid var(--border); }
+.condition:last-child { border-bottom: 0; }
+.condition summary { display: flex; min-height: 56px; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--muted-foreground); }
+.condition summary span { display: flex; align-items: center; gap: 10px; }
+.condition summary span svg { width: 18px; height: 18px; color: var(--live-green); flex-shrink: 0; }
+.condition summary .paymentPreview { display: block; margin-left: auto; min-width: 0; max-width: 58%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 13px; }
+.condition p { padding: 0 0 16px 28px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.7; color: var(--muted-foreground); }
+
+.upcomingHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+.upcomingHeader h2 { font-size: 14px; font-weight: 650; color: var(--pr-forest); }
+.upcomingHeader button { display: inline-flex; min-height: 44px; align-items: center; gap: 4px; color: var(--live-green); font-size: 13px; cursor: pointer; }
+.upcomingHeader svg { width: 14px; height: 14px; }
+.lotList { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(240px, 80%); gap: 8px; overflow-x: auto; padding: 3px 3px 10px; margin: -3px; scroll-snap-type: x proximity; scrollbar-width: thin; scrollbar-color: var(--pr-leaf) var(--muted); }
+.lotList.allLots { grid-auto-flow: row; grid-template-columns: minmax(0, 1fr); grid-auto-columns: auto; overflow-x: visible; }
+.preview { display: flex; min-width: 0; gap: 10px; align-items: center; border: 1px solid var(--border); border-radius: 6px; padding: 8px; background: var(--muted); scroll-snap-align: start; transition: border-color 160ms ease-out; }
+.preview:hover { border-color: var(--live-green); }
+.previewImage { position: relative; width: 76px; aspect-ratio: 6 / 5; flex-shrink: 0; overflow: hidden; border-radius: 4px; background: var(--background); }
+.previewImage img { object-fit: cover; }
+.previewText { min-width: 0; }
+.previewText strong { font-size: 14px; font-weight: 650; }
+.previewText p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin-top: 2px; font-size: 12px; line-height: 1.3; color: var(--muted-foreground); }
+.empty { border: 1px solid var(--border); border-radius: 10px; padding: 24px; font-size: 14px; line-height: 1.6; color: var(--muted-foreground); }
+.empty h2 { margin-bottom: 8px; color: var(--foreground); font-size: 18px; font-weight: 650; }
+.connection { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-top: 20px; border-top: 1px solid var(--border); padding-top: 12px; font-size: 12px; color: var(--muted-foreground); }
+.connection > span { display: inline-flex; gap: 6px; align-items: center; }
+.connection svg { width: 14px; height: 14px; }
+.connection button { min-height: 44px; }
+.updates { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+.updates > summary { min-height: 44px; cursor: pointer; font-size: 14px; font-weight: 550; }
+.updates li { padding: 10px 0; font-size: 14px; color: var(--muted-foreground); }
+
+.board :is(a, button, select, input, summary, [tabindex]):focus-visible { outline: 2px solid var(--pr-gold); outline-offset: 3px; }
+.board ::selection { background: var(--live-green); color: white; }
+
+@media (min-width: 640px) {
+  .lotBody { padding: 24px 20px 0; }
+  .genealogy { margin-inline: 20px; }
+  .condition { margin-inline: 20px; }
+  .lotList { grid-auto-columns: minmax(240px, calc((100% - 8px) / 2)); }
+  .lotList.allLots { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+  .layout { grid-template-columns: minmax(0, 2.1fr) minmax(330px, 1fr); grid-template-rows: auto 1fr; column-gap: 24px; row-gap: 12px; }
+  .stream { grid-column: 1; grid-row: 1; }
+  .bidding { grid-column: 2; grid-row: 1 / span 2; }
+  .upcoming { grid-column: 1; grid-row: 2; }
+  .lotTitle { font-size: 24px; }
+  .lotList { grid-auto-columns: calc((100% - 16px) / 3); }
+  .lotList.allLots { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
