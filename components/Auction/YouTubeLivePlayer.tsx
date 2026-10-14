@@ -107,6 +107,7 @@ export function YouTubeLivePlayer({ videoId, title }: { videoId: string; title: 
       });
       player.getIframe().title = `Transmissão ao vivo de ${title}`;
       player.getIframe().allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+      player.getIframe().tabIndex = -1;
       playerRef.current = player;
     }).catch(() => { if (!disposed) setFailed(true); });
 
@@ -133,7 +134,7 @@ export function YouTubeLivePlayer({ videoId, title }: { videoId: string; title: 
   return (
     <>
       <div className="relative aspect-video w-full">
-        <div ref={containerRef} className="absolute inset-0 size-full [&_iframe]:size-full [&_iframe]:border-0" />
+        <div ref={containerRef} className="absolute inset-0 size-full [&_iframe]:pointer-events-none [&_iframe]:size-full [&_iframe]:border-0" />
       </div>
       {failed ? (
         <p role="alert" className="px-4 py-3 text-sm text-white/80">
