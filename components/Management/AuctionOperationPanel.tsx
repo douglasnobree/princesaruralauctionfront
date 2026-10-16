@@ -32,6 +32,8 @@ import { AuctionParticipantsPanel } from "@/components/Management/AuctionPartici
 import { AuctionBroadcastPanel } from "@/components/Management/AuctionBroadcastPanel";
 import { AuctionBidHistory } from "@/components/Management/AuctionBidHistory";
 import { AuctionCommunicationPanel } from "@/components/Management/AuctionCommunicationPanel";
+import { CloudflareStreamSetupPanel } from "@/components/Management/CloudflareStreamSetupPanel";
+import { CLOUDFLARE_WEBRTC_PROVIDER, isCloudflareWebRtcPlaybackUrl } from "@/lib/auctions/cloudflare-stream";
 import {
   Dialog,
   DialogClose,
@@ -112,7 +114,9 @@ function isValidStreamUrl(value: string) {
   }
 }
 function streamProviderLabel(provider: string) {
-  return provider === "youtube"
+  return provider === CLOUDFLARE_WEBRTC_PROVIDER
+    ? "Cloudflare WebRTC"
+    : provider === "youtube"
     ? "YouTube Live"
     : provider === "hls"
       ? "HLS (.m3u8)"
@@ -140,7 +144,7 @@ export function AuctionOperationPanel({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [streamProvider, setStreamProvider] = useState(
-    initialSnapshot?.stream?.provider || "youtube",
+    initialSnapshot?.stream?.provider || CLOUDFLARE_WEBRTC_PROVIDER,
   );
   const [streamUrl, setStreamUrl] = useState(
     initialSnapshot?.stream?.playbackUrl || "",
@@ -148,6 +152,7 @@ export function AuctionOperationPanel({
   const [providerStreamId, setProviderStreamId] = useState(
     initialSnapshot?.stream?.providerStreamId || "",
   );
+  const [streamSetupPending, setStreamSetupPending] = useState(false);
   const [tool, setTool] = useState<"bids" | "participants" | "broadcast" | "communication">("bids");
   const [selectedLot, setSelectedLot] = useState("");
   const [pendingBidRecovery, setPendingBidRecovery] = useState(false);
@@ -170,7 +175,7 @@ export function AuctionOperationPanel({
       if (request !== requestVersion.current) return mergeOperationSnapshot(snapshotRef.current, data);
       const next = applySnapshot(data);
       if (!streamDirty.current && streamVersionRef.current !== next.stream?.version) {
-        setStreamProvider(next.stream?.provider || "youtube");
+        setStreamProvider(next.stream?.provider || CLOUDFLARE_WEBRTC_PROVIDER);
         setStreamUrl(next.stream?.playbackUrl || "");
         setProviderStreamId(next.stream?.providerStreamId || "");
       }
@@ -248,8 +253,13 @@ export function AuctionOperationPanel({
   const canOperate = capabilities.canManageStatus && !syncError;
   const canBid = capabilities.canManageBids;
   function setStream(status: "LIVE" | "ENDED") {
-    const provider = streamProvider.trim().toLowerCase() || "custom";
-    const playbackUrl = streamUrl.trim();
+    const current = status === "ENDED" ? snapshot?.stream : null;
+    const provider = current?.provider || streamProvider.trim().toLowerCase() || "custom";
+    const playbackUrl = current?.playbackUrl || streamUrl.trim();
+    if (status === "LIVE" && provider === CLOUDFLARE_WEBRTC_PROVIDER && !isCloudflareWebRtcPlaybackUrl(playbackUrl)) {
+      setError("Informe a URL de reprodução da Cloudflare terminada em /webRTC/play. O endereço de publicação do OBS deve ficar apenas com o operador.");
+      return;
+    }
     if (
       status === "LIVE" &&
       provider !== "mock" &&
@@ -265,9 +275,10 @@ export function AuctionOperationPanel({
         provider,
         status,
         ...(playbackUrl ? { playbackUrl } : {}),
-        ...(providerStreamId.trim()
-          ? { providerStreamId: providerStreamId.trim() }
+        ...(current?.providerStreamId || providerStreamId.trim()
+          ? { providerStreamId: current?.providerStreamId || providerStreamId.trim() }
           : {}),
+        expectedVersion: snapshot?.stream?.version ?? "0",
         ...(provider === "mock" && !playbackUrl
           ? { playbackUrl: `https://mock-stream.invalid/${auction.externalId}` }
           : {}),
@@ -494,9 +505,19 @@ export function AuctionOperationPanel({
                 <h3 className="font-semibold">Fonte da transmissão</h3>
               </div>
               <p className="mt-1 text-sm text-slate-600">
-                Conecte uma live do YouTube, uma playlist HLS ou uma URL pública
-                de vídeo. O OBS e a tela pública usam esta mesma fonte.
+                Conecte a transmissão da Cloudflare WebRTC, do YouTube ou de
+                outra fonte de vídeo. O público assiste ao sinal configurado aqui.
               </p>
+              {streamProvider === CLOUDFLARE_WEBRTC_PROVIDER ? (
+                <CloudflareStreamSetupPanel auctionId={auctionId} canManage={canOperate} onBusyChange={setStreamSetupPending}
+                  onPrepared={async (input) => {
+                    setStreamProvider(CLOUDFLARE_WEBRTC_PROVIDER);
+                    setStreamUrl(input.playbackUrl);
+                    setProviderStreamId(input.id);
+                    streamDirty.current = false;
+                    await refresh();
+                  }} />
+              ) : null}
               <div className="mt-4 grid gap-3 md:grid-cols-[12rem_minmax(0,1fr)_14rem]">
                 <label className="text-xs font-semibold text-slate-700">
                   Serviço
@@ -509,9 +530,10 @@ export function AuctionOperationPanel({
                       setStreamUrl("");
                       setProviderStreamId("");
                     }}
-                    disabled={!canOperate || isPending}
+                    disabled={!canOperate || isPending || streamSetupPending}
                     className="mt-1 h-10 w-full rounded-lg border border-[#dfe8e2] bg-white px-3 text-sm font-medium text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24]"
                   >
+                    <option value={CLOUDFLARE_WEBRTC_PROVIDER}>Cloudflare WebRTC</option>
                     <option value="youtube">YouTube Live</option>
                     <option value="hls">HLS (.m3u8)</option>
                     <option value="direct">Stream direto</option>
@@ -520,13 +542,15 @@ export function AuctionOperationPanel({
                   </select>
                 </label>
                 <label className="text-xs font-semibold text-slate-700">
-                  URL pública da transmissão
+                  {streamProvider === CLOUDFLARE_WEBRTC_PROVIDER ? "URL de reprodução (WHEP)" : "URL pública da transmissão"}
                   <input
                     value={streamUrl}
                     onChange={(event) => { streamDirty.current = true; setStreamUrl(event.target.value); }}
-                    disabled={!canOperate || isPending}
+                    disabled={!canOperate || isPending || streamSetupPending}
                     placeholder={
-                      streamProvider === "youtube"
+                      streamProvider === CLOUDFLARE_WEBRTC_PROVIDER
+                        ? "https://customer-....cloudflarestream.com/.../webRTC/play"
+                        : streamProvider === "youtube"
                         ? "https://www.youtube.com/live/..."
                         : "https://cdn.exemplo.com/live.m3u8"
                     }
@@ -540,15 +564,16 @@ export function AuctionOperationPanel({
                   <input
                     value={providerStreamId}
                     onChange={(event) => { streamDirty.current = true; setProviderStreamId(event.target.value); }}
-                    disabled={!canOperate || isPending}
+                    disabled={!canOperate || isPending || streamSetupPending}
                     placeholder="Opcional"
                     className="mt-1 h-10 w-full rounded-lg border border-[#dfe8e2] bg-white px-3 text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#f08a24]"
                   />
                 </label>
               </div>
               <p className="mt-2 text-xs text-slate-500">
-                Em produção, use HTTPS. Para YouTube, informe a URL da live;
-                para outras plataformas, informe a URL de reprodução compatível.
+                {streamProvider === CLOUDFLARE_WEBRTC_PROVIDER
+                  ? "Use a URL de reprodução terminada em /webRTC/play. O endereço do OBS termina em /webRTC/publish e não deve ser colocado neste campo."
+                  : "Em produção, use HTTPS. Para YouTube, informe a URL da live; para outras plataformas, informe a URL de reprodução compatível."}
               </p>
             </div>
             <div className="flex shrink-0 flex-col gap-3 lg:min-w-44">
@@ -572,7 +597,7 @@ export function AuctionOperationPanel({
                   onClick={() => setStream("LIVE")}
                   disabled={
                     !canOperate ||
-                    isPending
+                    isPending || streamSetupPending
                   }
                   className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-[#08734e] px-3 text-sm font-semibold text-white hover:bg-[#075b3e] disabled:opacity-50"
                 >
@@ -584,7 +609,7 @@ export function AuctionOperationPanel({
                   onClick={() => setStream("ENDED")}
                   disabled={
                     !canOperate ||
-                    isPending ||
+                    isPending || streamSetupPending ||
                     snapshot.stream?.status !== "LIVE"
                   }
                   className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-[#dfe8e2] px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"

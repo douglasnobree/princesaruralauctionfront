@@ -4,6 +4,8 @@ import { Radio, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { EngineStream } from "@/lib/auctions/engine-types";
 import { YouTubeLivePlayer } from "./YouTubeLivePlayer";
+import { CloudflareWebRtcPlayer } from "./CloudflareWebRtcPlayer";
+import { CLOUDFLARE_WEBRTC_PROVIDER, isCloudflareWebRtcPlaybackUrl } from "@/lib/auctions/cloudflare-stream";
 
 function isHttpUrl(value: string | null | undefined): value is string {
   if (!value) return false;
@@ -43,13 +45,16 @@ export function LiveStreamPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const provider = stream?.provider?.toLowerCase() ?? "";
   const sourceUrl = stream?.playbackUrl;
+  const isCloudflare = provider === CLOUDFLARE_WEBRTC_PROVIDER || isCloudflareWebRtcPlaybackUrl(sourceUrl);
+  const cloudflareUrl = typeof sourceUrl === "string" && isCloudflareWebRtcPlaybackUrl(sourceUrl) ? sourceUrl : null;
+  const cloudflareEnded = isCloudflare && stream?.status === "ENDED";
   const isMock = provider === "mock" || sourceUrl?.includes("mock-stream.invalid");
   const youtubeId = !isMock && sourceUrl && isHttpUrl(sourceUrl)
     ? getYoutubeVideoId(sourceUrl)
     : provider === "youtube"
       ? stream?.providerStreamId ?? null
       : null;
-  const directMediaUrl = !isMock && isHttpUrl(sourceUrl) && !youtubeId ? sourceUrl : null;
+  const directMediaUrl = !isMock && !isCloudflare && isHttpUrl(sourceUrl) && !youtubeId ? sourceUrl : null;
   const isHls = provider === "hls" || (directMediaUrl?.toLowerCase().split("?")[0].endsWith(".m3u8") ?? false);
   const hlsRef = useRef<{ destroy: () => void } | null>(null);
   const sourceKey = `${stream?.playbackUrl ?? ""}|${stream?.providerStreamId ?? ""}|${stream?.version ?? ""}`;
@@ -94,8 +99,10 @@ export function LiveStreamPlayer({
       aria-label={`Transmissão ${title}`}
       className="overflow-hidden rounded-xl bg-neutral-950 text-white"
     >
-      <div className={youtubeId ? undefined : "relative aspect-video w-full overflow-hidden"}>
-        {youtubeId ? (
+      <div className={youtubeId || (isCloudflare && cloudflareUrl && !cloudflareEnded) ? undefined : "relative aspect-video w-full overflow-hidden"}>
+        {isCloudflare && cloudflareUrl && !cloudflareEnded ? (
+          <CloudflareWebRtcPlayer key={cloudflareUrl} playbackUrl={cloudflareUrl} title={title} />
+        ) : youtubeId ? (
           <YouTubeLivePlayer key={youtubeId} videoId={youtubeId} title={title} />
         ) : directMediaUrl && !mediaError ? (
           <video
@@ -117,13 +124,13 @@ export function LiveStreamPlayer({
                   {mediaError ? <TriangleAlert className="size-5" /> : <Radio className="size-5" />}
                 </span>
                 <p className="mt-4 text-sm font-semibold">
-                  {mediaError ? "Não foi possível carregar a transmissão" : "Aguardando transmissão"}
+                  {cloudflareEnded ? "Transmissão encerrada" : mediaError ? "Não foi possível carregar a transmissão" : "Aguardando transmissão"}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-white/65">
-                  {mediaError
+                  {cloudflareEnded ? "Acompanhe as informações do leilão no placar." : mediaError
                     ? "Tente atualizar a página para assistir novamente."
                     : manager
-                      ? "Configure uma fonte do YouTube, HLS ou stream direto no control room."
+                      ? "Configure uma fonte Cloudflare WebRTC, YouTube, HLS ou vídeo direto no painel de operação."
                       : "O vídeo aparecerá aqui assim que a transmissão começar."}
                 </p>
               </div>

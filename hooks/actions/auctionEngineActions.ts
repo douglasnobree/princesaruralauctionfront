@@ -8,6 +8,7 @@ import type { AuctionParticipantSearchResult, EngineAuctionRegistration, EngineA
 import type { AcquisitionSource } from "@/lib/auctions/acquisition-sources";
 import { explainEngineError, getEngineErrorCode } from "@/lib/auctions/engine-errors";
 import { normalizeApiBaseUrl } from "@/lib/api/base-url";
+import type { CloudflareStreamSetup } from "@/lib/auctions/cloudflare-stream";
 
 const API_URL = normalizeApiBaseUrl(process.env.API_BASE_URL);
 
@@ -330,7 +331,16 @@ export async function managerFloorBidFormAction(
   }, randomUUID());
 }
 
-export async function managerStreamAction(auctionId: string, input: { provider: string; status: string; playbackUrl?: string; providerStreamId?: string }): Promise<ActionResult<EngineStream>> {
+export async function prepareCloudflareStreamAction(auctionId: string): Promise<ActionResult<CloudflareStreamSetup>> {
+  try {
+    const response = await engineRequest(`/auction-engine/manager/auctions/${encodeURIComponent(auctionId)}/stream/cloudflare`, {
+      method: "POST", headers: { "Idempotency-Key": randomUUID() }, cache: "no-store", signal: AbortSignal.timeout(30000),
+    });
+    return parse(response, "Não foi possível preparar a transmissão na Cloudflare.");
+  } catch { return { success: false, error: "Não foi possível conectar à Cloudflare. Tente novamente." }; }
+}
+
+export async function managerStreamAction(auctionId: string, input: { provider: string; status: string; playbackUrl?: string; providerStreamId?: string; expectedVersion?: string }): Promise<ActionResult<EngineStream>> {
   try {
     const response = await engineRequest(`/auction-engine/manager/auctions/${encodeURIComponent(auctionId)}/stream`, { method: "PUT", headers: { "Content-Type": "application/json", "Idempotency-Key": randomUUID() }, body: JSON.stringify(input), cache: "no-store" });
     return parse(response, "Não foi possível atualizar a transmissão.");

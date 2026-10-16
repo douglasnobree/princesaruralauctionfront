@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test:auth": "node --test tests/auth-*.test.mjs",
     "test:public": "node --test tests/auction-public-lot-contracts.test.mjs",
+    "test:stream": "node --test tests/auction-cloudflare-stream.test.mjs",
     "test:management": "node --test tests/auction-management-contracts.test.mjs tests/auction-post-start-lots.test.mjs tests/auction-floor-bids.test.mjs",
     "test:publication": "node --test tests/auction-publication.test.mjs",
     "test:seo": "node --test tests/seo.test.mjs"
