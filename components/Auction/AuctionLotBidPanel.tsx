@@ -219,6 +219,12 @@ export function AuctionLotBidPanel({
 	const lot = snapshot.lots.find(
 		(item) => item.externalId === lotExternalId || item.id === lotExternalId,
 	);
+	const [bidSelectionLot, setBidSelectionLot] = useState(lot);
+	if (bidSelectionLot?.id !== lot?.id || bidSelectionLot?.nextBidCents !== lot?.nextBidCents) {
+		setBidSelectionLot(lot);
+		setSelectedBidValue(lot?.nextBidCents ?? "custom");
+		setAmount("");
+	}
 	const historyLotId = lot?.externalId;
 	const bidHistoryMatchesLot = bidHistoryLotId === historyLotId;
 	const loadBidHistory = async (auctionId: string, lotId: string) => {

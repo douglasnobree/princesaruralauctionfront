@@ -12,9 +12,10 @@ import {
   Square,
   Undo2,
 } from "lucide-react";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useRef, useState, useTransition } from "react";
 import {
   createQuickParticipantAction,
+  issueRealtimeTicketAction,
   managerAuctionCommandAction,
   managerFloorBidAction,
   managerLotCommandAction,
@@ -24,6 +25,7 @@ import {
 } from "@/hooks/actions/auctionEngineActions";
 import { managerRead } from "@/lib/auctions/manager-read";
 import { getEngineQuickBidOptions } from "@/lib/auctions/engine-formatters";
+import { getFloorBidAmount, mergeOperationSnapshot, type FloorBidValueDraft } from "@/lib/auctions/operation-state";
 import { useVisiblePoll } from "@/hooks/use-visible-poll";
 import { AuctionPendingEligibilityBids } from "@/components/Management/AuctionPendingEligibilityBids";
 import { AuctionParticipantsPanel } from "@/components/Management/AuctionParticipantsPanel";
@@ -133,6 +135,7 @@ export function AuctionOperationPanel({
   lots?: AuctionAdminLot[];
 }) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
+  const snapshotRef = useRef(initialSnapshot);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -153,25 +156,68 @@ export function AuctionOperationPanel({
   const streamDirty = useRef(false);
   const requestVersion = useRef(0);
   const streamVersionRef = useRef(initialSnapshot?.stream?.version);
+  function applySnapshot(data: EngineAuctionSnapshot) {
+    const next = mergeOperationSnapshot(snapshotRef.current, data);
+    snapshotRef.current = next;
+    setSnapshot(next);
+    return next;
+  }
   async function refresh(successMessage?: string, signal?: AbortSignal) {
     const request = ++requestVersion.current;
     try {
       const data = await managerRead<EngineAuctionSnapshot>(`auctions/${encodeURIComponent(auctionId)}/snapshot`, signal);
-      if (signal?.aborted || request !== requestVersion.current) return;
-      if (!streamDirty.current && streamVersionRef.current !== data.stream?.version) {
-        setStreamProvider(data.stream?.provider || "youtube");
-        setStreamUrl(data.stream?.playbackUrl || "");
-        setProviderStreamId(data.stream?.providerStreamId || "");
+      if (signal?.aborted) return null;
+      if (request !== requestVersion.current) return mergeOperationSnapshot(snapshotRef.current, data);
+      const next = applySnapshot(data);
+      if (!streamDirty.current && streamVersionRef.current !== next.stream?.version) {
+        setStreamProvider(next.stream?.provider || "youtube");
+        setStreamUrl(next.stream?.playbackUrl || "");
+        setProviderStreamId(next.stream?.providerStreamId || "");
       }
-      streamVersionRef.current = data.stream?.version;
-      setSnapshot((current) => current && current.auction.version === data.auction.version && current.stream?.version === data.stream?.version && current.lots.length === data.lots.length && current.lots.every((lot, index) => lot.id === data.lots[index]?.id && lot.version === data.lots[index]?.version) ? current : data);
+      streamVersionRef.current = next.stream?.version;
       setSyncError(null);
       if (successMessage) setMessage(successMessage);
+      return next;
     } catch (cause) {
       if (!signal?.aborted && request === requestVersion.current) setSyncError(cause instanceof Error ? cause.message : "Não foi possível atualizar o estado.");
+      return null;
     } finally { if (!signal?.aborted) setRefreshing(false); }
   }
   useVisiblePoll(async (signal) => { if (snapshot && !isPending && !refreshing && !pendingBidRecovery) await refresh(undefined, signal); }, 2500);
+  const hasSnapshot = Boolean(snapshot);
+  const refreshFromRealtime = useEffectEvent(() => {
+    if (!document.hidden && !pendingBidRecovery) void refresh();
+  });
+  useEffect(() => {
+    if (!hasSnapshot) return;
+    let stopped = false;
+    let socket: WebSocket | undefined;
+    let retryTimer: ReturnType<typeof setTimeout>;
+    let retries = 0;
+    function retry() {
+      if (!stopped) retryTimer = setTimeout(() => void connect(), Math.min(10000, 1200 * 2 ** retries++));
+    }
+    async function connect() {
+      try {
+        const result = await issueRealtimeTicketAction(auctionId);
+        if (stopped) return;
+        if (!result.success || !result.data) { retry(); return; }
+        const wsBase = process.env.NEXT_PUBLIC_AUCTION_ENGINE_WS_URL || "ws://localhost:4100/ws";
+        socket = new WebSocket(`${wsBase}?ticket=${encodeURIComponent(result.data.ticket)}&auctionId=${encodeURIComponent(result.data.auctionId)}`);
+        socket.onopen = () => { retries = 0; };
+        socket.onmessage = (event) => {
+          if (stopped) return;
+          try {
+            const data = JSON.parse(event.data as string) as { type?: string };
+            if (["snapshot", "event", "replayed", "resync_required"].includes(data.type ?? "")) refreshFromRealtime();
+          } catch { /* Polling continues if a realtime message is invalid. */ }
+        };
+        socket.onclose = retry;
+      } catch { retry(); }
+    }
+    void connect();
+    return () => { stopped = true; clearTimeout(retryTimer); socket?.close(); };
+  }, [auctionId, hasSnapshot]);
   function run(action: () => Promise<{ success: boolean; error?: string }>, confirmation?: string) {
     if (confirmation && !window.confirm(confirmation)) return;
     startTransition(async () => {
@@ -232,11 +278,12 @@ export function AuctionOperationPanel({
   }
   const historyLot = snapshot.lots.find((lot) => lot.externalId === selectedLot) ?? snapshot.lots.find((lot) => lot.status === "OPEN") ?? snapshot.lots[0];
   function applyFloorBidResult(lotExternalId: string, result: EngineBidResult) {
-    setSnapshot((current) => {
-      if (!current) return current;
-      return {
+    ++requestVersion.current;
+    const current = snapshotRef.current;
+    if (current) {
+      applySnapshot({
         ...current,
-        lots: current.lots.map((lot) => lot.externalId !== lotExternalId ? lot : {
+        lots: current.lots.map((lot) => lot.externalId !== lotExternalId || BigInt(lot.version) > BigInt(result.version) ? lot : {
           ...lot,
           currentPriceCents: result.currentPriceCents,
           currentIncrementCents: result.currentIncrementCents ?? lot.currentIncrementCents,
@@ -248,8 +295,8 @@ export function AuctionOperationPanel({
           endsAt: result.endsAt,
           status: result.lotStatus ?? (result.sold ? "SOLD" : lot.status),
         }),
-      };
-    });
+      });
+    }
     void refresh();
   }
   return (
@@ -421,7 +468,7 @@ export function AuctionOperationPanel({
           selectedLot={historyLot}
           disabled={isPending || Boolean(syncError)}
           onResult={applyFloorBidResult}
-          onRefresh={() => void refresh()}
+          onRefresh={refresh}
           onRecoveryPendingChange={setPendingBidRecovery}
         />
       ) : auction.mode !== "SHOPPING" ? (
@@ -756,7 +803,7 @@ function FloorBidPanel({
   selectedLot?: EngineLot;
   disabled: boolean;
   onResult: (lotExternalId: string, result: EngineBidResult) => void;
-  onRefresh: () => void;
+  onRefresh: () => Promise<EngineAuctionSnapshot | null>;
   onRecoveryPendingChange: (pending: boolean) => void;
 }) {
   const [query, setQuery] = useState("");
@@ -765,12 +812,7 @@ function FloorBidPanel({
   const [searchState, setSearchState] = useState<"idle" | "loading" | "results" | "empty" | "error">("idle");
   const [searchError, setSearchError] = useState("");
   const [activeParticipantIndex, setActiveParticipantIndex] = useState(-1);
-  const [bidValueDraft, setBidValueDraft] = useState<{
-    lotExternalId: string;
-    nextBidCents: string;
-    incrementCents: string;
-    value: string;
-  } | null>(null);
+  const [bidValueDraft, setBidValueDraft] = useState<FloorBidValueDraft | null>(null);
   const [origin, setOrigin] = useState<"FLOOR" | "PHONE">("FLOOR");
   const [acquisitionSource, setAcquisitionSource] = useState<AcquisitionSource>("UNKNOWN");
   const [feedback, setFeedback] = useState<FloorBidFeedback | null>(null);
@@ -785,20 +827,10 @@ function FloorBidPanel({
   const searchVersion = useRef(0);
   const submissionInFlight = useRef(false);
   const quickBidOptions = selectedLot ? getEngineQuickBidOptions(selectedLot) : [];
-  const quickBidValues = quickBidOptions.map((option) => option.value);
   const currentIncrementCents = selectedLot
     ? selectedLot.currentIncrementCents ?? selectedLot.incrementCents
     : null;
-  const draftMatchesCurrentLot = Boolean(
-    selectedLot &&
-    bidValueDraft?.lotExternalId === selectedLot.externalId &&
-    bidValueDraft.nextBidCents === selectedLot.nextBidCents &&
-    bidValueDraft.incrementCents === currentIncrementCents &&
-    quickBidValues.includes(bidValueDraft.value),
-  );
-  const amountCents = draftMatchesCurrentLot
-    ? bidValueDraft!.value
-    : quickBidOptions[0]?.value ?? "";
+  const amountCents = getFloorBidAmount(selectedLot, bidValueDraft);
   const formLocked = disabled || pending || Boolean(unknownAttempt);
   const dropdownOpen = !selected && query.trim().length >= 2 && searchState !== "idle";
 
@@ -829,12 +861,14 @@ function FloorBidPanel({
 
   function chooseParticipant(participant: AuctionParticipantSearchResult) {
     setSelected(participant);
+    setBidValueDraft(null);
     setQuery(participant.displayName.trim());
     setParticipants([]);
     setSearchState("idle");
     setSearchError("");
     setActiveParticipantIndex(-1);
     setFeedback(null);
+    void onRefresh();
   }
 
   function createQuickParticipant() {
@@ -896,7 +930,7 @@ function FloorBidPanel({
         detail: (result.error || "O motor recusou o lance.") +
           " Confira o próximo valor indicado e tente novamente.",
       });
-      onRefresh();
+      void onRefresh();
       return;
     }
 
@@ -975,34 +1009,34 @@ function FloorBidPanel({
       });
       return;
     }
-    if (!/^\d+$/.test(amountCents) || BigInt(amountCents) < BigInt(lot.nextBidCents)) {
-      setFeedback({
-        lotExternalId: lot.externalId,
-        kind: "error",
-        title: "Valor abaixo do próximo lance",
-        detail: "Informe pelo menos " + money(lot.nextBidCents, snapshot.auction.currency) + ".",
-      });
-      document.getElementById("floor-amount")?.focus();
-      return;
-    }
-
-    const attempt: FloorBidAttempt = {
-      idempotencyKey: globalThis.crypto.randomUUID(),
-      lotExternalId: lot.externalId,
-      lotNumber: lot.lotNumber,
-      lotTitle: lot.title,
-      input: {
-        participantId: selected.id,
-        amountCents,
-        origin,
-        acquisitionSource,
-        expectedVersion: lot.version,
-      },
-    };
     setFeedback(null);
     submissionInFlight.current = true;
     startTransition(async () => {
       try {
+        const latest = await onRefresh();
+        const latestLot = latest?.lots.find((item) => item.externalId === lot.externalId);
+        if (!latest || !latestLot || latestLot.status !== "OPEN") {
+          setFeedback({
+            lotExternalId: lot.externalId,
+            kind: "error",
+            title: "Não foi possível registrar o lance",
+            detail: !latest ? "Não foi possível atualizar o valor do lance. Atualize o estado e tente novamente." : "O lote selecionado não está aberto para receber lances.",
+          });
+          return;
+        }
+        const attempt: FloorBidAttempt = {
+          idempotencyKey: globalThis.crypto.randomUUID(),
+          lotExternalId: latestLot.externalId,
+          lotNumber: latestLot.lotNumber,
+          lotTitle: latestLot.title,
+          input: {
+            participantId: selected.id,
+            amountCents: getFloorBidAmount(latestLot, bidValueDraft),
+            origin,
+            acquisitionSource,
+            expectedVersion: latestLot.version,
+          },
+        };
         await sendAttempt(attempt);
       } finally {
         submissionInFlight.current = false;

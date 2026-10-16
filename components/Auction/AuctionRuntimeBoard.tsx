@@ -352,6 +352,12 @@ function ClosedLotCard({ lot, currency, catalogLot }: { lot: EngineLot; currency
 function RuntimeLot({ auctionId, auction, currency, lot, catalogLot, commercialTerms, registrationApproved, registrationWaiting, registrationLabel, onRequireRegistration, onResult }: { auctionId: string; auction: EngineAuctionSnapshot["auction"]; currency: string; lot: EngineLot; catalogLot?: AuctionLot; commercialTerms?: CommercialTerms; registrationApproved: boolean; registrationWaiting: boolean; registrationLabel: string; onRequireRegistration: () => Promise<void>; onResult: (result: ActionResult<EngineBidResult | Record<string, unknown>>) => void }) {
 	const [amount, setAmount] = useState("");
 	const [selectedBidValue, setSelectedBidValue] = useState(lot.nextBidCents);
+	const [bidSelectionLot, setBidSelectionLot] = useState(lot);
+	if (bidSelectionLot.id !== lot.id || bidSelectionLot.nextBidCents !== lot.nextBidCents) {
+		setBidSelectionLot(lot);
+		setSelectedBidValue(lot.nextBidCents);
+		setAmount("");
+	}
 	const [busy, setBusy] = useState(false);
 	const [pendingControl, setPendingControl] = useState<"quick" | "custom" | "proxy" | null>(null);
 	const [proxyMaxBidCents, setProxyMaxBidCents] = useState<string | null>(null);
