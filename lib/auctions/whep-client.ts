@@ -37,6 +37,7 @@ function waitForIce(pc: RTCPeerConnection, signal: AbortSignal) {
 
 export async function startWhepPlayback(playbackUrl: string, options: {
   signal: AbortSignal;
+  discoverIceServers?: boolean;
   onStream: (stream: MediaStream) => void;
   onConnectionState: (state: RTCPeerConnectionState) => void;
 }): Promise<{ close: () => Promise<void> }> {
@@ -75,10 +76,10 @@ export async function startWhepPlayback(playbackUrl: string, options: {
 
   try {
     if (options.signal.aborted) throw new DOMException("Aborted", "AbortError");
-    // WHEP can advertise TURN/STUN in Link headers. Unsupported OPTIONS falls back to direct ICE.
-    const discovery = await fetch(playbackUrl, {
+    // Cloudflare accepts the offer immediately; discover TURN/STUN only when retrying a failed connection.
+    const discovery = options.discoverIceServers ? await fetch(playbackUrl, {
       method: "OPTIONS", credentials: "omit", cache: "no-store", redirect: "error", signal: operation.signal,
-    }).catch(() => null);
+    }).catch(() => null) : null;
     operation.signal.throwIfAborted();
     pc = new RTCPeerConnection({ iceServers: iceServersFromLinks(discovery?.headers.get("Link") ?? null) });
     const peer = pc;
@@ -91,7 +92,7 @@ export async function startWhepPlayback(playbackUrl: string, options: {
     peer.addTransceiver("video", { direction: "recvonly" });
     peer.addTransceiver("audio", { direction: "recvonly" });
     await peer.setLocalDescription(await peer.createOffer());
-    await waitForIce(peer, operation.signal);
+    if (options.discoverIceServers) await waitForIce(peer, operation.signal);
     const response = await fetch(playbackUrl, {
       method: "POST", headers: { "Content-Type": "application/sdp", Accept: "application/sdp" },
       body: peer.localDescription?.sdp, credentials: "omit", cache: "no-store", redirect: "error", signal: operation.signal,

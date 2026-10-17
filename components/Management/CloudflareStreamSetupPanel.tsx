@@ -14,6 +14,7 @@ export function CloudflareStreamSetupPanel({ auctionId, canManage, onPrepared, o
 }) {
   const [setup, setSetup] = useState<CloudflareStreamSetup | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorReference, setErrorReference] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [showPublishUrl, setShowPublishUrl] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -23,18 +24,26 @@ export function CloudflareStreamSetupPanel({ auctionId, canManage, onPrepared, o
     const controller = new AbortController();
     void managerRead<CloudflareStreamSetup>(`manager/auctions/${encodeURIComponent(auctionId)}/stream/cloudflare`, controller.signal)
       .then((result) => { if (!controller.signal.aborted) setSetup(result); })
-      .catch((cause: unknown) => { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Não foi possível carregar os dados da Cloudflare."); });
+      .catch((cause: unknown) => {
+        if (!controller.signal.aborted) {
+          console.error("[cloudflare-stream]", { event: "setup.load_failed", auctionId });
+          setError(cause instanceof Error ? cause.message : "Não foi possível carregar os dados da Cloudflare.");
+        }
+      });
     return () => controller.abort();
   }, [auctionId, canManage]);
 
   function prepare() {
     setError(null);
+    setErrorReference(null);
     setNotice("");
     onBusyChange(true);
     startTransition(async () => {
       try {
         const result = await prepareCloudflareStreamAction(auctionId);
         if (!result.success || !result.data?.input) {
+          console.error("[cloudflare-stream]", { event: "setup.prepare_failed", auctionId, correlationId: result.correlationId, errorCode: result.errorCode });
+          setErrorReference(result.correlationId ?? null);
           setError(result.error || "Não foi possível preparar a transmissão. Tente novamente.");
           return;
         }
@@ -42,6 +51,9 @@ export function CloudflareStreamSetupPanel({ auctionId, canManage, onPrepared, o
         setShowPublishUrl(false);
         await onPrepared(result.data.input);
         setNotice("Transmissão preparada. Configure o OBS e depois selecione Colocar ao vivo.");
+      } catch {
+        console.error("[cloudflare-stream]", { event: "setup.prepare_unexpected_failure", auctionId });
+        setError("Não foi possível concluir a preparação. Atualize o painel e tente novamente.");
       } finally { onBusyChange(false); }
     });
   }
@@ -91,6 +103,7 @@ export function CloudflareStreamSetupPanel({ auctionId, canManage, onPrepared, o
       </details>
       <p role="status" className="text-xs leading-5 text-emerald-800">{notice}</p>
       {error ? <p role="alert" className="text-xs leading-5 text-red-700">{error}</p> : null}
+      {error && errorReference ? <p className="break-all text-xs leading-5 text-slate-500">Código para suporte: {errorReference}</p> : null}
     </div>
   );
 }

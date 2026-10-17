@@ -8,7 +8,7 @@ import type { AuctionParticipantSearchResult, EngineAuctionRegistration, EngineA
 import type { AcquisitionSource } from "@/lib/auctions/acquisition-sources";
 import { explainEngineError, getEngineErrorCode } from "@/lib/auctions/engine-errors";
 import { normalizeApiBaseUrl } from "@/lib/api/base-url";
-import type { CloudflareStreamSetup } from "@/lib/auctions/cloudflare-stream";
+import { getCloudflareDiagnosticTarget, type CloudflareStreamSetup } from "@/lib/auctions/cloudflare-stream";
 
 const API_URL = normalizeApiBaseUrl(process.env.API_BASE_URL);
 
@@ -332,12 +332,27 @@ export async function managerFloorBidFormAction(
 }
 
 export async function prepareCloudflareStreamAction(auctionId: string): Promise<ActionResult<CloudflareStreamSetup>> {
+  const correlationId = randomUUID();
+  const path = `/auction-engine/manager/auctions/${encodeURIComponent(auctionId)}/stream/cloudflare`;
+  const startedAt = Date.now();
+  const diagnostic = { correlationId, auctionId, method: "POST", target: getCloudflareDiagnosticTarget(`${API_URL}${path}`) };
+  console.info("[cloudflare-stream]", { event: "prepare.request", ...diagnostic });
   try {
-    const response = await engineRequest(`/auction-engine/manager/auctions/${encodeURIComponent(auctionId)}/stream/cloudflare`, {
-      method: "POST", headers: { "Idempotency-Key": randomUUID() }, cache: "no-store", signal: AbortSignal.timeout(30000),
+    const response = await engineRequest(path, {
+      method: "POST", headers: { "Idempotency-Key": correlationId, "X-Correlation-Id": correlationId }, cache: "no-store", signal: AbortSignal.timeout(30000),
     });
-    return parse(response, "Não foi possível preparar a transmissão na Cloudflare.");
-  } catch { return { success: false, error: "Não foi possível conectar à Cloudflare. Tente novamente." }; }
+    const result = await parse<CloudflareStreamSetup>(response, "Não foi possível preparar a transmissão na Cloudflare.");
+    const missingRoute = response.status === 404 && !result.errorCode && /^Cannot POST\s/.test(result.error ?? "");
+    const log = response.ok ? console.info : console.error;
+    log("[cloudflare-stream]", { event: "prepare.response", ...diagnostic, httpStatus: response.status, durationMs: Date.now() - startedAt, missingRoute });
+    if (missingRoute) {
+      return { success: false, error: "A API não encontrou a rota de preparação da Cloudflare. Verifique se o backend foi atualizado e se o frontend está conectado à API correta.", errorCode: "CLOUDFLARE_STREAM_ROUTE_NOT_FOUND", correlationId };
+    }
+    return { ...result, correlationId };
+  } catch (cause: unknown) {
+    console.error("[cloudflare-stream]", { event: "prepare.connection_failed", ...diagnostic, durationMs: Date.now() - startedAt, errorType: cause instanceof Error && ["TypeError", "AbortError", "TimeoutError"].includes(cause.name) ? cause.name : "Error" });
+    return { success: false, error: "Não foi possível conectar à API para preparar a transmissão. Tente novamente.", errorCode: "CLOUDFLARE_STREAM_CONNECTION_FAILED", correlationId };
+  }
 }
 
 export async function managerStreamAction(auctionId: string, input: { provider: string; status: string; playbackUrl?: string; providerStreamId?: string; expectedVersion?: string }): Promise<ActionResult<EngineStream>> {

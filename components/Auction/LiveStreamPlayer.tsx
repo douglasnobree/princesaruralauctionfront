@@ -2,6 +2,7 @@
 
 import { Radio, TriangleAlert } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { preconnect } from "react-dom";
 import type { EngineStream } from "@/lib/auctions/engine-types";
 import { YouTubeLivePlayer } from "./YouTubeLivePlayer";
 import { CloudflareWebRtcPlayer } from "./CloudflareWebRtcPlayer";
@@ -48,6 +49,7 @@ export function LiveStreamPlayer({
   const isCloudflare = provider === CLOUDFLARE_WEBRTC_PROVIDER || isCloudflareWebRtcPlaybackUrl(sourceUrl);
   const cloudflareUrl = typeof sourceUrl === "string" && isCloudflareWebRtcPlaybackUrl(sourceUrl) ? sourceUrl : null;
   const cloudflareEnded = isCloudflare && stream?.status === "ENDED";
+  if (cloudflareUrl && !cloudflareEnded) preconnect(new URL(cloudflareUrl).origin, { crossOrigin: "anonymous" });
   const isMock = provider === "mock" || sourceUrl?.includes("mock-stream.invalid");
   const youtubeId = !isMock && sourceUrl && isHttpUrl(sourceUrl)
     ? getYoutubeVideoId(sourceUrl)

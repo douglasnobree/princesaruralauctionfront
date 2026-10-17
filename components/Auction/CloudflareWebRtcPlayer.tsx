@@ -4,12 +4,14 @@ import { Maximize, Pause, Play, Radio, RefreshCw, Volume2, VolumeX } from "lucid
 import { useEffect, useRef, useState } from "react";
 import { startWhepPlayback, WhepPlaybackError } from "@/lib/auctions/whep-client";
 
-type ViewState = "connecting" | "waiting" | "reconnecting" | "live" | "unsupported";
+type ViewState = "connecting" | "loading" | "waiting" | "reconnecting" | "live" | "blocked" | "unsupported";
 
 export function CloudflareWebRtcPlayer({ playbackUrl, title }: { playbackUrl: string; title: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const failures = useRef(0);
+  const discoverIceServers = useRef(false);
+  const hasPlayed = useRef(false);
   const startupTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [attempt, setAttempt] = useState(0);
   const [view, setView] = useState<ViewState>("connecting");
@@ -25,31 +27,42 @@ export function CloudflareWebRtcPlayer({ playbackUrl, title }: { playbackUrl: st
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
     let disconnectedTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const reconnect = (waiting = false) => {
+    const reconnect = (waiting = false, retryWithIceServers = false) => {
       if (disposed || reconnectTimer) return;
+      if (retryWithIceServers) discoverIceServers.current = true;
+      controller.abort();
       void session?.close();
+      if (video) video.srcObject = null;
       setReady(false);
       setPlaying(false);
-      setView(waiting ? "waiting" : "reconnecting");
+      setView(hasPlayed.current ? "reconnecting" : waiting ? "waiting" : "connecting");
       clearTimeout(startupTimer.current);
       failures.current += 1;
-      reconnectTimer = setTimeout(() => setAttempt((current) => current + 1), Math.min(15000, 1500 * 2 ** Math.min(failures.current - 1, 4)));
+      reconnectTimer = setTimeout(() => setAttempt((current) => current + 1), Math.min(5000, 500 * 2 ** Math.min(failures.current - 1, 4)));
     };
 
-    startupTimer.current = setTimeout(() => reconnect(true), 25000);
+    startupTimer.current = setTimeout(() => reconnect(false, true), discoverIceServers.current ? 25000 : 12000);
     void startWhepPlayback(playbackUrl, {
       signal: controller.signal,
+      discoverIceServers: discoverIceServers.current,
       onStream: (media) => {
-        if (disposed || !video) return;
+        if (disposed || controller.signal.aborted || !video) return;
         if (video.srcObject !== media) video.srcObject = media;
         setReady(true);
-        void video.play().catch(() => { if (!disposed) { clearTimeout(startupTimer.current); setView("live"); setPlaying(false); } });
+        void video.play().catch(() => {
+          if (!disposed && !controller.signal.aborted && video.paused) {
+            clearTimeout(startupTimer.current);
+            setView("blocked");
+            setPlaying(false);
+          }
+        });
       },
       onConnectionState: (state) => {
-        if (disposed) return;
+        if (disposed || controller.signal.aborted) return;
         clearTimeout(disconnectedTimer);
-        if (state === "failed") reconnect();
-        if (state === "disconnected") disconnectedTimer = setTimeout(() => reconnect(), 5000);
+        if (state === "connected" && !video?.videoWidth) setView("loading");
+        if (state === "failed") reconnect(false, true);
+        if (state === "disconnected") disconnectedTimer = setTimeout(() => reconnect(false, true), 2000);
       },
     }).then((connected) => {
       if (disposed || reconnectTimer) { void connected.close(); return; }
@@ -61,7 +74,8 @@ export function CloudflareWebRtcPlayer({ playbackUrl, title }: { playbackUrl: st
         setView("unsupported");
         return;
       }
-      reconnect(cause instanceof WhepPlaybackError && [404, 409, 425].includes(cause.status));
+      const waitingForPublisher = cause instanceof WhepPlaybackError && [404, 409, 425].includes(cause.status);
+      reconnect(waitingForPublisher, !(cause instanceof WhepPlaybackError));
     });
 
     const online = () => {
@@ -91,6 +105,16 @@ export function CloudflareWebRtcPlayer({ playbackUrl, title }: { playbackUrl: st
     setAttempt((current) => current + 1);
   }
 
+  function showVideo() {
+    if (!videoRef.current?.videoWidth) return;
+    clearTimeout(startupTimer.current);
+    failures.current = 0;
+    hasPlayed.current = true;
+    setView("live");
+    setReady(true);
+    setPlaying(!videoRef.current.paused);
+  }
+
   function togglePlayback() {
     const video = videoRef.current;
     if (!video) return;
@@ -114,23 +138,36 @@ export function CloudflareWebRtcPlayer({ playbackUrl, title }: { playbackUrl: st
     } catch { /* Fullscreen is optional; playback stays available. */ }
   }
 
-  const status = view === "connecting" ? "Conectando à transmissão" : view === "waiting" ? "Aguardando transmissão"
-    : view === "reconnecting" ? "Reconectando à transmissão" : view === "unsupported" ? "Seu navegador não suporta esta transmissão" : "Transmissão conectada";
+  const status = view === "connecting" ? "Conectando à transmissão" : view === "loading" ? "Carregando vídeo" : view === "waiting" ? "Conectando ao sinal do leilão"
+    : view === "reconnecting" ? "Retomando a transmissão" : view === "blocked" ? "Pronto para assistir" : view === "unsupported" ? "Seu navegador não suporta esta transmissão" : "Transmissão conectada";
+  const description = view === "unsupported" ? "Abra o leilão no Chrome, Edge ou Safari atualizado."
+    : view === "blocked" ? "Selecione reproduzir para iniciar o vídeo."
+      : view === "loading" ? "Preparando a imagem para você."
+        : view === "reconnecting" ? "O vídeo será retomado automaticamente."
+          : view === "waiting" ? "A conexão continua automaticamente." : "O vídeo começará automaticamente.";
+  const loading = !["live", "blocked", "unsupported"].includes(view);
   const controlClass = "inline-flex min-h-11 items-center gap-2 rounded-md px-3 text-sm font-medium hover:bg-white/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-50";
 
   return (
     <div ref={containerRef} className="bg-neutral-950 text-white">
       <p role="status" className="sr-only">{status}</p>
-      <div className="relative aspect-video w-full">
+      <div className="relative aspect-video w-full" aria-busy={loading}>
         <video ref={videoRef} autoPlay muted playsInline aria-label={`Transmissão ao vivo de ${title}`} className="absolute inset-0 size-full object-contain"
-          onPlaying={() => { clearTimeout(startupTimer.current); failures.current = 0; setView("live"); setPlaying(true); }}
+          onLoadedData={showVideo} onPlaying={showVideo}
           onPause={() => setPlaying(false)} onVolumeChange={() => setMuted(videoRef.current?.muted ?? true)} />
         {view !== "live" ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-neutral-950 px-5 text-center">
-            <Radio aria-hidden="true" className="size-7 text-white/70" />
-            <p className="text-sm font-semibold">{status}</p>
-            <p className="max-w-sm text-xs leading-5 text-white/70">{view === "unsupported" ? "Abra o leilão em uma versão atual do Chrome, Edge ou Safari." : "A reprodução será retomada automaticamente quando o sinal estiver disponível."}</p>
-            {view !== "unsupported" ? <button type="button" onClick={retry} className={controlClass}><RefreshCw aria-hidden="true" className="size-4" />Tentar novamente</button> : null}
+          <div data-stream-loading className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-[var(--pr-forest,#062518)] p-3 text-center sm:gap-3 sm:p-6">
+            {loading ? (
+              <div aria-hidden="true" className="flex h-6 items-center gap-1.5 text-[var(--pr-gold,#fbaa34)] sm:h-8">
+                {["h-2", "h-4", "h-6", "h-4", "h-2"].map((height, index) => (
+                  <span key={index} className={`w-1 rounded-full bg-current animate-pulse ${height}`} style={{ animationDelay: `${index * 140}ms` }} />
+                ))}
+              </div>
+            ) : <Radio aria-hidden="true" className="size-6 text-[var(--pr-gold,#fbaa34)]" />}
+            <p className="text-base font-semibold leading-6 tracking-tight text-white sm:text-xl">{status}</p>
+            <p className="max-w-80 text-xs leading-4 text-white/75 sm:text-sm sm:leading-5">{description}</p>
+            {view === "blocked" ? <button type="button" onClick={togglePlayback} className={`${controlClass} mt-1 bg-white/10`}><Play aria-hidden="true" className="size-4" />Reproduzir transmissão</button>
+              : view === "waiting" || view === "reconnecting" ? <button type="button" onClick={retry} className={`${controlClass} mt-1 bg-white/10`}><RefreshCw aria-hidden="true" className="size-4" />Conectar novamente</button> : null}
           </div>
         ) : null}
       </div>

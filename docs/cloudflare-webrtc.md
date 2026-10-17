@@ -24,7 +24,9 @@ Não há mudança de schema de banco para esta integração. Publique os três s
 5. Inicie o sinal no OBS e selecione **Colocar ao vivo** no painel. O público recebe vídeo WebRTC com início automático sem som e controles próprios para reprodução, áudio e tela cheia.
 6. **Encerrar sinal** encerra a reprodução na plataforma e libera as sessões dos espectadores. Pare também a transmissão no OBS para interromper a publicação na Cloudflare.
 
-Enquanto o publicador estiver ausente ou a rede falhar, o player tenta conectar novamente com intervalo crescente até 15 segundos. Ao sair da página, trocar a fonte ou encerrar o sinal, ele fecha o peer e envia DELETE para o recurso WHEP quando o provedor expõe o cabeçalho `Location` via CORS. Os lances continuam utilizando o canal oficial do motor.
+A primeira tentativa envia a oferta WHEP diretamente, sem esperar uma consulta OPTIONS ou o término da coleta de candidatos ICE, conforme o exemplo oficial da Cloudflare. A página também antecipa a conexão HTTPS com o domínio do vídeo. Se a conexão de mídia falhar, o player tenta novamente com descoberta de TURN/STUN e coleta completa de ICE.
+
+Enquanto o publicador estiver ausente ou a rede falhar, o player tenta conectar novamente a partir de 500 ms, com intervalo crescente até 5 segundos. Durante a conexão, mostra um carregamento animado; a tela desaparece assim que a primeira imagem está disponível. Ao sair da página, trocar a fonte ou encerrar o sinal, ele fecha o peer e envia DELETE para o recurso WHEP quando o provedor expõe o cabeçalho `Location` via CORS. Os lances continuam utilizando o canal oficial do motor.
 
 ## Entrada configurada manualmente
 
@@ -37,6 +39,19 @@ Não cole o endereço WHIP, terminado em `/webRTC/publish`, no campo de reprodu�
 A gravação nativa deste fluxo WebRTC não é oferecida pela Cloudflare na documentação consultada em 16/10/2026. Ative a gravação local no OBS se precisar guardar áudio e vídeo para replay. O histórico de lances é separado desse arquivo.
 
 Antes do primeiro leilão, valide com uma entrada real: conexão do OBS, atraso câmera-tela, Android/Chrome, iPhone/Safari, áudio após interação, troca de rede, perda e retomada do publicador, encerramento e 100-500 espectadores. Os testes locais com respostas simuladas verificam o contrato e o ciclo da sessão; não medem a latência da Cloudflare ou a capacidade da conta contratada.
+
+## Logs da preparação
+
+No console do navegador e nos logs do servidor Next.js, filtre por `[cloudflare-stream]`. Cada tentativa de preparação recebe um `correlationId`, também mostrado como **Código para suporte** quando houver erro. No backend, filtre por `cloudflare_stream` e pelo mesmo identificador.
+
+- `prepare.request` e `prepare.response` no Next.js mostram a API de destino, método, status HTTP e tempo de resposta. O GET inicial aparece como `proxy.request` / `proxy.response`; sua referência também está no cabeçalho `X-Correlation-Id` da resposta na aba Rede.
+- `cloudflare_stream.routes_ready` no início do backend confirma a presença das rotas GET e POST desta versão. `cloudflare_stream.config` informa somente se o account ID e o token estão configurados e se o formato do account ID é válido.
+- `cloudflare_stream.request_received` confirma que a chamada chegou ao controlador após autenticação e autorização. `engine.snapshot_*`, `cloudflare.request` / `cloudflare.response` e `engine.save_*` identificam a etapa em execução. Erros da Cloudflare incluem status HTTP, códigos numéricos e `cloudflareRay`, quando disponível.
+- `input.rollback_*` informa se uma entrada recém-criada foi removida após falha no salvamento, se a remoção falhou ou se foi adiada porque o estado do motor não pôde ser confirmado.
+
+`Cannot POST /api/auction-engine/manager/auctions/.../stream/cloudflare` com HTTP 404 é uma rota não encontrada na API de destino. Confira o `target` do log do Next.js, a versão publicada do backend e o evento `routes_ready`. Essa resposta ocorre antes da consulta à Cloudflare; não indica um token Cloudflare inválido. Um erro `AUCTION_NOT_FOUND` também pode usar HTTP 404, mas significa que a operação do leilão ainda precisa ser preparada no motor.
+
+Os logs não incluem tokens, cookies, cabeçalhos de autorização, endereço WHIP, corpos de resposta do provedor ou mensagens brutas de exceção. A API de destino é registrada sem usuário, senha, query string ou fragmento. Não é necessário ativar uma variável extra para estes logs.
 
 ## Verificações locais
 
