@@ -53,13 +53,13 @@ export default async function LeiloesPage({
 	const listingTitle =
 		filter === "live" ? "Leilões ao vivo"
 			: filter === "shopping" ? "Shopping"
-				: filter === "pre-lances" ? "Pré-lances"
+				: filter === "pre-lances" ? "Pré-leilões"
 					: filter === "mercado" ? "Mercado"
 						: "Agenda de leilões";
 	const emptyTitle =
 		filter === "live" ? "Nenhum leilão ao vivo disponível"
 			: filter === "shopping" ? "Nenhum Shopping disponível"
-				: filter === "pre-lances" ? "Nenhum pré-lance aberto"
+				: filter === "pre-lances" ? "Nenhum pré-leilão aberto"
 					: filter === "mercado" ? "Nenhum Mercado disponível"
 						: "Nenhum leilão agendado";
 	const filters = [
@@ -67,7 +67,7 @@ export default async function LeiloesPage({
 		{ value: "live", label: "Ao vivo" },
 		{ value: "shopping", label: "Shopping" },
 		{ value: "mercado", label: "Mercado" },
-		{ value: "pre-lances", label: "Pré-lances" },
+		{ value: "pre-lances", label: "Pré-leilões" },
 	] as const;
 
 	return (
@@ -80,8 +80,6 @@ export default async function LeiloesPage({
 				mobileBannerUrl={featuredAuction?.mobileBannerUrl}
 				slug={featuredAuction?.slug}
 			/>}
-			<div className="px-4 pt-6 sm:px-6"><AuctionSellerCta /></div>
-
 			<section
 				id="agenda"
 				className="container mx-auto max-w-6xl scroll-mt-16 px-4 py-6 sm:py-11 lg:px-6"
@@ -94,9 +92,9 @@ export default async function LeiloesPage({
 					<p className="mt-2 text-lg text-muted-foreground">
 						{query
 							? `Resultados para “${query}”`
-							: filter === "live" ? "Acompanhe a disputa ao vivo e veja os pré-lances no filtro próprio."
+							: filter === "live" ? "Acompanhe a disputa ao vivo e veja os pré-leilões no filtro próprio."
 								: filter === "shopping" ? "Disputas por lance com encerramento programado por lote."
-									: filter === "pre-lances" ? "Leilões dentro da janela oficial de pré-lance."
+									: filter === "pre-lances" ? "Leilões dentro da janela oficial de pré-leilão."
 										: filter === "mercado" ? "Compre lotes de preço fixo enquanto estiverem disponíveis."
 											: "Confira os próximos leilões e participe."}
 					</p>
@@ -126,6 +124,7 @@ export default async function LeiloesPage({
 					/>
 				)}
 			</section>
+			<div className="container mx-auto max-w-6xl px-4 pb-8 sm:px-6"><AuctionSellerCta /></div>
 		</div>
 	);
 }

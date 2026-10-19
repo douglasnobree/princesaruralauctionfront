@@ -83,7 +83,7 @@ assert.match(pendingEligibility, /releasedBids/);
 assert.match(pendingEligibility, /participant\.maskedDocument/);
 
 const auctionWorkspace = await read("components/Management/AuctionWorkspace.tsx");
-assert.match(auctionWorkspace, /value: "lances", label: "Lances e pré-lances"/);
+assert.match(auctionWorkspace, /value: "lances", label: "Lances e pré-leilões"/);
 assert.match(auctionWorkspace, /tab === "lotes" \? <AuctionLotsPanel/);
 assert.match(auctionWorkspace, /tab === "lances" \? \(/);
 assert.match(auctionWorkspace, /id="pending-bids-title"/);

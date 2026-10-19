@@ -271,7 +271,7 @@ export function AuctionRuntimeBoard({ externalAuctionId, initialSnapshot, focusL
 					)) : (
 						<div className={styles.empty}>
 							<BadgeCheck className="mb-3 size-6 text-secondary" aria-hidden="true" />
-							<h2>{isPreBid ? "Aguardando abertura dos pré-lances" : auctionIsRunning ? "Aguardando o próximo lote" : auctionStatusLabel(snapshot.auction.status)}</h2>
+							<h2>{isPreBid ? "Aguardando abertura do pré-leilão" : auctionIsRunning ? "Aguardando o próximo lote" : auctionStatusLabel(snapshot.auction.status)}</h2>
 							<p>Assim que um lote for aberto, ele aparecerá aqui automaticamente.</p>
 							{registrationState !== "approved" ? <Button type="button" variant="secondary" className="mt-4 min-h-11 w-full" onClick={handleRegister} disabled={registrationState === "checking" || registrationState === "pending"}>{registrationLabel}</Button> : null}
 						</div>
@@ -375,7 +375,7 @@ function RuntimeLot({ auctionId, auction, currency, lot, catalogLot, commercialT
 	const canBid = registrationApproved && auctionAcceptsBids(auction) && lot.status === "OPEN";
 	const bidWindowOpen = auctionAcceptsBids(auction) && lot.status === "OPEN";
 	const selectedFixedBidIsBlocked = effectiveSelectedBidValue !== "custom" && proxyMaxBidCents !== null && BigInt(effectiveSelectedBidValue) <= BigInt(proxyMaxBidCents);
-	const bidUnavailableMessage = !registrationApproved ? "Habilite sua participação para enviar lances." : !auctionAcceptsBids(auction) ? auction.status === "SCHEDULED" && auction.mode !== "LIVE" ? "O pré-lance ainda não começou ou não está configurado." : auction.mode === "LIVE" && auction.status !== "RUNNING" ? auction.status === "PAUSED" ? "A disputa ao vivo está pausada. Aguarde a abertura." : "A disputa ao vivo ainda não começou." : "O período de pré-lance está pausado ou encerrado." : "Este lote está fora de disputa no momento.";
+	const bidUnavailableMessage = !registrationApproved ? "Habilite sua participação para enviar lances." : !auctionAcceptsBids(auction) ? auction.status === "SCHEDULED" && auction.mode !== "LIVE" ? "A etapa de pré-leilão ainda não começou ou não está configurada." : auction.mode === "LIVE" && auction.status !== "RUNNING" ? auction.status === "PAUSED" ? "A disputa ao vivo está pausada. Aguarde a abertura." : "A disputa ao vivo ainda não começou." : "A etapa de pré-leilão está pausada ou encerrada." : "Este lote está fora de disputa no momento.";
 	const submitAmount = async (amountCents: string, proxy: boolean, control: "quick" | "custom" | "proxy") => {
 		if (busy) return;
 		if (!registrationApproved) { await onRequireRegistration(); return; }

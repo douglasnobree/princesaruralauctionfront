@@ -1,5 +1,5 @@
 // Same team contact used on public lot details.
-export const AUCTION_TEAM_WHATSAPP = "5588999555710";
+export const AUCTION_TEAM_WHATSAPP = "559188794342";
 
 export function getAuctionEnquiryUrl(message = "Olá! Quero realizar um leilão com a PR Leilões. Podemos conversar?") {
   return `https://wa.me/${AUCTION_TEAM_WHATSAPP}?text=${encodeURIComponent(message)}`;

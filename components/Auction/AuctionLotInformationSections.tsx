@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import type { Auction, AuctionLot } from "@/lib/auctions/types";
 
-const PRINCESA_RURAL_WHATSAPP = "5588999555710";
+const PRINCESA_RURAL_WHATSAPP = "559188794342";
 
 export function AuctionLotInformationSections({
 	auction,

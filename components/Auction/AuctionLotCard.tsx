@@ -69,13 +69,13 @@ export function AuctionLotCard({ lot, engineLot, currency = "BRL", mode, preBidA
 					<h2 className="min-h-12 text-base font-bold leading-tight text-foreground">
 						{lot.title}
 					</h2>
-					{!isClosed && preBidActive && preBidEndsAt ? <AuctionWindowCountdown endsAt={preBidEndsAt} serverTime={serverTime} label="Pré-lance termina em" /> : null}
+					{!isClosed && preBidActive && preBidEndsAt ? <AuctionWindowCountdown endsAt={preBidEndsAt} serverTime={serverTime} label="Pré-leilão termina em" /> : null}
 					<div className="rounded-lg bg-secondary/5 px-3 py-2">
 						{isUnsold ? <p className="text-base font-bold text-muted-foreground">Não houve venda</p> : !isClosed && !isMarket ? <p className="break-words text-base font-bold sm:text-xl tabular-nums text-secondary">Próximo lance: {formatCents(displayPrice, currency)}</p> : <><p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{isSold ? "Valor de venda" : "Preço fixo"}</p><p className="mt-1 break-words text-base font-bold sm:text-xl tabular-nums text-secondary">{formatCents(displayPrice, currency)}</p></>}
 						{!isClosed && !isMarket && bidderName ? <p className="mt-1 truncate text-[11px] text-muted-foreground">Lance atual de {bidderName}</p> : null}
 					</div>
 					<div className="flex flex-wrap items-center justify-between gap-2">
-						<span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Gavel className="size-3.5" aria-hidden="true" />{isUnsold ? "Lote não vendido" : isSold ? "Lote vendido" : isMarket ? "Compra por preço fixo" : preBidActive ? "Pré-lance aberto" : mode === "LIVE" ? "Disputa ao vivo" : "Disputa por tempo"}</span>
+						<span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><Gavel className="size-3.5" aria-hidden="true" />{isUnsold ? "Lote não vendido" : isSold ? "Lote vendido" : isMarket ? "Compra por preço fixo" : preBidActive ? "Pré-leilão aberto" : mode === "LIVE" ? "Disputa ao vivo" : "Disputa por tempo"}</span>
 						<span className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-secondary px-3 py-2 text-xs font-bold text-secondary-foreground">{isClosed ? "Ver lote" : isMarket ? "Comprar" : "Dar lance"} <ArrowRight className="size-3.5" aria-hidden="true" /></span>
 					</div>
 

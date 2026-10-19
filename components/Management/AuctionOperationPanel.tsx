@@ -57,7 +57,7 @@ import { acquisitionSourceOptions, type AcquisitionSource } from "@/lib/auctions
 const auctionLabels: Record<string, string> = {
   DRAFT: "Rascunho",
   REVIEW: "Em revisão",
-  SCHEDULED: "Pré-lances abertos",
+  SCHEDULED: "Pré-leilão aberto",
   RUNNING: "Em andamento",
   PAUSED: "Pausado",
   FINISHED: "Encerrado",
@@ -319,7 +319,7 @@ export function AuctionOperationPanel({
               ? "Operação ao vivo"
               : auction.mode === "SHOPPING"
                 ? "Operação de compra imediata"
-                : "Operação de pré-lance"}
+                : "Operação de pré-leilão"}
           </h2>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
             Controle lotes, registre lances e acompanhe participantes nesta página.

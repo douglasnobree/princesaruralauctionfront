@@ -43,12 +43,12 @@ export function explainEngineError(code: string | undefined, fallback: string, d
 	if (code === "SHOPPING_PURCHASE_REQUIRED") return "No Shopping, o lote é comprado pelo preço fixo; não é possível enviar lances tradicionais.";
 	if (code === "UNAUTHORIZED" || code === "AUTH_REQUIRED") return "Sua sessão expirou. Entre novamente para continuar participando.";
 	if (code === "FORBIDDEN") return "Sua conta não tem permissão para executar esta ação neste leilão.";
-	if (code === "AUCTION_NOT_OPEN") return "Este leilão ainda não está aceitando lances. No pré-lance, confira se a etapa está aberta; no ao vivo, aguarde o início da disputa.";
+	if (code === "AUCTION_NOT_OPEN") return "Este leilão ainda não está aceitando lances. Na etapa de pré-leilão, confira se a janela está aberta; no ao vivo, aguarde o início da disputa.";
 	if (code === "LOT_NOT_OPEN") return "Este lote não está aberto para receber lances agora.";
 	if (code === "LOT_NOT_STARTED") return "O período de lances deste lote ainda não começou.";
 	if (code === "LOT_ENDED") return "O prazo deste lote terminou e novos lances não são aceitos.";
-	if (code === "PREBID_NOT_STARTED") return "O período de pré-lance deste leilão ainda não começou.";
-	if (code === "PREBID_CLOSED") return "O período de pré-lance deste leilão já foi encerrado.";
+	if (code === "PREBID_NOT_STARTED") return "A etapa de pré-leilão deste leilão ainda não começou.";
+	if (code === "PREBID_CLOSED") return "A etapa de pré-leilão deste leilão já foi encerrada.";
 	if (code === "INVALID_AMOUNT") return "Informe um valor de lance válido.";
 	if (code === "BID_BELOW_MINIMUM") {
 		const minimum = formatCents(details?.minimumAmountCents);

@@ -57,7 +57,7 @@ const tabs: Array<{ value: Tab; label: string; icon: typeof Gavel }> = [
   { value: "resumo", label: "Resumo", icon: Gavel },
   { value: "dados", label: "Dados do leilão", icon: Settings2 },
   { value: "lotes", label: "Lotes", icon: ListOrdered },
-  { value: "lances", label: "Lances e pré-lances", icon: Gavel },
+  { value: "lances", label: "Lances e pré-leilões", icon: Gavel },
   { value: "participantes", label: "Participantes", icon: ShieldCheck },
   { value: "vendas", label: "Vendas", icon: ShoppingCart },
   { value: "comunicacao", label: "Comunicação", icon: MessageCircle },
@@ -219,7 +219,7 @@ export function AuctionWorkspace({
               <Gavel className="size-5" aria-hidden="true" />
               <p className="text-xs font-semibold uppercase tracking-[0.14em]">Gestão de lances</p>
             </div>
-            <h2 id="pending-bids-title" className="mt-2 text-xl font-bold tracking-tight sm:text-2xl">Lances e pré-lances</h2>
+            <h2 id="pending-bids-title" className="mt-2 text-xl font-bold tracking-tight sm:text-2xl">Lances e pré-leilões</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
               Consulte os lances enviados por participantes que ainda aguardam habilitação, confira os dados do usuário e libere sua participação sem sair desta página.
             </p>

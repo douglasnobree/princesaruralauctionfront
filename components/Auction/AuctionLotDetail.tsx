@@ -21,7 +21,7 @@ interface AuctionLotDetailProps {
 
 function getLotStatusLabel(status: string, mode?: Auction["mode"], live = false, preBid = false) {
 	if (status === "SOLD") return "VENDIDO";
-	if (status === "OPEN" && preBid) return "PRÉ-LANCE";
+	if (status === "OPEN" && preBid) return "PRÉ-LEILÃO";
 	if (status === "OPEN" && mode === "LIVE" && live) return "AO VIVO";
 	return {
 		OPEN: "ABERTO",

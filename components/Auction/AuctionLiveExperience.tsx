@@ -34,7 +34,7 @@ function statusLabel(
     status === 'SCHEDULED' &&
     preBidOpen
   )
-    return 'Pré-lance';
+    return 'Pré-leilão';
   if (
     mode === 'TIMED' &&
     status === 'SCHEDULED' &&
@@ -49,7 +49,7 @@ function statusLabel(
   if (mode === 'LIVE' && status === 'SCHEDULED' && preBidClosed)
     return 'Em breve';
   if (mode === 'LIVE' && status === 'SCHEDULED' && preBidOpen)
-    return 'Pré-lance';
+    return 'Pré-leilão';
   if (mode === 'LIVE' && status === 'SCHEDULED') return 'Em breve';
   if (mode === 'LIVE' && ['RUNNING', 'OPEN'].includes(status)) return 'AO VIVO';
   if (
@@ -67,7 +67,7 @@ function statusLabel(
         PAUSED: 'Pausado',
         FINISHED: 'Encerrado',
         OPEN: 'Aberto',
-        PRE_LAUNCH: 'Pré-lance',
+        PRE_LAUNCH: 'Pré-leilão',
         COMING_SOON: 'Em breve',
         WAITING_OPENING: 'Aguardando abertura',
         CLOSED: 'Encerrado',
@@ -261,8 +261,8 @@ export function AuctionLiveExperience({
               <div className='rounded-xl border border-dashed bg-card p-8 text-center text-sm text-muted-foreground'>
                 {preBidClosed
                   ? mode === 'LIVE'
-                    ? 'O pré-lance terminou. Aguarde o início do leilão ao vivo.'
-                    : 'O período de pré-lances terminou. Consulte os resultados dos lotes abaixo.'
+                    ? 'A etapa de pré-leilão terminou. Aguarde o início do leilão ao vivo.'
+                    : 'A etapa de pré-leilão terminou. Consulte os resultados dos lotes abaixo.'
                   : mode === 'SHOPPING'
                     ? 'Nenhum lote disponível para compra no momento.'
                     : 'Nenhum lote disponível para lances no momento.'}

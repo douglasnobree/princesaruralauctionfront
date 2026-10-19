@@ -518,8 +518,8 @@ export function AuctionLotBidPanel({
 		: !bidWindowOpen
 			? snapshot.auction.status === "SCHEDULED"
 				? snapshot.auction.mode === "LIVE"
-					? "O pré-lance do leilão ao vivo ainda não está aberto."
-					: "O pré-lance ainda não começou ou não está configurado."
+					? "A etapa de pré-leilão do leilão ao vivo ainda não está aberta."
+					: "A etapa de pré-leilão ainda não começou ou não está configurada."
 				: "Este lote não está recebendo lances agora."
 			: null;
 
@@ -534,8 +534,8 @@ export function AuctionLotBidPanel({
 		? "Aguardando abertura da etapa principal"
 		: isAuctionPreBidOpen
 		? remainingSeconds !== null && remainingSeconds > 0
-			? `Pré-lance termina em ${formatCountdown(remainingSeconds)}`
-			: "Pré-lance encerrado"
+			? `Pré-leilão termina em ${formatCountdown(remainingSeconds)}`
+			: "Pré-leilão encerrado"
 		: isShopping
 		? remainingSeconds !== null
 			? remainingSeconds > 0
@@ -633,7 +633,7 @@ export function AuctionLotBidPanel({
 				<p className="mt-1">{isShopping ? "Não é possível comprar este lote." : "Não é possível enviar novos lances neste lote."}</p>
 			</div> : isOpeningPause ? <div role="status" className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">
 				<p className="font-bold">Aguardando abertura</p>
-				<p className="mt-1">Os pré-lances foram encerrados. Os lances serão liberados no início da etapa principal.</p>
+				<p className="mt-1">A etapa de pré-leilão foi encerrada. Os lances serão liberados no início da etapa principal.</p>
 			</div> : isShopping ? <div className="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-4">
 				<p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary">Compra imediata</p>
 				<p className="text-sm text-muted-foreground">Seu cadastro habilitado pode comprar este lote. Ao confirmar, ele será marcado como vendido e a equipe entrará em contato para combinar o pagamento.</p>

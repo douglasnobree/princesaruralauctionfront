@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 
 function phaseLabel(phase: EnginePendingEligibilityBid["phase"]) {
-  return phase === "LIVE_BID" ? "Lance ao vivo" : phase === "PRE_BID" ? "Pré-lance" : "Fase não informada";
+  return phase === "LIVE_BID" ? "Lance ao vivo" : phase === "PRE_BID" ? "Pré-leilão" : "Fase não informada";
 }
 
 function originLabel(origin: EnginePendingEligibilityBid["origin"]) {
@@ -98,7 +98,7 @@ export function AuctionPendingEligibilityBids({
             <p className="text-xs font-semibold uppercase tracking-[0.12em]">{lotNumber ? `Lote ${String(lotNumber).padStart(2, "0")}` : "Todos os lotes"}</p>
           </div>
           <h3 id={`pending-eligibility-${lotId}`} className="mt-1 text-base font-bold text-amber-950">{lotTitle || "Lances aguardando análise"}</h3>
-          <p className="mt-1 text-xs leading-5 text-amber-950/70">Lances e pré-lances recebidos enquanto o participante ainda não estava habilitado.</p>
+          <p className="mt-1 text-xs leading-5 text-amber-950/70">Lances e pré-leilões recebidos enquanto o participante ainda não estava habilitado.</p>
         </div>
         <Button type="button" variant="outline" size="sm" onClick={() => { setLoading(true); void load(); }} disabled={!canManageParticipants || loading || isPending} className="border-amber-200 bg-white text-amber-900 hover:bg-amber-100">
           <RefreshCw className="size-3.5" aria-hidden="true" />Atualizar

@@ -64,3 +64,27 @@ test("snapshot reads explain AUCTION_NOT_FOUND instead of showing a generic erro
   try { await assert.rejects(managerRead("auctions/auction-1/snapshot"), /Use Publicar ou Preparar operação/); }
   finally { globalThis.fetch = previousFetch; }
 });
+
+test("the seller CTA follows the auction listing", () => {
+  const page = readFileSync(new URL("../app/leiloes/page.tsx", import.meta.url), "utf8");
+  const listingStart = page.indexOf('id="agenda"');
+  const listingEnd = page.indexOf("</section>", listingStart);
+  const sellerCta = page.indexOf("<AuctionSellerCta />");
+  assert.ok(listingStart >= 0 && listingEnd > listingStart && sellerCta > listingEnd);
+});
+
+test("seller enquiries use the PR Leilões contact number", () => {
+  const { AUCTION_TEAM_WHATSAPP, getAuctionEnquiryUrl } = load("lib/auction-enquiries.ts");
+  const lotInformation = readFileSync(new URL("../components/Auction/AuctionLotInformationSections.tsx", import.meta.url), "utf8");
+  assert.equal(AUCTION_TEAM_WHATSAPP, "559188794342");
+  assert.match(getAuctionEnquiryUrl(), /wa\.me\/559188794342\?/);
+  assert.match(lotInformation, /PRINCESA_RURAL_WHATSAPP = "559188794342"/);
+});
+
+test("new auction registrations start with WhatsApp updates enabled and can be turned off", () => {
+  const dialog = readFileSync(new URL("../components/Auction/AuctionRegistrationDialog.tsx", import.meta.url), "utf8");
+  const actions = readFileSync(new URL("../hooks/actions/auctionEngineActions.ts", import.meta.url), "utf8");
+  assert.match(dialog, /whatsappChoice\?\.auctionId === auctionId \? whatsappChoice\.value : true/);
+  assert.match(dialog, /setWhatsappChoice\(\{ auctionId, value: event\.target\.checked \}\)/);
+  assert.match(actions, /acquisitionSource: AcquisitionSource = "UNKNOWN", whatsappOptIn = true/);
+});

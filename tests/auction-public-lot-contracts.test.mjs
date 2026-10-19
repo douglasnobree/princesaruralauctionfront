@@ -110,7 +110,7 @@ test("legacy marketplace lot images resolve through the marketplace origin", asy
 	assert.match(nextConfig, /hostname: "princesarural\.com\.br"/);
 });
 
-test("registration keeps WhatsApp consent optional and revocable", async () => {
+test("registration enables WhatsApp updates by default and keeps per-auction revocation", async () => {
 	const [dialog, consentControl, board, bidPanel, actions] = await Promise.all([
 		read("components/Auction/AuctionRegistrationDialog.tsx"),
 		read("components/Auction/AuctionWhatsAppConsentControl.tsx"),
@@ -119,14 +119,17 @@ test("registration keeps WhatsApp consent optional and revocable", async () => {
 		read("hooks/actions/auctionEngineActions.ts"),
 	]);
 
-	assert.match(dialog, /useState\(false\)/);
-	assert.match(dialog, /Você pode participar normalmente sem receber mensagens/);
+	assert.match(dialog, /whatsappChoice\?\.auctionId === auctionId \? whatsappChoice\.value : true/);
+	assert.match(dialog, /setWhatsappChoice\(\{ auctionId, value: event\.target\.checked \}\)/);
+	assert.match(dialog, /As atualizações deste leilão ficam ativadas por padrão/);
+	assert.match(dialog, /desativá-las nas preferências do próprio leilão/);
 	assert.match(dialog, /Cadastre um telefone válido/);
 	assert.match(consentControl, /Notificações pelo WhatsApp/);
 	assert.match(consentControl, /setAuctionWhatsAppConsentAction/);
 	assert.match(board, /AuctionRegistrationDialog/);
 	assert.match(bidPanel, /AuctionRegistrationDialog/);
 	assert.match(actions, /registration\/whatsapp-consent/);
+	assert.match(actions, /whatsappOptIn = true/);
 });
 
 test("shopping lot exposes habilitation before immediate purchase", async () => {
@@ -135,7 +138,7 @@ test("shopping lot exposes habilitation before immediate purchase", async () => 
 	assert.match(panel, /Solicite a habilitação do seu cadastro para ficar apto a confirmar a compra/);
 	assert.match(panel, /Solicitar habilitação/);
 	assert.match(panel, /Aguardando validação manual\. Você poderá comprar assim que for habilitado/);
-	assert.match(panel, /Você está habilitado\. A compra será confirmada para o primeiro usuário aprovado/);
+	assert.match(panel, /Seu cadastro está habilitado\. A confirmação marca este lote como vendido/);
 	assert.match(panel, /setRegistrationDialogOpen\(true\)/);
 	assert.match(panel, /Comprar agora por/);
 	assert.match(panel, /SHOPPING_ALREADY_SOLD|Não foi possível concluir a compra deste lote/);

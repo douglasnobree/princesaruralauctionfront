@@ -77,7 +77,7 @@ const modeDetails = {
   },
   LIVE: {
     shortTitle: "Ao vivo",
-    description: "Pré-lances antes da abertura. Disputa com transmissão.",
+    description: "Pré-leilões antes da abertura. Disputa com transmissão.",
     icon: Radio,
     badge: "Transmissão obrigatória",
   },
@@ -188,12 +188,12 @@ export function AuctionForm({
       const pauseHours = Number(form.pauseHours);
       const preBidStartsAt = fromDateTimeLocalBrt(form.preBidStartsAt);
       if (!preBidStartsAt || !Number.isInteger(pauseHours) || pauseHours < 1) {
-        setNotice("Para configurar pré-lances, informe o início da janela e a pausa inteira.");
+        setNotice("Para configurar os pré-leilões, informe o início da janela e a pausa inteira.");
         return;
       }
       const preBidEndsAt = new Date(startInstant.getTime() - pauseHours * 3600000);
       if (new Date(preBidStartsAt) >= preBidEndsAt) {
-        setNotice("O início dos pré-lances deve ser anterior ao fim calculado da janela.");
+        setNotice("O início do pré-leilão deve ser anterior ao fim calculado da janela.");
         return;
       }
     }
@@ -324,17 +324,17 @@ export function AuctionForm({
                   </>
                 ) : (
                   <>
-                    <Field label="Início dos pré-lances (opcional)" id="auction-pre-start" required={form.mode === "TIMED" && hasSavedPreBidSchedule}>
+                    <Field label="Início do pré-leilão (opcional)" id="auction-pre-start" required={form.mode === "TIMED" && hasSavedPreBidSchedule}>
                       <input id="auction-pre-start" type="datetime-local" value={form.preBidStartsAt} onChange={(event) => update("preBidStartsAt", event.target.value)} required={form.mode === "TIMED" && hasSavedPreBidSchedule} disabled={fieldDisabled} className="management-field" />
                     </Field>
                     <Field label="Abertura do leilão" id="auction-starts-main" required>
                       <input id="auction-starts-main" type="datetime-local" value={form.startsAt} onChange={(event) => update("startsAt", event.target.value)} required disabled={fieldDisabled} className="management-field" />
                     </Field>
-                    <Field label="Pausa após os pré-lances (horas)" id="auction-pause-hours" required={form.mode === "TIMED" && hasSavedPreBidSchedule}>
+                    <Field label="Pausa após o pré-leilão (horas)" id="auction-pause-hours" required={form.mode === "TIMED" && hasSavedPreBidSchedule}>
                       <input id="auction-pause-hours" type="number" min="1" step="1" value={form.pauseHours} onChange={(event) => update("pauseHours", event.target.value)} required={form.mode === "TIMED" && hasSavedPreBidSchedule} disabled={fieldDisabled} className="management-field" />
                       <span className="mt-1 block text-xs font-normal text-muted-foreground">Opcional. O fim da janela é calculado pelo backend a partir da abertura.</span>
                     </Field>
-                    {form.mode === "TIMED" && hasSavedPreBidSchedule ? <p className="rounded-lg bg-muted/50 p-3 text-xs font-normal leading-5 text-muted-foreground lg:col-span-3">Este leilão já possui uma janela antiga de pré-lance. Ela será preservada para não alterar o calendário existente.</p> : null}
+                    {form.mode === "TIMED" && hasSavedPreBidSchedule ? <p className="rounded-lg bg-muted/50 p-3 text-xs font-normal leading-5 text-muted-foreground lg:col-span-3">Este leilão já possui uma janela antiga de pré-leilão. Ela será preservada para não alterar o calendário existente.</p> : null}
                   </>
                 )}
                 {form.mode === "TIMED" ? <>

@@ -1,7 +1,7 @@
 import type { AuctionLotStatus, AuctionMode, AuctionStatus } from "@/lib/auctions/types";
 
 const auctionLabels: Record<AuctionStatus, string> = {
-	PRE_LAUNCH: "Pré-lance",
+	PRE_LAUNCH: "Pré-leilão",
 	COMING_SOON: "Em breve",
 	WAITING_OPENING: "Aguardando abertura",
 	OPEN: "Aberto",
@@ -35,7 +35,7 @@ const lotStyles: Record<AuctionLotStatus, string> = {
 };
 
 function auctionLabel(status: AuctionStatus, mode?: AuctionMode) {
-	if (status === "PRE_LAUNCH") return "Pré-lance";
+	if (status === "PRE_LAUNCH") return "Pré-leilão";
 	if (status === "COMING_SOON" || status === "WAITING_OPENING") return "Em breve";
 	if (status === "OPEN") {
 		if (mode === "LIVE") return "Ao vivo";
@@ -48,6 +48,7 @@ function auctionLabel(status: AuctionStatus, mode?: AuctionMode) {
 export function AuctionStatusBadge({ status, mode }: { status: AuctionStatus; mode?: AuctionMode }) {
 	return (
 		<span
+			suppressHydrationWarning
 			key={status}
 			data-pr-loop={status === "OPEN" ? "status" : undefined}
 			className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${status === "OPEN" ? "pr-live-status" : ""} ${auctionStyles[status]}`}
@@ -69,12 +70,13 @@ export function AuctionLotStatusBadge({
 	const label = status === "SOLD"
 		? "VENDIDO"
 		: status === "OPEN" && preBidActive
-			? "Pré-lance"
+			? "Pré-leilão"
 			: status === "OPEN" && mode === "LIVE"
 				? "AO VIVO"
 					: lotLabels[status];
 	return (
 		<span
+			suppressHydrationWarning
 			key={label}
 			data-pr-loop={status === "OPEN" ? "status" : undefined}
 			className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${status === "OPEN" ? "pr-live-status" : ""} ${lotStyles[status]}`}

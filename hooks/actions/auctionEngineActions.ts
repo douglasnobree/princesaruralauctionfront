@@ -48,7 +48,7 @@ export async function listAuctionLotBidsAction(auctionId: string, lotId: string,
   } catch { return { success: false, error: "Não foi possível consultar o histórico de lances agora." }; }
 }
 
-export async function registerAuctionAction(auctionId: string, termsVersion: string, acquisitionSource: AcquisitionSource = "UNKNOWN", whatsappOptIn = false): Promise<ActionResult<EngineAuctionRegistration>> {
+export async function registerAuctionAction(auctionId: string, termsVersion: string, acquisitionSource: AcquisitionSource = "UNKNOWN", whatsappOptIn = true): Promise<ActionResult<EngineAuctionRegistration>> {
   try {
     const response = await engineRequest(`/auction-engine/auctions/${encodeURIComponent(auctionId)}/registration`, { method: "POST", headers: { "Content-Type": "application/json", "Idempotency-Key": randomUUID() }, body: JSON.stringify({ termsVersion, acquisitionSource, whatsappOptIn }), cache: "no-store" });
     return parse(response, "Não foi possível habilitar sua participação.");
