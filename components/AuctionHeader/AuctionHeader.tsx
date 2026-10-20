@@ -1,18 +1,12 @@
-import { Gavel, Home, LayoutDashboard, Search, UserRound } from "lucide-react";
+import { LayoutDashboard, Search, UserRound } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { getUser } from "@/lib/auth/server/session";
 import { getMarketplaceUrl } from "@/lib/config/urls";
 import { AUCTION_MANAGEMENT_ROLES } from "@/types/role-permissions";
-import { MarketplaceHandoffLink } from "@/components/AuctionHeader/MarketplaceHandoffLink";
+import { AuctionNavigation } from "@/components/AuctionHeader/AuctionNavigation";
 import { AuctionProfileMenu } from "@/components/AuctionHeader/AuctionProfileMenu";
 import { AuctionReturnToLink } from "@/components/Auth/AuctionReturnToLink";
-
-const navigation = [
-  { label: "Leilões", href: "/leiloes", icon: Gavel, active: true },
-  { label: "Faça seu leilão", href: "/faca-seu-leilao", icon: Gavel },
-  { label: "Princesa Rural", href: "/", icon: Home, handoff: true },
-];
 
 export async function AuctionHeader() {
   const user = await getUser();
@@ -99,22 +93,7 @@ export async function AuctionHeader() {
             )}
           </div>
 
-          <nav aria-label="Navegação principal" className="-mx-1 flex min-w-0 gap-1 overflow-x-auto pb-1 sm:gap-2">
-            {navigation.map(({ label, href, icon: Icon, active, handoff }) => {
-              const className = `inline-flex min-h-11 md:min-h-7 shrink-0 items-center gap-2 rounded-md px-2 text-[11px] font-bold uppercase tracking-[0.02em] outline-none transition-colors hover:bg-[#28834c]/70 focus-visible:ring-2 focus-visible:ring-[#fbaa34] sm:px-3 ${active ? "bg-[#28834c]/70 text-white" : "text-white/90"}`;
-              return handoff ? (
-                <MarketplaceHandoffLink key={label} pathname={href} baseUrl={marketplaceUrl} className={className}>
-                  <Icon className="size-3.5" aria-hidden="true" />
-                  {label}
-                </MarketplaceHandoffLink>
-              ) : (
-                <Link key={label} href={href} className={className}>
-                  <Icon className="size-3.5" aria-hidden="true" />
-                  {label}
-                </Link>
-              );
-            })}
-          </nav>
+          <AuctionNavigation marketplaceUrl={marketplaceUrl} />
         </div>
       </div>
     </header>
