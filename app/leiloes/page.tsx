@@ -98,11 +98,11 @@ export default async function LeiloesPage({
 										: filter === "mercado" ? "Compre lotes de preço fixo enquanto estiverem disponíveis."
 											: "Confira os próximos leilões e participe."}
 					</p>
-					<nav className="mt-5 flex flex-wrap gap-2" aria-label="Filtrar leilões">
+					<nav className="pr-auction-filters mt-5 flex flex-wrap gap-2" aria-label="Filtrar leilões">
 						{filters.map((option) => {
 							const selected = filter === option.value;
 							const href = option.value === "all" ? "/leiloes" : `/leiloes?tipo=${option.value}`;
-							return <Link key={option.value} href={href} aria-current={selected ? "page" : undefined} className={`inline-flex min-h-10 items-center rounded-full border px-4 text-sm font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring ${selected ? "border-secondary bg-secondary text-secondary-foreground" : "bg-card text-muted-foreground hover:border-secondary/50 hover:text-foreground"}`}>{option.label}</Link>;
+							return <Link key={option.value} href={href} aria-current={selected ? "page" : undefined} className={`inline-flex min-h-10 items-center rounded-full border px-4 text-sm font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring md:rounded-none md:border-0 md:bg-transparent ${selected ? "border-secondary bg-secondary text-secondary-foreground md:text-foreground" : "bg-card text-muted-foreground hover:border-secondary/50 hover:text-foreground"}`}>{option.label}</Link>;
 						})}
 					</nav>
 				</header>

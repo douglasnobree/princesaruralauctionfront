@@ -344,6 +344,28 @@ body[data-pr-motion="on"] nav a::after {
   pointer-events: none;
 }
 body[data-pr-motion="on"] nav a:is(:hover, :focus-visible, [aria-current="page"])::after { transform: scaleX(1); }
+/* Desktop filters use an underline; mobile filters retain their chip style. */
+body nav.pr-auction-filters a { position: relative; }
+body nav.pr-auction-filters a::after {
+  display: none;
+  content: "";
+  position: absolute;
+  inset: auto 16px 8px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--pr-gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 280ms var(--pr-motion-ease);
+  pointer-events: none;
+}
+body nav.pr-auction-filters a:is(:hover, :focus-visible, [aria-current="page"])::after { transform: scaleX(1); }
+@media (min-width: 768px) {
+  body nav.pr-auction-filters a::after { display: block; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body nav.pr-auction-filters a::after { transition: none; }
+}
 body[data-pr-motion="on"] nav a > svg { transition: transform 280ms var(--pr-motion-ease); }
 body[data-pr-motion="on"] nav a:is(:hover, :focus-visible) > svg { transform: rotate(-9deg) translateY(-1px); }
 .pr-auction-card { transition: transform 350ms var(--pr-motion-ease), box-shadow 350ms var(--pr-motion-ease), border-color 220ms ease; }
