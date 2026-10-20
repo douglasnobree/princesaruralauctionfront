@@ -10,13 +10,10 @@ import {
   MonitorPlay,
   ShieldCheck,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import {
-  PrincesaLogoIcon,
-  PrincesaRuralWordmark,
-} from "@/components/AuctionHeader/PrincesaRuralIcon";
 import { logoutAuctionAction } from "@/hooks/actions/auctionAuthActions";
 import type { RolePermission } from "@/types/role-permissions";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -205,19 +202,21 @@ export function AuctionManagementShell({
       >
         <Link
           href="/admin/leiloes"
-          aria-label="Princesa Rural — Catálogo de leilões"
+          aria-label="PR Leilões — Catálogo de leilões"
           className={`block border-b px-4 py-6 outline-none transition-colors hover:bg-accent/5 focus-visible:ring-2 focus-visible:ring-ring ${collapsed ? "px-2" : ""}`}
         >
           <div
             className={`flex items-center gap-3 ${collapsed ? "justify-center" : ""}`}
           >
-            {collapsed ? <PrincesaLogoIcon className="size-9" /> : null}
+            {collapsed ? <Image src="/brand/pr-leiloes/logo-icon.svg" width={512} height={512} alt="" className="size-9 shrink-0" /> : null}
             {!collapsed ? (
               <div className="min-w-0">
-                <PrincesaRuralWordmark
-                  variant="color"
+                <Image
+                  src="/brand/pr-leiloes/logo-horizontal-color.svg"
+                  width={247}
+                  height={43}
                   alt=""
-                  className="h-9 max-w-full"
+                  className="h-auto max-h-9 w-full max-w-[247px]"
                 />
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   Operação de leilões
@@ -248,7 +247,7 @@ export function AuctionManagementShell({
           <DialogTitle className="sr-only">Menu de gestão</DialogTitle>
           <DialogDescription className="sr-only">Navegue entre leilões e habilitações globais.</DialogDescription>
           <div className="flex h-full min-h-0 flex-col">
-            <div className="border-b px-4 py-6"><PrincesaRuralWordmark variant="color" alt="Princesa Rural" className="h-8 w-auto" /></div>
+            <div className="border-b px-4 py-6"><Image src="/brand/pr-leiloes/logo-horizontal-color.svg" width={247} height={43} alt="PR Leilões" className="h-8 w-auto max-w-full" /></div>
             <Navigation canManage={canManage} canEditBanners={capabilities.canEdit} onNavigate={() => setMobileOpen(false)} />
             <UserSummary user={user} onLogout={logout} isPending={isPending} />
           </div>
