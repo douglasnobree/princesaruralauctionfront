@@ -59,14 +59,14 @@ test("lot detail reuses the genealogy URL without preloading or regenerating the
 });
 
 test("lot detail exposes commercial sections and WhatsApp contact", async () => {
-	const [information, catalog, types] = await Promise.all([
+	const [information, catalog, types, regulation] = await Promise.all([
 		read("components/Auction/AuctionLotInformationSections.tsx"),
 		read("lib/auctions/catalog.ts"),
 		read("lib/auctions/types.ts"),
+		read("components/Auction/AuctionRegulation.tsx"),
 	]);
 
 	for (const label of [
-		"Regulamento",
 		"Forma de pagamento",
 		"Frete e entrega",
 		"Dúvidas?",
@@ -77,6 +77,8 @@ test("lot detail exposes commercial sections and WhatsApp contact", async () => 
 	assert.match(information, /https:\/\/wa\.me\//);
 	assert.match(information, /lot\.payment \|\|/);
 	assert.match(information, /lot\.deliveryDescription \|\|/);
+	assert.match(information, /AuctionRegulation text=\{auction\.regulationText\}/);
+	assert.match(regulation, /Ver regulamento/);
 	for (const field of ["regulationText", "paymentText", "deliveryText"]) {
 		assert.match(catalog, new RegExp(field));
 		assert.match(types, new RegExp(field));

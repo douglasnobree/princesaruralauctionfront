@@ -4,8 +4,9 @@ import Link from "next/link";
 import Image from "next/image";
 import type { Auction, AuctionLot } from "@/lib/auctions/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, BadgeCheck, Banknote, ChevronDown, CircleAlert, FileText, GitFork, History, Loader2, RefreshCw, Trophy, Truck, Wifi, WifiOff } from "lucide-react";
+import { ArrowRight, BadgeCheck, Banknote, ChevronDown, CircleAlert, GitFork, History, Loader2, RefreshCw, Trophy, Truck, Wifi, WifiOff } from "lucide-react";
 import { AuctionLoginDialog } from "@/components/Auction/AuctionLoginDialog";
+import { AuctionRegulation } from "./AuctionRegulation";
 import { AuctionRegistrationDialog } from "@/components/Auction/AuctionRegistrationDialog";
 import { AuctionWhatsAppConsentControl } from "@/components/Auction/AuctionWhatsAppConsentControl";
 import { EngineCommandFeedback } from "@/components/Auction/EngineCommandFeedback";
@@ -318,10 +319,10 @@ function UpcomingLots({ lots, catalogLots }: { lots: EngineLot[]; catalogLots: A
 function LotConditions({ lot, terms }: { lot?: AuctionLot; terms?: CommercialTerms }) {
 	const information = [
 		{ title: "Pagamento", icon: Banknote, text: lot?.payment || terms?.paymentText || "Consulte as condições de pagamento com a equipe do leilão." },
-		{ title: "Regulamento", icon: FileText, text: terms?.regulationText || "Consulte o regulamento com a equipe do leilão." },
 		{ title: "Frete e entrega", icon: Truck, text: lot?.deliveryDescription || terms?.deliveryText || "Consulte as condições de frete e entrega com a equipe do leilão." },
 	];
 	return <div className={styles.conditions}>
+		<AuctionRegulation text={terms?.regulationText} />
 		{lot?.genealogyUrl ? <a className={styles.genealogy} href={lot.genealogyUrl} target="_blank" rel="noopener noreferrer" aria-label={`Abrir PDF da genealogia do lote ${lot.number} em nova guia`}><GitFork aria-hidden="true" />Ver genealogia do lote</a> : null}
 		{information.map(({ title, icon: Icon, text }) => <details key={title} className={styles.condition}>
 			<summary><span><Icon aria-hidden="true" />{title}</span>{title === "Pagamento" && (lot?.payment || terms?.paymentText) ? <span className={styles.paymentPreview}>{text}</span> : null}<ChevronDown aria-hidden="true" /></summary>

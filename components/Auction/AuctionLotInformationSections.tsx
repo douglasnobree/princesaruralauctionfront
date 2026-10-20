@@ -4,6 +4,7 @@ import {
 	MessageCircle,
 } from "lucide-react";
 import type { Auction, AuctionLot } from "@/lib/auctions/types";
+import { AuctionRegulation } from "./AuctionRegulation";
 
 const PRINCESA_RURAL_WHATSAPP = "559188794342";
 
@@ -15,12 +16,6 @@ export function AuctionLotInformationSections({
 	lot: AuctionLot;
 }) {
 	const information = [
-		{
-			title: "Regulamento",
-			text:
-				auction.regulationText ||
-				"Consulte o regulamento deste leilão com nossa equipe.",
-		},
 		{
 			title: "Forma de pagamento",
 			text:
@@ -78,6 +73,7 @@ export function AuctionLotInformationSections({
 
 			<div className="mt-8 border-t pt-8">
 				<div className="space-y-7">
+					<AuctionRegulation text={auction.regulationText} />
 					{information.map((item) => (
 		<details
 							key={item.title}

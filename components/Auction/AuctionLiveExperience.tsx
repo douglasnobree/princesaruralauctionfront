@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { AuctionResponsiveBanner } from './AuctionResponsiveBanner';
+import { AuctionRegulation } from './AuctionRegulation';
+import { getAuctionIntroDescription } from '@/lib/auctions/description';
 import { AuctionLotCard } from '@/components/Auction/AuctionLotCard';
 import { AuctionFullGenealogyButton } from '@/components/Auction/AuctionFullGenealogyButton';
 import { AuctionRuntimeBoard } from '@/components/Auction/AuctionRuntimeBoard';
@@ -128,6 +130,7 @@ export function AuctionLiveExperience({
   catalogLots = [],
   sandbox = false,
 }: AuctionLiveExperienceProps) {
+  const introDescription = getAuctionIntroDescription(description, regulationText);
   const engineStatus = initialSnapshot?.auction.status;
   const displayedStatus = engineStatus ?? status ?? 'ENGINE_UNAVAILABLE';
   const mode = initialSnapshot?.auction.mode ?? catalogMode;
@@ -198,9 +201,9 @@ export function AuctionLiveExperience({
             <h1 className='mt-4 text-2xl font-bold tracking-tight sm:text-4xl'>
               {title}
             </h1>
-            {description ? (
+            {introDescription ? (
               <p className='mt-3 max-w-3xl whitespace-pre-wrap text-sm leading-6 text-muted-foreground'>
-                {description}
+                {introDescription}
               </p>
             ) : null}
             <div className='mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm font-medium text-muted-foreground'>
@@ -222,6 +225,9 @@ export function AuctionLiveExperience({
                 <AuctionFullGenealogyButton catalogUrl={genealogyCatalogUrl} />
               </div>
             ) : null}
+            <div className='mt-5'>
+              <AuctionRegulation text={regulationText} />
+            </div>
           </div>
         </section>
         </>}
@@ -295,7 +301,8 @@ export function AuctionLiveExperience({
             <summary className='flex min-h-11 cursor-pointer items-center text-sm font-semibold outline-none focus-visible:outline-2 focus-visible:outline-primary'>Sobre o leilão</summary>
             <div className='space-y-4 pb-4 pt-3 text-sm leading-6 text-muted-foreground'>
               <AuctionResponsiveBanner desktopUrl={desktopBannerUrl} mobileUrl={mobileBannerUrl} title={title} />
-              {description ? <p className='max-w-3xl whitespace-pre-wrap'>{description}</p> : null}
+              <AuctionRegulation text={regulationText} />
+              {introDescription ? <p className='max-w-3xl whitespace-pre-wrap'>{introDescription}</p> : null}
               <p className='flex flex-wrap gap-x-5 gap-y-2'>
                 {date ? <span className='inline-flex items-center gap-2'><CalendarDays className='size-4' />{date}</span> : null}
                 {time ? <span className='inline-flex items-center gap-2'><Clock3 className='size-4' />{time}</span> : null}
