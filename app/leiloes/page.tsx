@@ -1,6 +1,7 @@
 import { AuctionResponsiveBanner } from "@/components/Auction/AuctionResponsiveBanner";
 import type { Metadata } from "next";
 import { AuctionCard } from "@/components/Auction/AuctionCard";
+import { AuctionEndedDialog } from "@/components/Auction/AuctionEndedDialog";
 import { AuctionEmptyState } from "@/components/Auction/AuctionEmptyState";
 import { AuctionHeroBanner } from "@/components/Auction/AuctionHeroBanner";
 import Link from "next/link";
@@ -17,7 +18,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type ListingSearchParams = { q?: string; tipo?: string };
+type ListingSearchParams = { q?: string; tipo?: string; aviso?: string };
 
 export async function generateMetadata({ searchParams }: {
 	searchParams?: Promise<ListingSearchParams>;
@@ -72,6 +73,7 @@ export default async function LeiloesPage({
 
 	return (
 		<div className="bg-muted/35 pb-10 pt-4 sm:pt-5">
+			{params?.aviso === "leilao-encerrado" ? <AuctionEndedDialog /> : null}
 			<JsonLd data={listingStructuredData(visibleAuctions)} />
 			{platformBanners.desktopBannerUrl || platformBanners.mobileBannerUrl ? <div className="mx-auto max-w-6xl px-4 sm:px-6"><AuctionResponsiveBanner desktopUrl={platformBanners.desktopBannerUrl} mobileUrl={platformBanners.mobileBannerUrl} title="PR Leilões" altText="Banner da plataforma PR Leilões" /></div> : <AuctionHeroBanner
 				image={featuredAuction?.image}

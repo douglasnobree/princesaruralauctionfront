@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import type { Auction, AuctionLot } from "@/lib/auctions/types";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, BadgeCheck, Banknote, ChevronDown, CircleAlert, GitFork, History, Loader2, RefreshCw, Trophy, Truck, Wifi, WifiOff } from "lucide-react";
@@ -105,6 +106,8 @@ type LiveNotification = { id: number; message: string; tone: "price" | "status" 
 type CommercialTerms = Pick<Auction, "regulationText" | "paymentText" | "deliveryText">;
 
 export function AuctionRuntimeBoard({ externalAuctionId, initialSnapshot, focusLotExternalId, catalogLots = [], commercialTerms, hideClosedAuction = false }: { externalAuctionId: string; initialSnapshot: EngineAuctionSnapshot; focusLotExternalId?: string; catalogLots?: AuctionLot[]; commercialTerms?: CommercialTerms; hideClosedAuction?: boolean }) {
+	const router = useRouter();
+	const redirectedRef = useRef(false);
 	const [snapshot, setSnapshot] = useState(initialSnapshot);
 	const snapshotRef = useRef(initialSnapshot);
 	const [connection, setConnection] = useState<"connecting" | "connected" | "polling">("connecting");
@@ -114,6 +117,12 @@ export function AuctionRuntimeBoard({ externalAuctionId, initialSnapshot, focusL
 	const [registrationState, setRegistrationState] = useState<"checking" | "available" | "pending" | "approved">("checking");
 	const [loginDialogOpen, setLoginDialogOpen] = useState(false);
 	const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
+
+	useEffect(() => {
+		if (!hideClosedAuction || snapshot.auction.mode !== "LIVE" || !["FINISHED", "CLOSED"].includes(snapshot.auction.status) || redirectedRef.current) return;
+		redirectedRef.current = true;
+		router.replace("/leiloes?aviso=leilao-encerrado");
+	}, [hideClosedAuction, router, snapshot.auction.mode, snapshot.auction.status]);
 
 	const notify = useCallback((message: string, tone: LiveNotification["tone"] = "system") => {
 		const item = { id: Date.now() + Math.floor(Math.random() * 1000), message, tone, createdAt: new Date() };
@@ -168,6 +177,10 @@ export function AuctionRuntimeBoard({ externalAuctionId, initialSnapshot, focusL
 					const data = JSON.parse(event.data as string) as { type?: string; snapshot?: EngineAuctionSnapshot; event?: { eventType?: string; payload?: Record<string, unknown> } };
 					if (data.type === "snapshot" && data.snapshot) applySnapshot(data.snapshot, false);
 					if ((data.type === "event" || data.type === "replayed") && data.event?.payload) {
+						if (data.event.eventType === "auction.closed") {
+							applySnapshot({ ...snapshotRef.current, auction: { ...snapshotRef.current.auction, status: "FINISHED" } });
+							return;
+						}
 						const next = data.event.eventType === "stream.changed" ? updateStream(snapshotRef.current, data.event.payload) : updateLot(snapshotRef.current, data.event.payload);
 						applySnapshot(next);
 						if (data.event.eventType === "bid.accepted") notify("Novo lance confirmado no placar.", "price");
