@@ -4,6 +4,13 @@ import { useLayoutEffect, useRef } from "react";
 import type { BroadcastLot } from "@/lib/broadcast/broadcast-types";
 import styles from "@/components/Broadcast/broadcast-overlay.module.css";
 
+const statusLabels: Record<BroadcastLot["status"], string | null> = {
+  waiting: "Aguardando abertura",
+  open: null,
+  sold: "Vendido",
+  passed: "Encerrado",
+};
+
 export function CurrentLot({ lot }: { lot: BroadcastLot | null }) {
   const cardRef = useRef<HTMLElement>(null);
   const sweepRef = useRef<HTMLSpanElement>(null);
@@ -66,14 +73,7 @@ export function CurrentLot({ lot }: { lot: BroadcastLot | null }) {
     return () => animations.forEach((animation) => animation.cancel());
   }, [lotId]);
 
-  const statusLabel =
-    lot?.status === "sold"
-      ? "Vendido"
-      : lot?.status === "passed"
-        ? "Encerrado"
-        : lot?.status === "open"
-          ? "Em disputa"
-          : "Aguardando abertura";
+  const statusLabel = lot ? statusLabels[lot.status] : null;
 
   return (
     <section
@@ -91,7 +91,7 @@ export function CurrentLot({ lot }: { lot: BroadcastLot | null }) {
         <h1 ref={titleRef} className={styles.lotTitle}>
           {lot?.title ?? "Aguardando lote"}
         </h1>
-        {lot ? <span className={styles.lotStatus}>{statusLabel}</span> : null}
+        {statusLabel ? <span className={styles.lotStatus}>{statusLabel}</span> : null}
       </div>
       {lot?.description ? (
         <div className={styles.lotDescription}>
