@@ -1,9 +1,9 @@
 .overlay {
   --broadcast-ink: #f8fbf8;
   --broadcast-muted: rgba(235, 245, 237, 0.72);
-  --broadcast-green: #28834c;
-  --broadcast-green-deep: #062518;
-  --broadcast-amber: #fbaa34;
+  --broadcast-green: var(--pr-leaf);
+  --broadcast-green-deep: var(--pr-forest);
+  --broadcast-amber: var(--pr-gold);
   position: fixed;
   inset: 0;
   z-index: 100;
@@ -12,6 +12,7 @@
   pointer-events: none;
   font-family: var(--font-geist-sans), sans-serif;
   isolation: isolate;
+  container-type: inline-size;
 }
 
 .contained {
@@ -31,39 +32,93 @@
   opacity: 0;
 }
 
-.cornerGlow {
+.lowerThird {
   position: absolute;
-  left: -12rem;
-  bottom: -18rem;
-  width: 42rem;
-  height: 42rem;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(40, 131, 76, 0.3), transparent 68%);
-}
-
-.brandMark {
-  position: absolute;
-  left: clamp(1rem, 4vw, 4.75rem);
-  top: clamp(1rem, 4vh, 3rem);
-  width: clamp(7.75rem, 13vw, 10.5rem);
-  filter: drop-shadow(0 0.2rem 0.7rem rgba(0, 0, 0, 0.24));
-}
-
-.brandMark img {
-  display: block;
-  width: 100%;
-  height: auto;
+  inset: auto 2.6cqw 2cqw;
+  display: grid;
+  gap: 0.26cqw;
 }
 
 .content {
-  position: absolute;
-  left: clamp(1rem, 4vw, 4.75rem);
-  bottom: clamp(4.5rem, 9vh, 7rem);
   display: grid;
-  grid-template-columns: minmax(14rem, 26rem) minmax(12rem, 21rem);
-  align-items: end;
-  gap: clamp(0.75rem, 2vw, 1.75rem);
-  max-width: min(58rem, calc(100vw - 2rem));
+  grid-template-columns: minmax(0, 1fr) minmax(0, 24%);
+  gap: 0.42cqw;
+}
+
+.lotColumn {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+  gap: 0.22cqw;
+}
+
+.eventRow {
+  display: flex;
+  gap: 0.22cqw;
+}
+
+.event {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 0.78cqw;
+  padding: 0.55cqw 0.84cqw;
+  border-start-start-radius: 0.38cqw;
+  background: var(--broadcast-green-deep);
+}
+
+.brandMark {
+  display: block;
+  flex: none;
+  width: 9cqw;
+  height: auto;
+}
+
+.eventTitle {
+  border-inline-start: 1px solid rgba(248, 251, 248, 0.28);
+  padding-inline-start: 0.78cqw;
+  color: var(--broadcast-ink);
+  font-size: 1.08cqw;
+  font-weight: 750;
+  line-height: 1.14;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+.sellers {
+  display: grid;
+}
+
+.seller {
+  grid-area: 1 / 1;
+  display: flex;
+  width: 14cqw;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.13cqw;
+  padding: 0.34cqw 0.52cqw;
+  background: var(--broadcast-green);
+  color: white;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.seller[aria-hidden="true"] {
+  visibility: hidden;
+}
+
+.sellerName {
+  font-size: 0.96cqw;
+  font-weight: 700;
+  line-height: 1.12;
+}
+
+.sellerPhone {
+  font-size: 1.02cqw;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
 }
 
 .statusBadge,
@@ -86,8 +141,7 @@
 
 .statusBadge {
   position: absolute;
-  left: clamp(1rem, 4vw, 4.75rem);
-  top: clamp(4.25rem, 10vh, 6.5rem);
+  inset: 2cqw auto auto 2.6cqw;
 }
 
 .statusBadge[data-status="live"] {
@@ -115,18 +169,17 @@
 
 .lotCard,
 .bidCard {
+  position: relative;
   min-width: 0;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 0.75rem;
-  background: linear-gradient(135deg, rgba(6, 37, 24, 0.96), rgba(40, 131, 76, 0.88));
-  box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.23);
-  backdrop-filter: blur(0.75rem);
+  overflow: hidden;
+  box-shadow: 0 0.4cqw 1.2cqw rgba(0, 0, 0, 0.2);
 }
 
 .lotCard {
-  position: relative;
-  overflow: hidden;
-  padding: clamp(0.9rem, 1.8vw, 1.5rem);
+  display: flex;
+  flex-direction: column;
+  border-end-start-radius: 0.38cqw;
+  background: #f1f6f1;
 }
 
 .lotSweep {
@@ -140,15 +193,16 @@
 }
 
 .bidCard {
-  position: relative;
   display: flex;
-  overflow: hidden;
   flex-direction: column;
-  min-height: 9rem;
+  align-items: center;
   justify-content: center;
-  padding: clamp(0.9rem, 1.8vw, 1.5rem);
-  border-color: rgba(251, 170, 52, 0.38);
-  background: linear-gradient(135deg, rgba(75, 47, 12, 0.94), rgba(155, 93, 17, 0.86));
+  gap: 0.28cqw;
+  padding: 0.56cqw 0.78cqw;
+  border: 1px solid var(--broadcast-amber);
+  border-radius: 0 0.38cqw 0.38cqw 0;
+  background: var(--broadcast-green-deep);
+  text-align: center;
 }
 
 .bidSweep {
@@ -163,9 +217,26 @@
 
 .lotHeading {
   display: flex;
+  flex: 1;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.72cqw;
+  padding-inline-end: 0.84cqw;
+  background: var(--broadcast-green-deep);
+}
+
+.lotNumber {
+  display: grid;
+  flex: none;
+  align-self: stretch;
+  place-items: center;
+  min-width: 6.7cqw;
+  padding: 0.62cqw 0.7cqw;
+  background: var(--broadcast-amber);
+  color: var(--broadcast-green-deep);
+  font-size: 1.16cqw;
+  font-weight: 900;
+  line-height: 1.1;
+  text-transform: uppercase;
 }
 
 .eyebrow,
@@ -173,7 +244,7 @@
 .lotStatus,
 .soldKicker {
   color: var(--broadcast-muted);
-  font-size: clamp(0.58rem, 0.76vw, 0.72rem);
+  font-size: 0.74cqw;
   font-weight: 800;
   letter-spacing: 0.13em;
   line-height: 1.2;
@@ -182,64 +253,86 @@
 
 .lotStatus {
   color: var(--broadcast-amber);
+  margin-inline-start: auto;
   white-space: nowrap;
 }
 
 .lotTitle {
-  max-width: 24rem;
-  margin: 0.45rem 0 0;
+  min-width: 0;
+  padding-block: 0.52cqw;
   color: white;
-  font-size: clamp(1.2rem, 2.7vw, 2.6rem);
-  font-weight: 900;
-  letter-spacing: -0.045em;
-  line-height: 0.98;
-  text-wrap: balance;
+  font-size: 1.55cqw;
+  font-weight: 850;
+  line-height: 1.12;
+  overflow-wrap: anywhere;
+}
+
+.lotTitle:first-child {
+  padding-inline-start: 0.84cqw;
+}
+
+.lotDescription {
+  padding: 0.5cqw 0.84cqw;
+  color: var(--broadcast-green-deep);
+  font-size: 1.02cqw;
+  font-weight: 720;
+  line-height: 1.22;
+}
+
+.lotDescription p {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.installments {
+  width: 100%;
+  padding-bottom: 0.34cqw;
+  border-bottom: 1px solid rgba(248, 251, 248, 0.24);
+  color: #ffcc7b;
+  font-size: 0.95cqw;
+  font-weight: 750;
+  line-height: 1.16;
+  overflow-wrap: anywhere;
 }
 
 .emptyValue {
-  display: block;
-  margin: 0.55rem 0 0;
   color: white;
-  font-size: clamp(0.95rem, 1.7vw, 1.4rem);
+  font-size: 1.16cqw;
   font-weight: 800;
   line-height: 1.15;
 }
 
 .bidAmount {
-  display: block;
-  margin-top: 0.45rem;
   color: white;
-  font-size: clamp(1.5rem, 3.1vw, 3.05rem);
+  font-size: 2.64cqw;
   font-variant-numeric: tabular-nums;
   font-weight: 900;
   letter-spacing: -0.06em;
-  line-height: 0.96;
+  line-height: 1;
+  overflow-wrap: anywhere;
 }
 
 .bidderName {
-  display: block;
+  max-width: 100%;
   overflow: hidden;
-  margin-top: 0.7rem;
-  color: #fff2cf;
-  font-size: clamp(0.82rem, 1.15vw, 1.1rem);
-  font-weight: 800;
+  color: var(--broadcast-muted);
+  font-size: 0.95cqw;
+  font-weight: 700;
+  line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .carouselBar {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
   display: flex;
   align-items: center;
-  gap: clamp(0.75rem, 2vw, 2rem);
-  min-height: clamp(2.75rem, 5.2vh, 4rem);
-  padding: 0.65rem clamp(1rem, 4vw, 4.75rem);
-  background: linear-gradient(90deg, rgba(6, 37, 24, 0.96), rgba(6, 37, 24, 0.72), rgba(6, 37, 24, 0.38));
-  border-top: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 -0.75rem 2rem rgba(0, 0, 0, 0.12);
+  gap: 1cqw;
+  padding: 0.32cqw 0.84cqw;
+  background: rgba(6, 37, 24, 0.94);
+  border-radius: 0.22cqw;
 }
 
 .carouselViewport {
@@ -266,7 +359,7 @@
 .carouselParticipant {
   flex: 0 0 auto;
   color: white;
-  font-size: clamp(0.78rem, 1.1vw, 1.05rem);
+  font-size: 0.86cqw;
   font-weight: 700;
   white-space: nowrap;
 }
@@ -371,24 +464,44 @@
   50% { box-shadow: 0 0 0 0.5rem rgba(251, 170, 52, 0); }
 }
 
-@media (max-width: 680px) {
-  .content {
-    right: 1rem;
-    grid-template-columns: 1fr;
-    bottom: 5rem;
-  }
-
-  .bidCard {
-    min-height: auto;
-  }
-
-  .carouselBar {
-    align-items: flex-start;
-    flex-direction: column;
+@media (max-width: 680px) and (orientation: portrait) {
+  .overlay:not(.contained) .content {
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.25rem;
   }
 
-  .carouselViewport {
-    width: 100%;
+  .overlay:not(.contained) .eventRow {
+    flex-direction: column;
+  }
+
+  .overlay:not(.contained) .event,
+  .overlay:not(.contained) .lotDescription,
+  .overlay:not(.contained) .bidCard {
+    padding: 0.4rem 0.55rem;
+  }
+
+  .overlay:not(.contained) .brandMark {
+    width: 5rem;
+  }
+
+  .overlay:not(.contained) .seller {
+    width: auto;
+    padding: 0.25rem;
+  }
+
+  .overlay:not(.contained) :is(.eventTitle, .lotNumber, .lotDescription, .installments, .sellerName, .sellerPhone, .bidderName, .emptyValue) {
+    font-size: 0.75rem;
+  }
+
+  .overlay:not(.contained) .lotTitle {
+    font-size: 1rem;
+  }
+
+  .overlay:not(.contained) :is(.eyebrow, .lotStatus, .carouselLabel, .carouselParticipant) {
+    font-size: 0.625rem;
+  }
+
+  .overlay:not(.contained) .bidAmount {
+    font-size: 1.65rem;
   }
 }

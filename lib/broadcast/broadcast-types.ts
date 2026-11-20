@@ -5,6 +5,8 @@ export type BroadcastLot = {
   id: string;
   number: number;
   title: string;
+  description?: string;
+  installmentText?: string;
   imageUrl?: string;
   status: BroadcastLotStatus;
 };
@@ -17,6 +19,13 @@ export type BroadcastBid = {
   createdAt: string;
 };
 
+export type BroadcastSeller = {
+  name: string;
+  phone: string;
+};
+
+export const BROADCAST_SELLER_ROTATION_SECONDS = 8;
+
 export type BroadcastState = {
   auctionId: string;
   auctionTitle: string;
@@ -25,6 +34,7 @@ export type BroadcastState = {
   currentLot: BroadcastLot | null;
   currentBid: BroadcastBid | null;
   recentBids: BroadcastBid[];
+  sellers?: BroadcastSeller[];
   version: number;
   updatedAt: string;
 };
@@ -32,6 +42,7 @@ export type BroadcastState = {
 export type BroadcastConfig = {
   overlayDelayMs: number;
   maxRecentBids: number;
+  sellers?: BroadcastSeller[];
 };
 
 export type BroadcastClientInfo = {

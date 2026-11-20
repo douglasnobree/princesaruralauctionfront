@@ -83,17 +83,21 @@ export function CurrentLot({ lot }: { lot: BroadcastLot | null }) {
     >
       <span ref={sweepRef} className={styles.lotSweep} aria-hidden="true" />
       <div className={styles.lotHeading}>
-        <span className={styles.eyebrow}>
-          {lot ? `Lote ${String(lot.number).padStart(3, "0")}` : "Aguardando lote"}
-        </span>
+        {lot ? (
+          <span className={styles.lotNumber}>
+            Lote {String(lot.number).padStart(2, "0")}
+          </span>
+        ) : null}
+        <h1 ref={titleRef} className={styles.lotTitle}>
+          {lot?.title ?? "Aguardando lote"}
+        </h1>
         {lot ? <span className={styles.lotStatus}>{statusLabel}</span> : null}
       </div>
-      <h1
-        ref={titleRef}
-        className={lot ? styles.lotTitle : styles.emptyValue}
-      >
-        {lot?.title ?? "Próximo lote em instantes"}
-      </h1>
+      {lot?.description ? (
+        <div className={styles.lotDescription}>
+          <p>{lot.description}</p>
+        </div>
+      ) : null}
     </section>
   );
 }

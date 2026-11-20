@@ -17,9 +17,11 @@ function formatAmount(amountCents: string, currency: string) {
 export function CurrentBid({
   bid,
   currency,
+  installmentText,
 }: {
   bid: BroadcastBid | null;
   currency: string;
+  installmentText?: string;
 }) {
   const cardRef = useRef<HTMLElement>(null);
   const sweepRef = useRef<HTMLSpanElement>(null);
@@ -128,16 +130,19 @@ export function CurrentBid({
       aria-label="Lance atual"
     >
       <span ref={sweepRef} className={styles.bidSweep} aria-hidden="true" />
-      <span className={styles.eyebrow}>Lance atual</span>
-      <strong ref={amountRef} className={styles.bidAmount}>
+      {installmentText ? (
+        <p className={styles.installments}>{installmentText}</p>
+      ) : null}
+      {!installmentText && bid ? <span className={styles.eyebrow}>Lance atual</span> : null}
+      <strong ref={amountRef} className={bid ? styles.bidAmount : styles.emptyValue}>
         {bid ? formatAmount(bid.amountCents, currency) : "Aguardando lance"}
       </strong>
       <span
         ref={bidderRef}
         className={styles.bidderName}
-        aria-hidden={bid ? undefined : true}
+        hidden={!bid}
       >
-        {bid?.bidderName ?? "\u00a0"}
+        {bid?.bidderName}
       </span>
     </section>
   );

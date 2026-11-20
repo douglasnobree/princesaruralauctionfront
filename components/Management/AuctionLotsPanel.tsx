@@ -53,6 +53,7 @@ type Draft = {
   startingBid: string;
   increment: string;
   paymentDescription: string;
+  broadcastInstallmentText: string;
   deliveryDescription: string;
   closesAt: string;
   documentText: string;
@@ -68,6 +69,7 @@ const blank: Draft = {
   startingBid: "",
   increment: "",
   paymentDescription: "",
+  broadcastInstallmentText: "",
   deliveryDescription: "",
   closesAt: "",
   documentText: "",
@@ -94,6 +96,7 @@ function draftFromLot(lot: AuctionAdminLot): Draft {
     startingBid: centsToReais(lot.startingBidCents),
     increment: centsToReais(lot.incrementCents),
     paymentDescription: lot.paymentDescription ?? "",
+    broadcastInstallmentText: lot.broadcastInstallmentText ?? "",
     deliveryDescription: lot.deliveryDescription ?? "",
     closesAt: toDateTimeLocalBrt(lot.closesAt),
     documentText: lot.documentText ?? "",
@@ -190,6 +193,9 @@ export function AuctionLotsPanel({
           ? { startingBidCents, ...(isShopping ? {} : { incrementCents }) }
           : {}),
         paymentDescription: draft.paymentDescription.trim() || undefined,
+        ...(!isShopping
+          ? { broadcastInstallmentText: draft.broadcastInstallmentText.trim() || null }
+          : {}),
         deliveryDescription: draft.deliveryDescription.trim() || undefined,
         ...(!isShopping ? { closesAt: fromDateTimeLocalBrt(draft.closesAt) } : {}),
         documentText: draft.documentText.trim() || undefined,
@@ -659,6 +665,19 @@ function LotForm({
         </Field>
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        {!isShopping ? (
+          <Field label="Parcelamento no OBS" id="lot-broadcast-installments">
+            <input
+              id="lot-broadcast-installments"
+              value={draft.broadcastInstallmentText}
+              onChange={(event) => onChange("broadcastInstallmentText", event.target.value)}
+              maxLength={72}
+              placeholder="36x (18 parcelas duplas mensais)"
+              disabled={disabled}
+              className="admin-field"
+            />
+          </Field>
+        ) : null}
         <TextArea
           label="Pagamento"
           id="lot-payment"

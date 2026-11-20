@@ -13,10 +13,12 @@ import {
   updateBroadcastConfigAction,
   type BroadcastTokenSummary,
 } from "@/hooks/actions/broadcastActions";
-import type {
-  BroadcastClientInfo,
-  BroadcastConfig,
-  BroadcastState,
+import {
+  BROADCAST_SELLER_ROTATION_SECONDS,
+  type BroadcastClientInfo,
+  type BroadcastConfig,
+  type BroadcastSeller,
+  type BroadcastState,
 } from "@/lib/broadcast/broadcast-types";
 
 type BroadcastControlPanelProps = {
@@ -60,6 +62,7 @@ export function BroadcastControlPanel({
   const [maxRecentBids, setMaxRecentBids] = useState(
     String(initialConfig.maxRecentBids),
   );
+  const [sellers, setSellers] = useState<BroadcastSeller[]>(initialConfig.sellers ?? []);
   const [label, setLabel] = useState("obs-main");
   const [expiresInDays, setExpiresInDays] = useState("30");
   const [overlayUrl, setOverlayUrl] = useState<string | null>(null);
@@ -81,6 +84,7 @@ export function BroadcastControlPanel({
         setConfig(configResult.data);
         setDelay(String(configResult.data.overlayDelayMs));
         setMaxRecentBids(String(configResult.data.maxRecentBids));
+        setSellers(configResult.data.sellers ?? []);
       }
       if (clientsResult.success && clientsResult.data) setClients(clientsResult.data);
       if (tokensResult.success && tokensResult.data) setTokens(tokensResult.data);
@@ -93,18 +97,34 @@ export function BroadcastControlPanel({
 
   const updateConfig = () => {
     if (!canManageBroadcast) return;
+    const contacts = sellers.map(({ name, phone }) => ({
+      name: name.trim(),
+      phone: phone.trim(),
+    }));
+    if (contacts.some(({ name, phone }) => !name || !/^[+\d().\s-]+$/.test(phone) || !/\d/.test(phone))) {
+      setNotice("Informe o nome e um telefone válido para cada vendedor.");
+      return;
+    }
     startTransition(async () => {
       const result = await updateBroadcastConfigAction(auctionId, {
         overlayDelayMs: Number(delay),
         maxRecentBids: Number(maxRecentBids),
+        sellers: contacts,
       });
       if (!result.success || !result.data) {
         setNotice(result.error ?? "Não foi possível atualizar a configuração.");
         return;
       }
       setConfig(result.data);
+      setSellers(result.data.sellers ?? []);
       setNotice("Configuração do overlay atualizada.");
     });
+  };
+
+  const updateSeller = (index: number, field: keyof BroadcastSeller, value: string) => {
+    setSellers((current) => current.map((seller, position) =>
+      position === index ? { ...seller, [field]: value } : seller,
+    ));
   };
 
   const rebroadcast = () => {
@@ -262,7 +282,14 @@ export function BroadcastControlPanel({
         </section>
 
         <div className="space-y-6">
-          <section className="rounded-2xl border bg-card p-4 shadow-xs sm:p-6" aria-labelledby="broadcast-config-title">
+          <form
+            className="rounded-2xl border bg-card p-4 shadow-xs sm:p-6"
+            aria-labelledby="broadcast-config-title"
+            onSubmit={(event) => {
+              event.preventDefault();
+              updateConfig();
+            }}
+          >
             <h2 id="broadcast-config-title" className="text-xl font-bold">Configuração</h2>
             <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
               <label className="text-sm font-semibold">
@@ -292,9 +319,57 @@ export function BroadcastControlPanel({
                 />
               </label>
             </div>
+            <fieldset disabled={!canManageBroadcast || isPending} className="mt-5 border-t pt-4">
+              <legend className="pr-2 text-sm font-semibold">Vendedores no OBS</legend>
+              <p className="text-sm text-muted-foreground">
+                Adicione até três contatos. O OBS mostra um por vez e alterna a cada {BROADCAST_SELLER_ROTATION_SECONDS} segundos.
+              </p>
+              {sellers.map((seller, index) => (
+                <div key={index} className="mt-3 grid gap-2 border-b pb-3">
+                  <label className="text-sm font-semibold">
+                    Nome do vendedor {index + 1}
+                    <input
+                      className="mt-1 h-10 w-full rounded-lg border bg-background px-3 font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      maxLength={48}
+                      required
+                      value={seller.name}
+                      onChange={(event) => updateSeller(index, "name", event.target.value)}
+                    />
+                  </label>
+                  <label className="text-sm font-semibold">
+                    Telefone do vendedor {index + 1}
+                    <input
+                      className="mt-1 h-10 w-full rounded-lg border bg-background px-3 font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      type="tel"
+                      placeholder="(00) 90000-0000"
+                      maxLength={24}
+                      required
+                      value={seller.phone}
+                      onChange={(event) => updateSeller(index, "phone", event.target.value)}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    aria-label={`Remover vendedor ${index + 1}`}
+                    onClick={() => setSellers((current) => current.filter((_, position) => position !== index))}
+                    className="min-h-8 justify-self-end rounded px-2 text-sm font-medium text-destructive hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    Remover
+                  </button>
+                </div>
+              ))}
+              {sellers.length < 3 ? (
+                <button
+                  type="button"
+                  onClick={() => setSellers((current) => [...current, { name: "", phone: "" }])}
+                  className="mt-3 min-h-10 rounded-lg border px-3 text-sm font-semibold hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                >
+                  Adicionar vendedor
+                </button>
+              ) : null}
+            </fieldset>
             <button
-              type="button"
-              onClick={updateConfig}
+              type="submit"
               disabled={isPending || !canManageBroadcast}
               className="mt-4 w-full rounded-lg border border-secondary px-4 py-2 text-sm font-semibold text-secondary transition-colors hover:bg-secondary/10 disabled:opacity-50"
             >
@@ -303,7 +378,7 @@ export function BroadcastControlPanel({
             <p className="mt-3 text-xs text-muted-foreground">
               Configuração atual: {config.overlayDelayMs} ms · {config.maxRecentBids} lances
             </p>
-          </section>
+          </form>
 
           <section className="rounded-2xl border bg-card p-4 shadow-xs sm:p-6" aria-labelledby="broadcast-token-title">
             <h2 id="broadcast-token-title" className="text-xl font-bold">URL do OBS</h2>

@@ -2,7 +2,11 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import Image from "next/image";
-import type { BroadcastBid, BroadcastLot } from "@/lib/broadcast/broadcast-types";
+import {
+  BROADCAST_SELLER_ROTATION_SECONDS,
+  type BroadcastBid,
+  type BroadcastLot,
+} from "@/lib/broadcast/broadcast-types";
 import { useBroadcastOverlay } from "@/components/Broadcast/use-broadcast-overlay";
 import { AuctionStatus } from "@/components/Broadcast/auction-status";
 import { BroadcastDebug } from "@/components/Broadcast/broadcast-debug";
@@ -35,6 +39,7 @@ export function BroadcastOverlay({
   contained = false,
 }: BroadcastOverlayProps) {
   const [soldMoment, setSoldMoment] = useState<SoldMoment | null>(null);
+  const [sellerIndex, setSellerIndex] = useState(0);
   const previousLotRef = useRef<BroadcastLot | null>(null);
   const soldTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const broadcast = useBroadcastOverlay({ auctionId, token, clientId });
@@ -76,6 +81,17 @@ export function BroadcastOverlay({
   const isFinished = status === "finished";
   const currentLot = broadcast.state?.currentLot ?? null;
   const currentBid = broadcast.state?.currentBid ?? null;
+  const auctionTitle = broadcast.state?.auctionTitle;
+  const sellers = broadcast.state?.sellers ?? [];
+  const sellerCount = sellers.length;
+
+  useEffect(() => {
+    if (isFinished || sellerCount < 2) return;
+    const interval = setInterval(() => {
+      setSellerIndex((index) => (index + 1) % sellerCount);
+    }, BROADCAST_SELLER_ROTATION_SECONDS * 1_000);
+    return () => clearInterval(interval);
+  }, [isFinished, sellerCount]);
 
   return (
     <div className={`${styles.overlay} ${contained ? styles.contained : "broadcast-page"}`}>
@@ -84,26 +100,48 @@ export function BroadcastOverlay({
         data-finished={isFinished ? "true" : "false"}
         aria-hidden={isFinished}
       >
-        <div className={styles.cornerGlow} aria-hidden="true" />
-        <div className={styles.brandMark}>
-          <Image
-            src="/brand/pr-leiloes/logo-horizontal-white.svg"
-            alt="PR Leilões"
-            width={247}
-            height={43}
-            priority
-          />
-        </div>
         <AuctionStatus status={status} />
         <ReconnectIndicator status={broadcast.connection} />
-        <div className={styles.content}>
-          <CurrentLot lot={currentLot} />
-          <CurrentBid
-            bid={currentBid}
-            currency={broadcast.state?.currency ?? "BRL"}
-          />
+        <div className={styles.lowerThird}>
+          <div className={styles.content}>
+            <div className={styles.lotColumn}>
+              <div className={styles.eventRow}>
+                <div className={styles.event}>
+                  <Image
+                    className={styles.brandMark}
+                    src="/brand/pr-leiloes/logo-horizontal-white.svg"
+                    alt="PR Leilões"
+                    width={247}
+                    height={43}
+                    priority
+                  />
+                  {auctionTitle ? <span className={styles.eventTitle}>{auctionTitle}</span> : null}
+                </div>
+                {sellers.length > 0 ? (
+                  <ul className={styles.sellers} aria-label="Vendedores">
+                    {sellers.map(({ name, phone }, index) => (
+                      <li
+                        key={index}
+                        className={styles.seller}
+                        aria-hidden={index !== sellerIndex % sellerCount}
+                      >
+                        <span className={styles.sellerName}>{name}</span>
+                        <span className={styles.sellerPhone}>{phone}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+              <CurrentLot lot={currentLot} />
+            </div>
+            <CurrentBid
+              bid={currentBid}
+              currency={broadcast.state?.currency ?? "BRL"}
+              installmentText={currentLot?.installmentText}
+            />
+          </div>
+          <BidderCarousel bids={broadcast.state?.recentBids ?? []} />
         </div>
-        <BidderCarousel bids={broadcast.state?.recentBids ?? []} />
         {soldMoment ? (
           <SoldAnimation
             lot={soldMoment.lot}
