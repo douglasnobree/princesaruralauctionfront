@@ -3,6 +3,7 @@
 import {
   CheckCircle2,
   Clock3,
+  Download,
   Gavel,
   Loader2,
   Pause,
@@ -250,6 +251,21 @@ export function AuctionOperationPanel({
       </section>
     );
   const auction = snapshot.auction;
+  const downloadLots = () => {
+    const content = [...snapshot.lots]
+      .sort((a, b) => a.lotNumber - b.lotNumber)
+      .map((lot) => `Lote ${lot.lotNumber}:\r\n${lot.title}\r\n\r\n`)
+      .join("");
+    const blob = new Blob(["\uFEFF", content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Lotes do Leilão ${auction.title}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
   const canOperate = capabilities.canManageStatus && !syncError;
   const canBid = capabilities.canManageBids;
   function setStream(status: "LIVE" | "ENDED") {
@@ -421,6 +437,15 @@ export function AuctionOperationPanel({
           >
             <RefreshCw className={`size-4 ${refreshing ? "animate-spin" : ""}`} aria-hidden="true" />
             Atualizar estado
+          </button>
+          <button
+            type="button"
+            onClick={downloadLots}
+            disabled={snapshot.lots.length === 0}
+            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#dfe8e2] px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f08a24] disabled:opacity-50"
+          >
+            <Download className="size-4" aria-hidden="true" />
+            Baixar lotes (.txt)
           </button>
         </div>
         <p className="mt-3 text-xs text-slate-500">
